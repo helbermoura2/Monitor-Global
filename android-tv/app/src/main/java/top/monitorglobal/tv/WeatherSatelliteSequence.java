@@ -5,9 +5,18 @@ final class WeatherSatelliteSequence implements AutoCloseable {
  static final long AFTER_WEATHER=13000,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();}
  private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
- WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);return new Loader(){public WeatherSatelliteClient.Frame load()throws Exception{return client.latest(InfraredPlan.SOUTHEAST,System.currentTimeMillis());}public void close(){client.close();}};});}
+ WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){private volatile boolean stopped;public WeatherSatelliteClient.Frame load()throws Exception{
+   try{long now=System.currentTimeMillis();RadarMapClient.Frame observed=radar.latestWithin(now,10000);
+    if(!stopped&&observed.at<=now&&now-observed.at<=60*60000L){
+     Bitmap image=RadarMapRender.render(c,client,InfraredPlan.SOUTHEAST,observed);
+     if(stopped){image.recycle();return null;}
+     return WeatherSatelliteClient.Frame.radar(image,observed,InfraredPlan.SOUTHEAST);
+    }
+   }catch(Exception|OutOfMemoryError ignored){}finally{radar.close();}
+   return stopped?null:client.latest(InfraredPlan.SOUTHEAST,System.currentTimeMillis());
+  }public void close(){stopped=true;radar.close();client.close();}};});}
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed,java.util.function.Supplier<Loader> factory){context=c;this.allowed=allowed;this.factory=factory;banner=new Banner(c);}
- void prepare(){if(closed||pending)return;pending=true;flipExpected=false;int token=++generation;Prefs.get(context).edit().putString("satelliteStatus","Satélite: consultando a imagem do Sudeste").apply();
+ void prepare(){if(closed||pending)return;pending=true;flipExpected=false;int token=++generation;Prefs.get(context).edit().putString("satelliteStatus","Mapa: consultando radar e satélite do Sudeste").apply();
   main.postDelayed(()->{if(token==generation&&pending&&!armed)cancel();},PREPARE_TTL);
   try{reader=factory.get();}catch(RuntimeException e){failed=true;return;}Loader operation=reader;if(worker==null)worker=Executors.newSingleThreadExecutor();
   worker.execute(()->{WeatherSatelliteClient.Frame result=null;try{result=operation.load();}catch(Exception|OutOfMemoryError ignored){}WeatherSatelliteClient.Frame ready=result;main.post(()->{
@@ -25,7 +34,7 @@ final class WeatherSatelliteSequence implements AutoCloseable {
  private void show(int token){
   if(closed||token!=generation||!armed||rendered)return;
   if(!canShow()){cancel();return;}
-  if(frame!=null&&System.currentTimeMillis()-frame.at>InfraredPlan.MAX_AGE){frame.close();frame=null;failed=true;}
+  if(frame!=null&&!frame.validAt(System.currentTimeMillis())){frame.close();frame=null;failed=true;}
   try{
    if(frame!=null){
     if(!banner.showSatellite(frame,"",DURATION,()->{if(token==generation)cancel();})){cancel();return;}
@@ -36,7 +45,7 @@ final class WeatherSatelliteSequence implements AutoCloseable {
     rendered=true;
    }else{
     // Preserve the old wait-for-image phase, but show it inside the tarja.
-    if(!banner.showSatellite(null,"Carregando imagem de satélite do Sudeste…",
+    if(!banner.showSatellite(null,"Consultando radar e satélite do Sudeste…",
       WAIT_FOR_IMAGE+2000,null)){cancel();return;}
    }
    current=(FrameLayout)banner.activeView();
@@ -46,10 +55,10 @@ final class WeatherSatelliteSequence implements AutoCloseable {
   }
  }
  private void closeReader(){if(reader!=null){reader.close();reader=null;}}
- WeatherSatelliteClient.Frame currentFrame(){return frame!=null&&System.currentTimeMillis()-frame.at<=InfraredPlan.MAX_AGE?frame:null;}
+ WeatherSatelliteClient.Frame currentFrame(){return frame!=null&&frame.validAt(System.currentTimeMillis())?frame:null;}
  boolean pending(){return pending;}
  /** Called at weather-card exit: only a genuine, current image can trigger the flip. */
- boolean readyForFlip(){boolean ready=armed&&!failed&&frame!=null&&System.currentTimeMillis()-frame.at<=InfraredPlan.MAX_AGE;
+ boolean readyForFlip(){boolean ready=armed&&!failed&&frame!=null&&frame.validAt(System.currentTimeMillis());
   if(ready)flipExpected=true;return ready;}
  private void exit(int token){if(token==generation)cancel();}
  void cancel(){
