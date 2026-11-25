@@ -318,3 +318,6 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 .map-dock .radar-scale i{border-radius:1px;margin-bottom:2px}
 .map-dock .time-control label{color:#ddd}
 .map-stage .map-actions button{white-space:nowrap}
+
+.brazil-location #locate{flex:none;width:44px;min-width:44px;min-height:44px;border:0;border-radius:50%;background:#080808ed;color:#eee;font-size:23px}
+.brazil-location #locate:disabled{opacity:.5}
