@@ -49,10 +49,12 @@ await import('../../js/quake-site-flags.js');
 await import('../../js/quake-site-video.js');
 test('only Brazil at any magnitude or M6+ elsewhere can record a separate video',()=>{
  const eligible=globalThis.QuakeSiteVideo.eligible;
- assert(eligible({type:'earthquake',mag:1.8,countryCode:'BR'}));
- assert(eligible({type:'earthquake',mag:6.2,countryCode:'JP'}));
- assert(!eligible({type:'earthquake',mag:4.1,countryCode:'JP'}));
- assert(!eligible({type:'volcano',mag:7,countryCode:'BR'}));
+ assert(!eligible({type:'earthquake',mag:7,countryCode:'BR'}),'a cartographic replay requires valid coordinates');
+ assert(!eligible({type:'earthquake',mag:7,coords:[0,90]}));
+ assert(eligible({type:'earthquake',mag:1.8,countryCode:'BR',coords:[-36.24,-8.67]}));
+ assert(eligible({type:'earthquake',mag:6.2,countryCode:'JP',coords:[139.69,35.68]}));
+ assert(!eligible({type:'earthquake',mag:4.1,countryCode:'JP',coords:[139.69,35.68]}));
+ assert(!eligible({type:'volcano',mag:7,countryCode:'BR',coords:[-36.24,-8.67]}));
 });
 test('state flag is selected by coordinates, not by place naming',async()=>{
  globalThis.CountryBoundaries={ready:Promise.resolve(),lookup:(lat)=>({countryCode:lat<0?'BR':'JP'})};
