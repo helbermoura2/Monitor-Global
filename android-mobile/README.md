@@ -34,9 +34,11 @@ cd android-mobile
 
 A CI confere o APK, suas permissões e a inicialização dos assets do mapa com a API real do MapLibre. O mapa empacotado também é aberto no Chrome com WebGL por software e imagens controladas, verificando carregamento e seleção de eventos. Testes de layout usam Robolectric/Skia. Essas verificações não substituem teste físico nem entrega de rede em um aparelho.
 
-## Distribuição de testes
+## Distribuição Android
 
-O workflow Android mobile preview gera o APK em PRs. Após integrar na main e passar os testes, publica a pré-release `mobile-preview`, com o arquivo `monitor-global-mobile-preview.apk`. A prévia usa assinatura de desenvolvimento, mantida no cache da CI para continuidade dos testes; não é o canal oficial assinado nem publicação na Play Store. Uma futura versão oficial terá sua configuração própria de assinatura e atualização. Nenhuma chave é gravada no repositório.
+O workflow gera a prévia de testes e o APK estável em PRs, sem publicar nenhum deles a partir da PR. O canal `mobile-preview` continua separado e identificado como teste. O canal `mobile-stable` usa o mesmo pacote Android `.dev` e a mesma identidade de assinatura de desenvolvimento preservada no cache da CI, para permitir a atualização por cima da instalação de testes já existente. A versão estável remove o sufixo `-teste` da versão exibida, sem trocar o identificador interno nem apagar dados.
+
+A publicação estável é uma etapa manual e protegida: depois de integrar as alterações na `main`, alguém precisa executar o workflow Android mobile preview com a opção `publish_stable` marcada. O workflow recompila e valida os APKs, compara o certificado estável com o certificado da prévia instalada e só então publica a release estável. A PR, por si só, não publica o canal estável. Nenhuma chave é gravada no repositório.
 
 Não se deve distribuir o APK release sem assinatura produzido apenas para verificação de build. O instalável de teste é o APK debug, identificado no lançador e nas notificações como **Argos Orbis**. A prévia continua diferenciada pela versão com sufixo `-teste` em **Sobre e diagnóstico**, pelo pacote `top.monitorglobal.mobile.dev` e pelo canal de pré-release. Avisos reais permanecem normais; o teste local mantém o aviso explícito de simulação no título e no corpo.
 
@@ -48,10 +50,10 @@ O mapa inclui satélite GOES-East infravermelho via NASA GIBS. O recorte é o te
 
 Os recursos locais do mapa usam um caminho por versionCode (/assets/vN/), inclusive scripts e estilos relativos. Uma atualização usa endereços novos sem limpar o cache de imagens remotas ou os dados do usuário. A versão instalada aparece em Sobre e diagnóstico.
 
-## Atualização pelo próprio aplicativo (prévia)
+## Atualização pelo próprio aplicativo
 
-Em **Avisos → Configurar notificações → Informações técnicas e atualização do aplicativo → Verificar atualização do aplicativo**, o cliente instalado `top.monitorglobal.mobile.dev` consulta o arquivo público `mobile-update.json` anexado à pré-release `mobile-preview` no GitHub. O arquivo é gerado **somente após a compilação e testes**, no processo de publicação já existente; inclui versionCode, versão, SHA-256 do APK e o SHA-256 do certificado do publicador. O app compara com o certificado realmente instalado, rejeita URL arbitrária, downloads HTTP, downgrade e pacote diferente antes de solicitar instalação ao Android.
+Em **Avisos → Configurar notificações → Informações técnicas e atualização do aplicativo → Verificar atualização do aplicativo**, o cliente instalado `top.monitorglobal.mobile.dev` consulta o arquivo público `mobile-update.json` anexado à release estável `mobile-stable` no GitHub. O arquivo é gerado **somente após a compilação e testes**, no processo de publicação já existente; inclui versionCode, versão, SHA-256 do APK e o SHA-256 do certificado do publicador. O app compara com o certificado realmente instalado, rejeita URL arbitrária, downloads HTTP, downgrade e pacote diferente antes de solicitar instalação ao Android.
 
 O download e a conferência acontecem no próprio aplicativo; na primeira vez o Android pode pedir permissão para instalar aplicativos desta fonte. A **instalação exige confirmação do usuário**, e preserva os dados quando o identificador e o certificado de assinatura coincidem. Não existe instalação silenciosa, serviço contínuo, Worker adicional nem consulta por GitHub Actions. O aplicativo não é iniciado no boot; o job de avisos de reserva só é novamente programado quando a aplicação for aberta após reiniciar o telefone.
 
-**Limite:** o mecanismo atual atende **apenas o canal de testes**. O pacote oficial `top.monitorglobal.mobile` e a versão da TV não são atualizados por esse canal; precisam de manifesto e assinatura de lançamento próprios. Se o cache da chave de assinatura de testes desaparecer e o certificado mudar, a atualização segura será bloqueada até resolver a continuidade da assinatura. A opção só funcionará plenamente após o APK desta implementação ser publicado com o manifesto no GitHub.
+**Limite:** este canal estável atualiza a instalação móvel existente `top.monitorglobal.mobile.dev`. O pacote oficial `top.monitorglobal.mobile` e a versão da TV continuam separados. Se o cache da chave de assinatura for perdido e o certificado mudar, a atualização segura será bloqueada até recuperar a continuidade da assinatura. A instalação continua exigindo confirmação do Android; não há instalação silenciosa.
