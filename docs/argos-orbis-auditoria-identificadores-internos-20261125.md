@@ -130,8 +130,15 @@ O README indica um projeto Next.js/v0, mas a árvore também contém uma aplica�
 
 ## 4. Repositórios restantes
 
-- `cena-downloads`: a árvore examinada não apresenta caminhos com “Monitor Global” ou “monitorglobal”. Ainda falta busca de conteúdo textual porque o índice de código não está disponível.
-- `cobalt-script`, `cobalt-voltar`, `teclado-br`, `teclado-br-publico`: os repositórios aparecem na instalação GitHub, mas o índice de código não está disponível. As buscas sem resultados são inconclusivas. Fazer auditoria por árvore/arquivos ou habilitar indexação antes de afirmar que não há referências.
+A árvore recursiva foi consultada nos sete repositórios listados na seção 1:
+
+- `cena-downloads`: 47 entradas; nenhum caminho com “Monitor Global”, “monitor-global” ou “monitorglobal”.
+- `cobalt-script`: 16 entradas; nenhum caminho com esses identificadores.
+- `cobalt-voltar`: 31 entradas; nenhum caminho com esses identificadores.
+- `teclado-br`: 144 entradas; nenhum caminho com esses identificadores.
+- `teclado-br-publico`: 99 entradas; nenhum caminho com esses identificadores.
+
+Esses cinco repositórios não têm caminhos antigos na árvore examinada. Como o índice de código está indisponível, isso **não prova** que nenhum arquivo contenha uma menção textual interna; a busca de conteúdo ainda é necessária se esses repositórios também forem considerados parte do escopo de marca. Nenhum deles foi alterado.
 
 ## 5. O que pode ser renomeado
 
