@@ -122,4 +122,37 @@ public class TvDashboardUiTest {
   assertEquals(View.VISIBLE,root.findViewWithTag("page-Sistema").getVisibility());
   app.finish();
  }
+ @Test public void marketCardKeepsBothQuotesAndFullSourceStatus(){
+  String status="COTAÇÕES · Brent US$ 90,72 · Yahoo USD/BRL R$ 5,824 · 18:14 BRT · referência internacional";
+  Prefs.get(RuntimeEnvironment.getApplication()).edit().putString("brentStatus",status).commit();
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
+  View root=app.getWindow().getDecorView();
+  Button market=root.findViewWithTag("overview-Mercado");
+  assertEquals("Mercado\nBrent US$ 90,72\nDólar (Yahoo) R$ 5,824",market.getText().toString());
+  assertTrue(market.getContentDescription().toString().contains("18:14 BRT"));
+  market.performClick();
+  TextView detail=root.findViewWithTag("market-full-status");
+  assertEquals(status,detail.getText().toString());
+  assertEquals("Brent · FECHADO\nDólar · ABERTO",MainActivity.marketSummary("BRENT · FECHADO · DÓLAR · ABERTO · valores anteriores"));
+  assertEquals("Brent sem preço confirmado\nUSD/BRL indisponível",MainActivity.marketSummary("COTAÇÕES · Brent sem preço confirmado · USD/BRL indisponível · referência internacional"));
+  app.finish();
+ }
+ @Test public void collapseControlHasNoVerticalPaddingOrMinimumHeight(){
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
+  Button toggle=app.getWindow().getDecorView().findViewWithTag("sidebar-toggle");
+  assertEquals(0,toggle.getPaddingTop());
+  assertEquals(0,toggle.getPaddingBottom());
+  // TextView reports -1 when the minimum is expressed in lines rather than pixels.
+  assertTrue(toggle.getMinHeight()<=0);
+  assertEquals(0,toggle.getMinimumHeight());
+  toggle.measure(View.MeasureSpec.makeMeasureSpec(180,View.MeasureSpec.EXACTLY),
+   View.MeasureSpec.makeMeasureSpec(toggle.getLayoutParams().height,View.MeasureSpec.EXACTLY));
+  assertTrue(toggle.getMeasuredHeight()>=toggle.getPaint().getFontSpacing());
+  assertFalse(toggle.getIncludeFontPadding());
+  toggle.performClick();
+  assertEquals("›",toggle.getText().toString());
+  toggle.performClick();
+  assertTrue(toggle.getText().toString().contains("Recolher"));
+  app.finish();
+ }
 }
