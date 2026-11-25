@@ -29,7 +29,7 @@ android {
  // Reuse the validated protocol, forecast and flag models without copying the TV application.
  sourceSets {
   main {
-   java.srcDirs = ['src/main/java', layout.buildDirectory.dir('generated/phoneModels')]
+   java.srcDirs = ['src/main/java']
    assets.srcDir layout.buildDirectory.dir('generated/phoneAssets')
   }
  }
@@ -43,7 +43,7 @@ androidComponents {
  }
 }
 tasks.register('preparePhoneAssets', Sync) {
- from('../../android-tv/app/src/main/assets') { include 'fonts/**'; include 'flags/**' }
+ from('../../android-tv/app/src/main/assets') { include 'fonts/**'; include 'flags/**'; include 'argos-official-logo-base.b64'; include 'argos-official-logo.b64' }
  from('../../js') { include 'brazil-satellite-model.js'; include 'brazil-satellite.js' }
  from('../../css') { include 'brazil-satellite.css' }
  from('../../data') { include 'brazil-satellite-border.json'; into 'data' }
@@ -63,16 +63,9 @@ tasks.register('preparePhoneAssets', Sync) {
  }
  into layout.buildDirectory.dir('generated/phoneAssets')
 }
-tasks.register('preparePhoneModels', Sync) {
- from('../../android-tv/app/src/main/java') {
-  ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast','WeatherBriefing','WeatherBriefingClient','DailyWeatherBrief','DefesaCivilSp','RadarLogoView','OfficialArgosLogo','BroadcastVisuals','OledNewsChrome'].each { model ->
-   include "top/monitorglobal/tv/${model}.java"
-  }
- }
- into layout.buildDirectory.dir('generated/phoneModels')
-}
-tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets', 'preparePhoneModels' }
+tasks.named('preBuild').configure { dependsOn 'preparePhoneAssets' }
 dependencies {
+ implementation project(':core')
  implementation 'androidx.core:core:1.15.0'
  implementation 'androidx.webkit:webkit:1.12.1'
  implementation 'com.google.firebase:firebase-messaging:24.1.2'
