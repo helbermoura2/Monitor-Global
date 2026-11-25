@@ -33,7 +33,7 @@ class AlexaVoiceBannerPlacementTest(unittest.TestCase):
         self.assertIn("TvBroadcastInfoView.marketPending(context)",banner)
         self.assertIn("marketPending=true",view)
         self.assertIn("if(marketPending)",view)
-        self.assertIn('OledNewsChrome.tab(c,p,BannerOpening.title(effects.category),true)',view)
+        self.assertIn('else OledNewsChrome.tab(c,p,dailyWeatherText!=null?"BOLETIM DO TEMPO":BannerOpening.title(effects.category),true)',view)
         self.assertIn('case MARKET:return "COTAÇÕES";',source("BannerOpening.java"))
         self.assertIn("BroadcastVisuals.radar(c,p,elapsed,motionEnabled())",view)
         self.assertIn("BrentQuote.DISPLAY",overlay)
