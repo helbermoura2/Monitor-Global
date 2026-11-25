@@ -14,7 +14,7 @@ android {
   applicationId 'top.monitorglobal.mobile'
   minSdk 28
   targetSdk 35
-  versionCode 67
+  versionCode 66
   versionName '0.1.66'
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
@@ -39,7 +39,7 @@ android {
 // The stable channel must be a strictly newer install than the current preview APK.
 androidComponents {
  onVariants(selector().all()) { variant ->
-  if (variant.name == 'debug') variant.outputs.each { output -> output.versionCode.set(66) }
+  if (variant.name == 'stable') variant.outputs.each { output -> output.versionCode.set(67) }
  }
 }
 tasks.register('preparePhoneAssets', Sync) {
