@@ -1,0 +1,31 @@
+name: TV meteorology stages 13 to 15 prediction foundations
+on:
+  push:
+    branches: [feat/tv-meteorologia-avancada]
+    paths: ['.github/workflows/tv-meteorologia-prediction.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Fetch real nine-point forecast for personal non-commercial pilot
+        run: |
+          echo "ARGOS_FORECAST_TIME=$(($(date +%s)*1000))" >> "$GITHUB_ENV"
+          curl --fail --silent --show-error --max-time 35 --max-filesize 262144 'https://api.open-meteo.com/v1/forecast?latitude=-24.5,-24.5,-24.5,-23.5,-23.5,-23.5,-22.5,-22.5,-22.5&longitude=-48,-46.5,-45,-48,-46.5,-45,-48,-46.5,-45&hourly=precipitation&models=ecmwf_ifs025&timezone=GMT&timeformat=unixtime&forecast_hours=7' -o /tmp/argos-forecast.json
+          echo 'ARGOS_FORECAST_FIXTURE=/tmp/argos-forecast.json' >> "$GITHUB_ENV"
+      - name: Validate prediction foundations and cloud motion
+        working-directory: android-tv
+        run: ./gradlew --no-daemon -Pandroid.useAndroidX=true -PnativeMapChecks :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherPredictionTest'
