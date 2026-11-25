@@ -47,7 +47,6 @@ final class TvBroadcastInfoView extends View {
  private boolean motionEnabled(){return animate&&effects.animated();}
  final TvEffectsController effects;
  private WeatherSatelliteClient.Frame fadingFrame;private long imageReadyAt=-1;
- private final RectF satelliteImageBounds=new RectF(0,0,310,150);
 
  private TvBroadcastInfoView(Context c,int kind,RainForecast.Summary rain,WeatherForecast.Summary weather,
                              BrentQuote brent,DollarQuote dollar,WeatherSatelliteClient.Frame satellite,
@@ -513,7 +512,7 @@ final class TvBroadcastInfoView extends View {
    float ratio=Math.min(196f/displayed.image.getWidth(),180f/displayed.image.getHeight());float w=displayed.image.getWidth()*ratio,h=displayed.image.getHeight()*ratio;
    c.drawBitmap(displayed.image,null,new RectF((200-w)/2,24+(180-h)/2,(200+w)/2,24+(180+h)/2),p);p.setAlpha(255);
   }
-  fill(c,0,0,200,23,Color.BLACK);fill(c,0,0,4,23,OledNewsChrome.RED_DARK);fill(c,0,22,200,23,OledNewsChrome.RED_DARK);
+  fill(c,0,0,200,23,Color.BLACK);fill(c,0,0,4,23,OledNewsChrome.RED_DARK);fill(c,0,22,200,1,OledNewsChrome.RED_DARK);
   label(c,displayed==null?"MAPA METEOROLÓGICO":radar?"RADAR · SP/RJ":"INFRAVERMELHO · SE",8,16,13,Color.WHITE,brand,184);
   fill(c,0,204,200,46,Color.BLACK);
   if(radar){
