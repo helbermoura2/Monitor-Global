@@ -87,7 +87,7 @@ final class RadarMapClient implements AutoCloseable {
   refresh(now);
   for(long at:catalog.descendingKeySet()){
    if(now-at>60*60000L||at>now)continue;
-   Frame f=frame(at,now);if(f!=null)return f;
+   try{return frame(at,now);}catch(IOException e){if(closed)throw e;break;}
   }
   throw new IOException("Radar recente indisponível");
  }
@@ -128,5 +128,5 @@ final class RadarMapClient implements AutoCloseable {
    return out.toByteArray();
   }finally{connection=null;c.disconnect();}
  }
- public void close(){closed=true;HttpURLConnection c=connection;if(c!=null)c.disconnect();history.clear();catalog.clear();}
+ public void close(){closed=true;HttpURLConnection c=connection;if(c!=null)c.disconnect();}
 }
