@@ -56,7 +56,7 @@ final class RainOverlay {
   if(duration<=0||!Settings.canDrawOverlays(context))return false;
   // Retain the existing optional rain atmosphere, but put its transparent
   // full-screen effect window BELOW the news strip, so no text is obscured.
-  if(effect&&TvEffectsController.wet(rain)&&TvEffectsController.selected(context)==TvEffectsController.EffectsMode.FULL&&TvEffectsController.enabled(context)){
+  if(effect&&RainVisualPolicy.decorativeAllowed(rain,demo,System.currentTimeMillis())&&TvEffectsController.selected(context)==TvEffectsController.EffectsMode.FULL&&TvEffectsController.enabled(context)){
    boolean preview=demo&&stormPreview;
    previewRain=new PreviewRain(context,preview?WeatherPreviewOptions.style(context):2,
     preview?WeatherPreviewOptions.level(context):RainVisualPolicy.level(rain.rate,weather!=null&&weather.stormForecast),
