@@ -40,7 +40,7 @@ final class PhoneUpdater {
     if(r.code<=BuildConfig.VERSION_CODE){show("Versão atualizada","Instalada: "+BuildConfig.VERSION_NAME+"\nVersão estável: "+r.name+"\n\nNão há versão mais recente para instalar.",null,false);return;}
     show("Nova versão "+r.name,"Há uma atualização estável disponível. O aplicativo vai conferir o arquivo e a assinatura antes de abrir o instalador do Android.",r,false);
    });
-  }catch(Exception error){ui(()->{busy=false;show("Não foi possível verificar","O canal pode ainda não ter o arquivo de atualização ou a internet pode estar indisponível. Nenhum APK foi instalado.",null,false);});}});
+  }catch(Exception error){String message=PhoneUpdateChannel.verificationFailure(error);ui(()->{busy=false;show("Não foi possível verificar",message,null,false);});}});
  }
  private static String hex(byte[] bytes){StringBuilder out=new StringBuilder();for(byte b:bytes)out.append(String.format(Locale.ROOT,"%02x",b&255));return out.toString();}
  private String cert(PackageInfo info)throws Exception{
