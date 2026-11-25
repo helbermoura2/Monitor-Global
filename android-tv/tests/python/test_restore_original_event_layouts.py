@@ -77,7 +77,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn("EVENT_CENTER_X=68f,EVENT_MAGNITUDE_BASELINE=72f", CHROME)
         self.assertIn('BroadcastVisuals.eventCategory(c,p,brand,title,caption', WEATHER)
         self.assertIn('BroadcastVisuals.eventCategory(c,paint,brand,"TSUNAMI"', SEISMIC)
-        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,"CONSULTA"', 'eventCategory(c,facts.topic,'):
+        for phrase in ('eventCategory(c,"TEMPO"', 'eventCategory(c,"SATÉLITE"', 'eventCategory(c,dailyWeatherText!=null?"PREVISÃO":"CONSULTA"', 'eventCategory(c,facts.topic,'):
             self.assertIn(phrase, WEATHER)
         self.assertIn("YAHOO · USD/BRL · CÂMBIO", WEATHER)
         self.assertNotIn("MarketDOLWidget", WEATHER)
