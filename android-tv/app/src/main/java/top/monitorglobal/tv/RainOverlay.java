@@ -59,7 +59,8 @@ final class RainOverlay {
   if(effect&&TvEffectsController.wet(rain)&&TvEffectsController.selected(context)==TvEffectsController.EffectsMode.FULL&&TvEffectsController.enabled(context)){
    boolean preview=demo&&stormPreview;
    previewRain=new PreviewRain(context,preview?WeatherPreviewOptions.style(context):2,
-    preview?WeatherPreviewOptions.level(context):RainVisualPolicy.level(rain.rate,weather!=null&&weather.stormForecast));
+    preview?WeatherPreviewOptions.level(context):RainVisualPolicy.level(rain.rate,weather!=null&&weather.stormForecast),
+    preview?0f:RainVisualPolicy.windSpeedKmh(weather));
    effectHost=new FrameLayout(context);
    effectHost.addView(previewRain,new FrameLayout.LayoutParams(-1,-1));
    WindowManager.LayoutParams screen=new WindowManager.LayoutParams(-1,-1,
