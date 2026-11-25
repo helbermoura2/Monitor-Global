@@ -6,7 +6,7 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 03 Cobertura meteorológica — conclusão comunicada pelo usuário; relatório independente ainda não localizado. Não inferir cobertura efetiva nacional da bbox da coleção.
 - [x] 04 Infraestrutura e custo zero — https://github.com/helbermoura2/Monitor-Global/actions/runs/45715671942; acesso direto HTTPS sem autenticação, 27.450 bytes de metadados, ativo 1.009.052 bytes, NETCDF3_64BIT_OFFSET (CDF-2), eixos monotônicos, 3,48 s para a prova. Decoder Android ainda não testado.
 - [x] 05 Estrutura das camadas — WeatherMapLayer.java e teste Java 11 aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45715816642
-- [ ] 06 Sobreposição de radar — leitor CDF-2 validado contra NetCDF4: https://github.com/helbermoura2/Monitor-Global/actions/runs/45715947484 (64.646 células válidas, pico 55,84 dBZ); cliente e sobreposição no visualizador existentes implementados, teste gráfico Android pendente.
+- [x] 06 Sobreposição de radar — leitor CDF-2 aprovado (64.646 células, pico 55,84 dBZ), renderização no visualizador Android validada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716402181
 - [ ] 07 Intensidade da precipitação
 - [ ] 08 Legenda meteorológica
 - [ ] 09 Consulta regional
