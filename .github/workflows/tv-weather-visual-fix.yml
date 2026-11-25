@@ -12,7 +12,7 @@ permissions:
 jobs:
   visual:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -35,7 +35,7 @@ jobs:
           echo 'ARGOS_REQUIRE_AUTO_RADAR=1' >> "$GITHUB_ENV"
       - name: Validate map and AI dashboard layout, remote navigation and lifecycle
         working-directory: android-tv
-        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest' --tests 'top.monitorglobal.tv.WeatherAiInfoTest' --tests 'top.monitorglobal.tv.WeatherAiPresentationTest' --tests 'top.monitorglobal.tv.AutomaticWeatherRadarTest' --tests 'top.monitorglobal.tv.RadarTimelineTest'
+        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest' --tests 'top.monitorglobal.tv.WeatherAiInfoTest' --tests 'top.monitorglobal.tv.WeatherAiPresentationTest' --tests 'top.monitorglobal.tv.AutomaticWeatherRadarTest' --tests 'top.monitorglobal.tv.RadarTimelineTest' --tests 'top.monitorglobal.tv.WeatherPortraitBroadcastTest' --tests 'top.monitorglobal.tv.RainOverlayTest' --tests 'top.monitorglobal.tv.TvBroadcastInfoViewTest' --tests 'top.monitorglobal.tv.UnifiedBroadcastChromeTest'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
