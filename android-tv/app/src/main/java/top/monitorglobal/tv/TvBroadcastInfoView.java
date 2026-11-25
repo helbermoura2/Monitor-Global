@@ -225,7 +225,7 @@ final class TvBroadcastInfoView extends View {
    if(!weatherTrend.isEmpty())ticker+=" · "+weatherTrend;
    ticker+=" · "+WeatherTicker.sourceContext(weather,rain,System.currentTimeMillis());
    if(!analysis.isEmpty()&&!analysis.startsWith("Sem análise complementar"))ticker+="     •     IA · "+analysis;
-   ticker+="     •     Previsão por minuto · sujeita a mudanças";
+   ticker+="     •     Previsão por minuto · sujeita a mudanças · efeitos visuais, quando ativos, são ilustrativos";
    setContentDescription(baseTicker+" · "+ticker);invalidate();return;
   }
   if(kind!=WEATHER)return;
