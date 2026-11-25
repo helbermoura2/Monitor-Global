@@ -83,6 +83,10 @@ final class RadarMapClient implements AutoCloseable {
   catalog=result;
   history.keySet().retainAll(catalog.keySet());
  }
+ RadarMapClient.Frame previous(long at,long now)throws Exception{
+  Long prev=catalog.lowerKey(at);if(prev==null||at-prev>20*60000L)return null;
+  return frame(prev,now);
+ }
  Frame latest(long now)throws Exception{
   refresh(now);
   for(long at:catalog.descendingKeySet()){
