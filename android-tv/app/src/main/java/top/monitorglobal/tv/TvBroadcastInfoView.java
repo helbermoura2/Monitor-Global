@@ -483,7 +483,7 @@ final class TvBroadcastInfoView extends View {
   return reference+BrentQuote.reference(at)+" · "+source;
  }
  private void drawSatelliteNews(Canvas c,WeatherSatelliteClient.Frame frame){
-  if(frame!=null&&frame.isRadar()){eventCategory(c,"RADAR","INPE / DECEA");primary(c,"RADAR OBSERVADO · SUDESTE",142,28,foreground,705);label(c,InfraredPlan.timing(frame.at,System.currentTimeMillis())+" · dBZ, NÃO mm/h",142,88,16,0xffb8d2df,data,705);return;}
+  if(frame!=null&&frame.isRadar()){eventCategory(c,"RADAR","INPE / DECEA");primary(c,"RADAR OBSERVADO · SP/RJ",142,28,foreground,705);label(c,InfraredPlan.timing(frame.at,System.currentTimeMillis())+" · dBZ, NÃO mm/h",142,88,16,0xffb8d2df,data,705);return;}
   eventCategory(c,"SATÉLITE","GOES-EAST");
   primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,foreground,705);
   label(c,frame==null?(satellite==null?satelliteStatus:"Imagem indisponível"):InfraredPlan.timing(frame.at,System.currentTimeMillis())+
@@ -512,7 +512,10 @@ final class TvBroadcastInfoView extends View {
    fill(c,0,0,310,23,Color.BLACK);fill(c,0,22,310,23,OledNewsChrome.RED_DARK);
    label(c,displayed!=null&&displayed.isRadar()?"RADAR OBSERVADO · SP/RJ":"INFRAVERMELHO · SUDESTE",9,17,15,Color.WHITE,OledNewsChrome.titleFont(null),286);
    fill(c,0,150,310,26,Color.BLACK);
-   if(displayed!=null)label(c,displayed.credit()+(displayed.isRadar()?" · dBZ":""),9,160,10,0xffbbd7e7,brand,290);
+   if(displayed!=null&&displayed.isRadar()){
+    label(c,"INPE / DECEA · dBZ",9,160,10,0xffbbd7e7,brand,125);
+    for(int i=0;i<RadarIntensity.count();i++){float x=139+i*23;fill(c,x,152,22,5,RadarIntensity.color(i)|0xff000000);label(c,RadarIntensity.label(i).split("–")[0],x+1,165,8,Color.WHITE,data,22);}
+   }else if(displayed!=null)label(c,displayed.credit(),9,160,10,0xffbbd7e7,brand,290);
    label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,displayed!=null?173:168,12,0xffbbd7e7,brand,290);
    p.setColor(0xff56595f);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
    c.drawRoundRect(0,0,310,176,5,5,p);p.setStyle(Paint.Style.FILL);
