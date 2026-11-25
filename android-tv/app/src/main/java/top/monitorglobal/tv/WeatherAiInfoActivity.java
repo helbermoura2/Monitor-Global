@@ -58,7 +58,7 @@ public final class WeatherAiInfoActivity extends Activity {
   result=text(report,"Selecione Tempo, Chuva ou Último sismo para consultar uma análise.",17,WHITE,false);
   LinearLayout info=scrollPanel(body,1f);
   text(info,"SOBRE A ANÁLISE",16,CYAN,true);
-  text(info,"A IA interpreta dados meteorológicos e registros sísmicos publicados. Não cria alertas, não prevê terremotos ou tsunamis e não acompanha sua localização.",14,MUTED,false);
+  text(info,"Não é um chat. A IA interpreta dados meteorológicos e registros sísmicos publicados. Não cria alertas, não prevê terremotos ou tsunamis e não acompanha sua localização.",14,MUTED,false);
   text(info,"ÚLTIMO DESTAQUE SALVO",15,CYAN,true);
   cachedResult=text(info,cached(),14,WHITE,false);
   text(info,"Consulta manual: pode consumir a franquia compartilhada de IA.",12,MUTED,false);
@@ -210,7 +210,7 @@ public final class WeatherAiInfoActivity extends Activity {
  }
  private Button button(LinearLayout host,String value,View.OnClickListener action){
   Button b=new Button(this);b.setText(value);b.setTextSize(15);b.setId(View.generateViewId());b.setFocusable(true);b.setTypeface(OledNewsChrome.titleFont(null));b.setTextColor(WHITE);
-  b.setAllCaps(false);b.setMinHeight(0);b.setMinimumHeight(0);b.setMinWidth(0);b.setMinimumWidth(0);b.setSingleLine(true);b.setPadding(dp(6),0,dp(6),0);
+  b.setAllCaps(false);b.setMinHeight(0);b.setMinimumHeight(0);b.setMinWidth(0);b.setMinimumWidth(0);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setPadding(dp(6),0,dp(6),0);
   b.setOnClickListener(action);
   b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
   styleButton(b,false);
