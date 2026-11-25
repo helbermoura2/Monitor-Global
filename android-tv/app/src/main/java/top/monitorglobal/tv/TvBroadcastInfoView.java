@@ -157,7 +157,7 @@ final class TvBroadcastInfoView extends View {
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
   v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,622)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
-  v.ticker=CivilSourceContext.describe(notice,false,replay,demo)+" · São Paulo, capital · "+notice.message;
+  v.ticker=CivilSourceContext.describe(notice,System.currentTimeMillis(),false,replay,demo)+" · São Paulo, capital · "+notice.message;
   v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
