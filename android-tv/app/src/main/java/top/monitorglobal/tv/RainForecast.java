@@ -34,18 +34,39 @@ final class RainForecast {
   if(data==null)return null;
   long at=data.optLong("at",0),expiry=data.optLong("expiresAt",0);
   if(at<=0||at>now||expiry<=now||expiry>at+20*MINUTE)return null;
+  JSONObject consensus=data.optJSONObject("consensus");
+  String consensusNote=consensus==null?"":consensusNote(consensus,now);
   String kind=data.optString("kind");
+  if(kind.equals("consensus"))return consensusSummary(data,now);
   if(kind.equals("gauge")){
    String station=data.optString("station").trim();
    double amount=data.optDouble("amount",Double.NaN),distance=data.optDouble("distanceKm",Double.NaN);
    if(station.isEmpty()||station.length()>60||!Double.isFinite(amount)||amount<=0||amount>300||!Double.isFinite(distance)||distance<0||distance>3)return null;
-   String detail="Cemaden · "+station+" · "+number(distance)+" km · "+number(amount)+" mm medidos";
+   String detail="Cemaden · "+station+" · "+number(distance)+" km · "+number(amount)+" mm medidos"+(consensusNote.isEmpty()?"":" · "+consensusNote);
    return new Summary("evidence",kind,"Chuva medida nas proximidades",Double.NaN,Double.NaN,detail,at,expiry,false);
   }
   if(kind.equals("hourly")&&expiry<=at+10*MINUTE){
+   if(consensus!=null)return consensusSummary(consensus,now);
    return new Summary("evidence",kind,"Modelos horários indicam chuva",Double.NaN,Double.NaN,"Open-Meteo · pelo menos dois modelos · início incerto",at,expiry,false);
   }
   return null;
+ }
+ private static Summary consensusSummary(JSONObject data,long now){
+  String note=consensusNote(data,now);long at=data.optLong("at",0),expiry=data.optLong("expiresAt",0);
+  if(note.isEmpty()||at<=0||at>now||expiry<=now||expiry>at+10*MINUTE)return null;
+  return new Summary("evidence","consensus","Consenso de modelos: chuva possível",Double.NaN,Double.NaN,note,at,expiry,false);
+ }
+ private static String consensusNote(JSONObject data,long now){
+  if(data.optInt("models")!=3||data.optInt("windowHours")!=6)return "";
+  int votes=data.optInt("peakVotes",-1),wetHours=data.optInt("wetHours",-1),arrival=data.optInt("arrivalMinutes",-1);
+  double accumulated=data.optDouble("accumulatedMedianMm",Double.NaN);
+  if(votes<0||votes>3||wetHours<0||wetHours>6||!Double.isFinite(accumulated)||accumulated<0||accumulated>180)return "";
+  StringBuilder note=new StringBuilder("Open-Meteo · ").append(votes).append("/3 modelos concordam");
+  if(arrival>=0&&arrival<=360)note.append(" · início em ~").append(arrival).append(" min");
+  else if(wetHours==0)note.append(" · sem consenso de chuva nas próximas 6 h");
+  note.append(" · acumulado mediano entre horas chuvosas: ").append(number(accumulated)).append(" mm");
+  note.append(" · consenso, não probabilidade calibrada");
+  return note.toString();
  }
  private static Summary minuteForecast(JSONObject data,long now)throws JSONException {
   if(!data.optBoolean("ok"))return null;
