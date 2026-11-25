@@ -39,8 +39,6 @@ public final class MainActivity extends Activity {
   }
   Button quickReplay=button("Último alerta real · Defesa Civil",v->selectPage(CATEGORIES[1],true));
   Button quickUpdate=button("Atualização oficial · Sistema",v->selectPage(CATEGORIES[9],true));
-  section("ESTADO DO SISTEMA E DAS FONTES");
-  addStatusPanel();
   section("ALEXA · CONTROLE DO FIRE STICK");
   button("Vincular Alexa · mostrar código de 6 dígitos",v->{
    new AlertDialog.Builder(this).setTitle("Vincular Argos Orbis à Alexa")
@@ -78,8 +76,10 @@ public final class MainActivity extends Activity {
   button("🎙 Testar reconhecimento local do Android (pode abrir pesquisa)",v->startVoiceInput());
   voiceStatus=label("Teste separado da Alexa. O Fire OS pode reservar o microfone do controle ao assistente do sistema.",15,false);
   section("INÍCIO RÁPIDO");
-  button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
-  start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  button("Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
+  start=button("Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  section("ESTADO DO SISTEMA E DAS FONTES");
+  addStatusPanel();
   section("DEFESA CIVIL · ÚLTIMO ALERTA REAL RECEBIDO");
   Button latestReplay=button("Ver e reproduzir o ÚLTIMO ALERTA (celular ou CAP)",v->{
    CivilLatestReplay.Record latest=CivilLatestReplay.last(this);
@@ -340,7 +340,7 @@ public final class MainActivity extends Activity {
   ScrollView scroll=pages.get(category);
   if(scroll==null){
    scroll=new ScrollView(this);scroll.setTag("page-"+category);
-   scroll.setFillViewport(true);scroll.setClipToPadding(false);
+   scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
    LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);
    panel.setPadding(dp(22),dp(8),dp(12),dp(22));
    panel.addView(display(category,wideLayout?30:25,INK,true));
@@ -646,14 +646,15 @@ public final class MainActivity extends Activity {
    Button more=new Button(this);more.setAllCaps(false);more.setTextSize(15);
    more.setTextColor(GOLD);more.setText("ⓘ  Informações e detalhes");
    more.setContentDescription("Informações e detalhes · "+currentSection);
+   more.setMinHeight(dp(44));more.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);more.setPadding(dp(12),0,dp(12),0);
    styleButton(more,false);
    more.setOnFocusChangeListener((v,focused)->styleButton(more,focused));
    trackFocus(more,true);
-   final String title=currentSection;
-   more.setOnClickListener(v->{
+      more.setOnClickListener(v->{
     boolean open=t.getVisibility()!=View.VISIBLE;
     t.setVisibility(open?View.VISIBLE:View.GONE);
     more.setText(open?"Ocultar informações":"ⓘ  Informações e detalhes");
+    more.setContentDescription((open?"Ocultar informações · ":"Informações e detalhes · ")+t.getText().toString().substring(0,Math.min(65,t.length())));
    });
    LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(4);
    content.addView(more,mp);
