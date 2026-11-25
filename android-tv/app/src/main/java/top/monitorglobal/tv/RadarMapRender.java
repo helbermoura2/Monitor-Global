@@ -31,7 +31,7 @@ final class RadarMapRender {
    p.setStyle(Paint.Style.STROKE);p.setColor(0xffb6c4c8);p.setStrokeWidth(2);canvas.drawPath(outline,p);
    p.setStyle(Paint.Style.FILL);p.setTextSize(scope==InfraredPlan.SOUTHEAST?28:24);p.setTypeface(Typeface.DEFAULT_BOLD);p.setShadowLayer(3,0,1,Color.BLACK);
    geography.city(canvas,p,scope,-46.63,-23.55,"São Paulo");
-   if(scope==InfraredPlan.SOUTHEAST){geography.city(canvas,p,scope,-43.20,-22.90,"Rio de Janeiro");geography.city(canvas,p,scope,-43.94,-19.92,"Belo Horizonte");}
+   if(scope!=InfraredPlan.BRAZIL){geography.city(canvas,p,scope,-43.20,-22.90,"Rio de Janeiro");geography.city(canvas,p,scope,-43.94,-19.92,"Belo Horizonte");}
    return out;
   }catch(Exception|OutOfMemoryError e){out.recycle();throw e;}
  }
