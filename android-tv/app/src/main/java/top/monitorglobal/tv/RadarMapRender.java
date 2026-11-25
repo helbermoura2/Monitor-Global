@@ -5,13 +5,7 @@ import android.content.Context;
 
 /** Rasterizes only actual CAPPI cells using the existing satellite map projection. */
 final class RadarMapRender {
- static final int[] COLORS={0x882264a3,0xaa3698d5,0xbb24b664,0xcce2d739,0xccf28d21,0xdcdc3036,0xdcad36b6};
- static final int[] LEVELS={5,15,25,35,45,55,65};
- static int color(float v,int x,int y){
-  if(!Float.isFinite(v))return ((x+y)%12<2)?0xff42464a:0xff24272a;
-  if(v<LEVELS[0])return 0x00102024;
-  int i=LEVELS.length-1;while(i>0&&v<LEVELS[i])i--;return COLORS[i];
- }
+ static int color(float v,int x,int y){return RadarIntensity.pixel(v,x,y);}
  static Bitmap render(Context context,WeatherSatelliteClient geography,InfraredPlan.Scope scope,RadarMapClient.Frame frame)throws Exception{
   int w=InfraredPlan.WIDTH,h=scope.height;int[] pixels=new int[w*h];
   double top=InfraredPlan.merc(scope.north),bottom=InfraredPlan.merc(scope.south);
