@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'android-tv/**'
+      - 'android-core/**'
       - '.github/workflows/android-tv-preview.yml'
       - '.github/workflows/android-tv-release.yml'
 permissions:
