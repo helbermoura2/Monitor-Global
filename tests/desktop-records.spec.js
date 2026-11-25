@@ -1,5 +1,6 @@
 const {test,expect}=require('@playwright/test');
 require('./helpers/card-renderer-fixture.cjs')(test);
+async function installPausedClock(page){const frozenTime=new Date(Date.now()+1000);await page.clock.install({time:frozenTime});await page.clock.pauseAt(frozenTime);}
 async function ready(page){await page.goto('/index.html');await page.waitForFunction(()=>window.DesktopRecords&&window.__cardRendererFixtureReady&&!__fetchGlobalFeedsEmAndamento);}
 test('desktop chips, dropdown and projection menu preserve their actions',async({page})=>{
  await page.setViewportSize({width:1280,height:800});await ready(page);
@@ -51,7 +52,7 @@ test('mobile keeps the events sheet and local magnitude selector',async({page})=
 });
 test('M6 notices last one minute and transparent controls have no blue fill',async({page})=>{
  await page.emulateMedia({reducedMotion:'no-preference'});
- await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());await page.mouse.move(1200,740);
+ await page.setViewportSize({width:1280,height:800});await ready(page);await installPausedClock(page);await page.mouse.move(1200,740);
  await expect(page.locator('#pd-focus-btn')).toHaveCount(0);
  expect(await page.locator('#pd-share-btn').evaluate(el=>getComputedStyle(el).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
  expect(await page.locator('#sidebar-left').evaluate(el=>getComputedStyle(el,'::-webkit-scrollbar-thumb').backgroundColor)).toBe('rgb(73, 115, 134)');
@@ -62,7 +63,7 @@ test('M6 notices last one minute and transparent controls have no blue fill',asy
  await page.clock.runFor(400);await expect(page.locator('#sidebar-left')).toBeHidden();
 });
 test('arrival badges clear the close button and main badge keeps original expiry',async({page})=>{
- await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());await page.mouse.move(1200,740);
+ await page.setViewportSize({width:1280,height:800});await ready(page);await installPausedClock(page);await page.mouse.move(1200,740);
  await page.evaluate(()=>{globalEvents=[{id:'badge-quake',type:'earthquake',mag:5.1,depth:10,coords:[-70,-20],time:Date.now(),place:'Evento novo',source:'QA'}];activeAlertingIds.set('badge-quake',Date.now()+30000);EventStore.setSelected('badge-quake');applyFilters();});
  await expect(page.locator('#pd-event-status')).toHaveText('NOVO');
  const gap=await page.evaluate(()=>{const card=document.querySelector('#events .event');const style=getComputedStyle(card,'::after');const close=card.querySelector('.record-notice-close').getBoundingClientRect();return {badgeRight:card.getBoundingClientRect().right-parseFloat(style.right),closeLeft:close.left};});expect(gap.badgeRight).toBeLessThan(gap.closeLeft);
@@ -72,7 +73,7 @@ test('arrival badges clear the close button and main badge keeps original expiry
  await page.clock.runFor(10500);await expect(page.locator('#pd-event-status')).toBeHidden();
 });
 test('clicking a notice cannot suspend its expiry or later arrivals',async({page})=>{
- await page.setViewportSize({width:1280,height:800});await ready(page);await page.clock.install();await page.clock.pauseAt(new Date());
+ await page.setViewportSize({width:1280,height:800});await ready(page);await installPausedClock(page);
  await page.evaluate(()=>{globalEvents=[{id:'clicked-notice',type:'earthquake',mag:5.1,depth:10,coords:[-70,-20],time:Date.now(),place:'Primeiro',source:'QA'}];activeAlertingIds.set('clicked-notice',Date.now()+180000);applyFilters();});
  await page.clock.runFor(600);const card=page.locator('#events .event');await card.click();await card.focus();
  expect(await page.evaluate(()=>DesktopRecords.state().pinned)).toBe(false);
