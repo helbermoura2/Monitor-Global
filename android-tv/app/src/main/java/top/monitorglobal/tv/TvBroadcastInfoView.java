@@ -500,20 +500,20 @@ final class TvBroadcastInfoView extends View {
   c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
   int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
   if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
-   rounded(c,0,0,310,176,0xff0d2737,8);
+   rounded(c,0,0,310,176,Color.BLACK,5);
    if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}
    if(displayed!=null){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
     p.setAlpha(effects.imageOpacity(now-imageReadyAt));
     c.drawBitmap(displayed.image,null,satelliteImageBounds,p);p.setAlpha(255);
    }
-   fill(c,0,0,310,23,0xdd071724);
-   label(c,"INFRAVERMELHO · SUDESTE",9,17,16,Color.WHITE,brand,286);
-   fill(c,0,150,310,26,0xee071724);
+   fill(c,0,0,310,23,Color.BLACK);fill(c,0,22,310,23,OledNewsChrome.RED_DARK);
+   label(c,"INFRAVERMELHO · SUDESTE",9,17,15,Color.WHITE,OledNewsChrome.titleFont(null),286);
+   fill(c,0,150,310,26,Color.BLACK);
    if(displayed!=null)label(c,displayed.credit(),9,160,10,0xffbbd7e7,brand,290);
    label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,displayed!=null?173:168,12,0xffbbd7e7,brand,290);
-   p.setColor(accent);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
-   c.drawRoundRect(0,0,310,176,8,8,p);p.setStyle(Paint.Style.FILL);
+   p.setColor(0xff56595f);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
+   c.drawRoundRect(0,0,310,176,5,5,p);p.setStyle(Paint.Style.FILL);
   }
   c.restoreToCount(mapLayer);c.restore();
  }
