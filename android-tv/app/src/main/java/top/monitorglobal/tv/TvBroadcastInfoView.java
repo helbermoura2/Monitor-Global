@@ -21,6 +21,7 @@ final class TvBroadcastInfoView extends View {
  private final BrentQuote brent;
  private final DollarQuote dollar;private MarketState brentSession,dollarSession;
  private boolean brentChanged=true,dollarChanged=true,temperatureChanged=true,rainStateChanged;
+ private String weatherTrend="";
  private boolean brentStateChanged,dollarStateChanged,voiceChanged;
  private DefesaCivilSp.Notice civilNotice;
  private boolean civilReplay,civilFromPhone;
@@ -156,9 +157,8 @@ final class TvBroadcastInfoView extends View {
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
   v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,622)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
-  v.ticker=(replay?"REPLAY HISTÓRICO · NÃO É AVISO ATIVO · EMITIDO EM "+BrDates.dateTime(notice.sent)+" · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")
-    +notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
+  v.ticker=CivilSourceContext.describe(notice,System.currentTimeMillis(),false,replay,demo)+" · São Paulo, capital · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
  /** Presentation metadata for the optional transparent full-screen radar layer. */
@@ -172,21 +172,16 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated,String sender){
   TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
   v.civilFromPhone=true;
-  v.ticker=(simulated?"ENVIADO PELO CELULAR · SIMULAÇÃO · AVISO FICTÍCIO · ":
-            "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
-    BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()
-   +" · "+notice.message);
+  v.ticker=CivilSourceContext.describe(notice,System.currentTimeMillis(),true,false,simulated)+" · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
  /** Replay retains the phone origin and never impersonates an official CAP record. */
  static TvBroadcastInfoView civilPhoneReplay(Context c,DefesaCivilSp.Notice notice){
   TvBroadcastInfoView v=civilPhone(c,notice,false);
   v.civilReplay=true;
-  v.ticker="REPLAY HISTÓRICO · CELULAR · NÃO VERIFICADO VIA CAP · "
-   +BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription("REPLAY HISTÓRICO · NÃO É AVISO ATUAL · CAPTURADO NO CELULAR "
-   +"E NÃO VERIFICADO VIA CAP · "+notice.level()+" · "+notice.message);
+  v.ticker=CivilSourceContext.describe(notice,System.currentTimeMillis(),true,true,false)+" · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
  /** The voice request immediately enters the hourly Brent/Dollar banner. */
@@ -208,6 +203,8 @@ final class TvBroadcastInfoView extends View {
    dollarStateChanged=previous.marketPending!=marketPending||dollarSession.value!=previous.dollarSession.value;
   }else if(kind==WEATHER){
    temperatureChanged=weather!=null&&(previous.weather==null||!weather.temperatureValue.equals(previous.weather.temperatureValue));
+   weatherTrend=WeatherTicker.trend(previous.weather,weather);
+   if(!weatherTrend.isEmpty())refreshBriefing();
   }else if(kind==RAIN){
    rainStateChanged=rain!=null&&(previous.rain==null||!rain.state.equals(previous.rain.state));
   }else if(kind==VOICE_STATUS){
@@ -225,6 +222,8 @@ final class TvBroadcastInfoView extends View {
    String analysis=ai.isEmpty()?"":WeatherTicker.composeRain(ai);
    ticker="LIBERDADE / SP";
    if(weather!=null&&weather.expiresAt>System.currentTimeMillis()&&!weather.temperatureValue.equals("—"))ticker+=" · "+weather.temperatureValue+" · sensação "+weather.feelsValue;
+   if(!weatherTrend.isEmpty())ticker+=" · "+weatherTrend;
+   ticker+=" · "+WeatherTicker.sourceContext(weather,rain,System.currentTimeMillis());
    if(!analysis.isEmpty()&&!analysis.startsWith("Sem análise complementar"))ticker+="     •     IA · "+analysis;
    ticker+="     •     Previsão por minuto · sujeita a mudanças";
    setContentDescription(baseTicker+" · "+ticker);invalidate();return;
@@ -232,7 +231,7 @@ final class TvBroadcastInfoView extends View {
   if(kind!=WEATHER)return;
   String outlook=WeatherBriefingClient.outlookText(getContext(),rain);
   String ai=WeatherBriefingClient.text(getContext(),"hourly",weather,rain);
-  ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook);
+  ticker="ANÁLISE · "+WeatherTicker.compose(ai,outlook)+" · "+(weatherTrend.isEmpty()?"Tendência: aguardando nova atualização horária":weatherTrend)+" · "+WeatherTicker.sourceContext(weather,rain,System.currentTimeMillis());
   setContentDescription(baseTicker+" · "+ticker);invalidate();
  }
  private static String amount(double n){return String.format(Locale.forLanguageTag("pt-BR"),"%.2f",n);}
