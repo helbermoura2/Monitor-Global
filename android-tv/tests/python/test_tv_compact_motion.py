@@ -31,15 +31,19 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("banner.showWeather(rain,weather,demo,duration", weather)
         self.assertIn("weatherSatellite.get()", card)
         self.assertNotIn("new MapInset(", card)
-        self.assertIn("INFRAVERMELHO · SUDESTE", card)
-        # All TV maps share a single x615..925 frame, right-aligned to the
-        # broadcast strip instead of extending 34 units beyond its right edge.
-        self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", card)
+        self.assertIn("INFRAVERMELHO · SE", card)
+        # Meteorology uses a physically vertical 4:5 frame, with the same right
+        # edge as the unchanged horizontal seismic maps. Native graphics tests
+        # verify the actual rendered pixel bounds and absence of overflow.
+        self.assertIn("c.translate(OledNewsChrome.RIGHT-width,", card)
+        self.assertIn("physicalHeight*0.8f/xScale", card)
+        self.assertIn("height=mapSpace-4f,width=portraitWidth(height*sy,sx)", card)
+        self.assertIn("RADAR · SP/RJ", card)
         self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", source("NewsBannerView.java"))
         self.assertIn("FRAME_X=OledNewsChrome.RIGHT-FRAME_WIDTH", source("MapInset.java"))
         self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", source("BrazilNationalBannerView.java"))
         self.assertNotIn("WEATHER||kind==RAIN?615:649", card)
-        self.assertIn('getBoolean("weatherSatellite",true)?0:Banner.insetDp(c)', card)
+        self.assertIn('getBoolean("weatherSatellite",true)?0:weatherInsetDp(c)', card)
         self.assertIn("themeTop", display)
         self.assertIn("static final long DURATION=12000L", weather)
         self.assertIn("WeatherForecast.due", source("RainMonitor.java"))
@@ -55,8 +59,12 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("c.drawBitmap(displayed.image", info)
         self.assertIn("satellite::currentFrame", source("RainMonitor.java"))
         self.assertNotIn("satellite.start()", source("RainMonitor.java"))
-        self.assertIn("INFRAVERMELHO · SUDESTE", info)
+        self.assertIn("INFRAVERMELHO · SE", info)
         self.assertIn("NÃO É RADAR DE CHUVA", info)
+        self.assertIn("WeatherSatelliteSequence.displayFrame", info)
+        self.assertIn("radar.latestWithin(now,10000)", satellite)
+        self.assertIn("primary.alternate=satellite", satellite)
+        self.assertIn("older.source==satellite.source", satellite)
         self.assertIn("frame.close()", satellite)
 
     def test_sismic_banners_and_warning_priority_keep_their_own_queue(self):
