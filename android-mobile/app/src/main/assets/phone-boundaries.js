@@ -218,7 +218,7 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
  map.on('zoomend',move);map.on('moveend',move);map.on('click',handleClick);map.on('style.load',style);map.on('styledata',overlayMoved);
  if(map.isStyleLoaded())install();
  fetchStates();
- return Object.freeze({setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){tapSeq++;tapRequest?.abort();seq++;request?.abort();if(!cachedMunicipal)ufLoaded='';}else update();},destroy(){
+ return Object.freeze({selectPoint(lng,lat){if(selectAnywhere&&alive&&active&&Number.isFinite(lng)&&Number.isFinite(lat))void resolveTap({lngLat:{lng,lat}});},setMode,get mode(){return current;},setActive(value){active=!!value;if(!active){tapSeq++;tapRequest?.abort();seq++;request?.abort();if(!cachedMunicipal)ufLoaded='';}else update();},destroy(){
   alive=false;tapSeq++;tapRequest?.abort();tapMarker?.remove();seq++;request?.abort();mousePopup?.remove();
   for(const id of [selectionId+'-line',selectionId+'-fill'])if(map.getLayer(id))map.removeLayer(id);
   if(map.getSource(selectionId))map.removeSource(selectionId);
