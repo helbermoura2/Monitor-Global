@@ -14,7 +14,7 @@ public class PhoneUpdateChannelTest {
  }
  @Test public void rejectsUntrustedUrlsAndDifferentPackage()throws Exception{
   String hash="a".repeat(64);
-  for(String uri:new String[]{"https://evil.example/app.apk","http://github.com/app.apk","https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-preview/other.apk"}){
+  for(String uri:new String[]{"https://evil.example/app.apk","http://github.com/app.apk","https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/other.apk"}){
    try{PhoneUpdateChannel.parse(json(PhoneUpdateChannel.PACKAGE,uri,hash,hash,11),PhoneUpdateChannel.PACKAGE);fail("unexpected URL accepted");}catch(SecurityException expected){}
   }
   try{PhoneUpdateChannel.parse(json("top.monitorglobal.mobile",PhoneUpdateChannel.APK,hash,hash,11),PhoneUpdateChannel.PACKAGE);fail("package mismatch");}catch(SecurityException expected){}
