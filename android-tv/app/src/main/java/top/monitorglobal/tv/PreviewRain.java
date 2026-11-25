@@ -131,17 +131,34 @@ final class PreviewRain extends View {
   for(int i=airCount;i<x.length;i++){
    float phase=(seconds*(.19f+variation[i]*.17f)+depth[i])%1;
    float slide=TvEffectsController.ease(TvEffectsController.phase((long)((phase-.38f)*1000),620));
+   float perspective=RainVisualPolicy.depthScale(depth[i]);
    float xx=(.025f+x[i]*.95f)*width+(variation[i]-.5f)*(9+windKmh*.12f)*slide*scale;
-   float yy=((y[i]+seconds*GLASS_SPEED[level]*(.28f+variation[i])+.1f*slide)%1.08f-.04f)*height;
-   float radius=(2.7f+depth[i]*5.3f+level*.8f)*scale;
+   float yy=((y[i]+seconds*GLASS_SPEED[level]*(.24f+variation[i]*.22f)*( .72f+depth[i]*.56f)+.1f*slide)%1.08f-.04f)*height;
+   float radius=(2.7f+depth[i]*5.3f+level*.8f)*scale*perspective;
    boolean merging=level>=2&&i%5==0&&phase<.38f;
-   if(merging)drawBead(canvas,xx-radius*(1.5f- phase),yy-radius*(2.2f-3*phase),radius*.46f,fade*.7f);
+   if(merging)drawBead(canvas,xx-radius*(1.5f-phase),yy-radius*(2.2f-3*phase),radius*.46f,fade*.62f);
+   // A few larger beads gather into narrow rivulets; most remain isolated drops.
+   if(i%4==0){
+    float runoff=RainVisualPolicy.runoffProgress(phase);
+    float trail=RainVisualPolicy.runoffLength(depth[i],runoff)*scale;
+    if(trail>0.5f){
+     paint.setColor(0xffb9dce5);
+     paint.setAlpha(Math.round(fade*(10+depth[i]*18)*runoff));
+     paint.setStrokeWidth(Math.max(.65f,radius*.22f));
+     paint.setStrokeCap(Paint.Cap.ROUND);
+     float bend=(variation[i]-.5f)*radius*.55f;
+     canvas.drawLine(xx-bend,yy-radius*1.2f-trail,xx,yy-radius*.45f,paint);
+     paint.setAlpha(Math.round(fade*(20+depth[i]*25)*runoff));
+     paint.setStrokeWidth(Math.max(.55f,radius*.1f));
+     canvas.drawLine(xx-bend*.4f,yy-radius*1.15f-trail*.82f,xx,yy-radius*.55f,paint);
+    }
+   }
    if(level>0&&slide>0){
-    paint.setColor(Color.rgb(174,216,226));paint.setAlpha(Math.round(fade*(18+level*8)*slide));
-    paint.setStrokeWidth(Math.max(.7f,radius*.18f));paint.setStrokeCap(Paint.Cap.ROUND);
+    paint.setColor(Color.rgb(174,216,226));paint.setAlpha(Math.round(fade*(12+level*7)*slide*perspective));
+    paint.setStrokeWidth(Math.max(.7f,radius*.16f));paint.setStrokeCap(Paint.Cap.ROUND);
     canvas.drawLine(xx-radius*.15f,yy-radius*(2+slide*2),xx,yy,paint);
    }
-   drawBead(canvas,xx,yy,radius,fade);
+   drawBead(canvas,xx,yy,radius,fade*(.48f+depth[i]*.48f));
   }
  }
 
