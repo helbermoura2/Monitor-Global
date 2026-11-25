@@ -14,6 +14,31 @@ final class WeatherTicker {
   return result.startsWith("Sem análise complementar")?"":result;
  }
 
+ /** Compact provenance and freshness context; freshness is not a confidence score. */
+ static String sourceContext(WeatherForecast.Summary weather,RainForecast.Summary rain,long now){
+  StringBuilder out=new StringBuilder();
+  if(weather!=null&&weather.expiresAt>now&&weather.generatedAt>0&&weather.generatedAt<=now+60000){
+   long age=Math.max(0,(now-weather.generatedAt)/60000);
+   append(out,"MODELO HORÁRIO · atualizado há "+age+" min");
+   append(out,age<=30?"DADO RECENTE":age<=60?"ATENÇÃO À IDADE DO MODELO":"MODELO COM MAIS DE 1 H");
+  }else append(out,"MODELO HORÁRIO indisponível ou vencido");
+  if(rain!=null&&rain.expiresAt>now&&rain.at>0&&rain.at<=now+60000){
+   long age=Math.max(0,(now-rain.at)/60000);
+   if("evidence".equals(rain.state)&&"gauge".equals(rain.level))
+    append(out,"CEMADEN · medição de pluviômetro · há "+age+" min");
+   else if("evidence".equals(rain.state)&&"consensus".equals(rain.level))
+    append(out,"CONSENSO DE MODELOS · há "+age+" min · não é probabilidade calibrada");
+   else append(out,"PREVISÃO POR MINUTO · referência há "+age+" min");
+  }else append(out,"previsão de chuva indisponível ou vencida");
+  append(out,"CONFIABILIDADE: origem e idade explícitas; sem nota artificial");
+  return out.toString();
+ }
+ private static void append(StringBuilder out,String value){
+  if(value==null||value.isEmpty())return;
+  if(out.length()>0)out.append(" · ");
+  out.append(value);
+ }
+
  static String compose(String ai,String outlook){
   StringBuilder result=new StringBuilder();Set<String> seen=new HashSet<>();
   for(String source:new String[]{ai,outlook}){
