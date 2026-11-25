@@ -22,7 +22,7 @@ final class RadarCappi {
   int y=nearest(lat,latitude),x=nearest(lon,longitude);
   return x<0||y<0?Float.NaN:at(y,x);
  }
- private static int nearest(double[] a,double v){
+ static int nearest(double[] a,double v){
   if(!Double.isFinite(v)||v<Math.min(a[0],a[a.length-1])||v>Math.max(a[0],a[a.length-1]))return -1;
   boolean ascending=a[0]<a[a.length-1];int lo=0,hi=a.length-1;
   while(hi-lo>1){int mid=(lo+hi)/2;if((a[mid]<v)==ascending)lo=mid;else hi=mid;}
