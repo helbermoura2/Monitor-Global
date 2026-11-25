@@ -70,9 +70,11 @@ final class SatelliteMotion {
  }
 
  private static int[] sample(Bitmap bitmap,int w,int h){
-  int[] out=new int[w*h],pixel=new int[1];
+  int sourceWidth=bitmap.getWidth(),sourceHeight=bitmap.getHeight();
+  int[] source=new int[sourceWidth*sourceHeight],out=new int[w*h];
+  bitmap.getPixels(source,0,sourceWidth,0,0,sourceWidth,sourceHeight);
   for(int y=0;y<h;y++)for(int x=0;x<w;x++){
-   bitmap.getPixels(pixel,0,1,x*SCALE,y*SCALE,1,1);int c=pixel[0];
+   int c=source[(y*SCALE)*sourceWidth+x*SCALE];
    out[y*w+x]=(Color.red(c)*3+Color.green(c)*6+Color.blue(c))/10;
   }
   return out;
