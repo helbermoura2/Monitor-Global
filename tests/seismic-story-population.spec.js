@@ -33,8 +33,8 @@ test('current share image keeps population in the panel but excludes verbose exp
  expect(texts).toMatch(/(?:^|\s)M8(?:[,.]0)?(?=\s|$)/);
  // This fixture supplies no tsunami bulletin; do not demand an invented warning.
  expect(texts).not.toContain('AVISO DE TSUNAMI');
- // The current Concept 6 uses a graphic brand/epicenter marker and an optional engraved regional map; these are not canvas text. Keep assertions on the actual textual metadata and the current Telegram handle.
- for(const needle of ['SISMO','PROFUNDIDADE','INTENSIDADE EST.','argosorbis.com.br','Telegram · @argosorbis'])expect(texts).toContain(needle);
+ // The current site-argos-orbis-v2 renderer explicitly paints brand, epicenter and Telegram channel name. Assert the current layout contract, also covered by the unit painter test.
+ for(const needle of ['ARGOS ORBIS','SISMO','EPICENTRO · M8','PROFUNDIDADE','INTENSIDADE EST.','TSUNAMI','Não confirmado','argosorbis.com.br','Telegram · ARGOS ORBIS'])expect(texts).toContain(needle);
  for(const removed of ['123.456','VI+:','USGS PAGER','POPULAÇÃO POTENCIALMENTE EXPOSTA','COMO LER O MAPA · INTENSIDADE LOCAL','PESSOAS QUE PODEM TER SENTIDO','ALCANCE DA ONDA','CIDADES PRÓXIMAS','Animação do sismo','Replay do mapa'])expect(texts).not.toContain(removed);
  // Concept 6 loads StoryInter and StorySerif; StoryRajdhani is a legacy font no longer used by this renderer.
  expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='StoryInter'&&f.status==='loaded'))).toBe(true);
