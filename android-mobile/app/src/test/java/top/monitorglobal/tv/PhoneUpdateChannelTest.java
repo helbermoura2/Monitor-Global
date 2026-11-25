@@ -20,6 +20,11 @@ public class PhoneUpdateChannelTest {
   try{PhoneUpdateChannel.parse(json("top.monitorglobal.mobile",PhoneUpdateChannel.APK,hash,hash,11),PhoneUpdateChannel.PACKAGE);fail("package mismatch");}catch(SecurityException expected){}
   try{PhoneUpdateChannel.parse(json(PhoneUpdateChannel.PACKAGE,PhoneUpdateChannel.APK,"wrong",hash,11),PhoneUpdateChannel.PACKAGE);fail("digest mismatch");}catch(SecurityException expected){}
  }
+ @Test public void explainsMissingStableReleaseWithoutClaimingNetworkFailure(){
+  assertTrue(PhoneUpdateChannel.verificationFailure(new java.io.IOException("Canal indisponível: HTTP 404")).contains("ainda não foi publicada"));
+  assertTrue(PhoneUpdateChannel.verificationFailure(new java.io.IOException("Canal indisponível: HTTP 429")).contains("limitou temporariamente"));
+  assertTrue(PhoneUpdateChannel.verificationFailure(new java.io.IOException("timeout")).contains("conexão com a internet"));
+ }
  @Test public void disabledReleaseDoesNotOfferInstallation()throws Exception{
   String raw=new JSONObject().put("schema",1).put("repository",PhoneUpdateChannel.REPOSITORY).put("channel",PhoneUpdateChannel.CHANNEL).put("packageName",PhoneUpdateChannel.PACKAGE).put("release",new JSONObject().put("enabled",false)).toString();
   assertNull(PhoneUpdateChannel.parse(raw,PhoneUpdateChannel.PACKAGE));
