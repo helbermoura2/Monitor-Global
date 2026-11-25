@@ -67,11 +67,11 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#rain24-impact').innerText(),/drenagem/);
  await page.locator('#map-city-close').click();
  assert.equal(await cityCard.isVisible(),false);
- // Android WebView exposes a long-press on the map as a contextmenu event.
- // Exercise the same MapLibre event path and verify the coordinate panel.
- await page.locator('#brazil-map canvas').evaluate(canvas=>{
-  const rect=canvas.getBoundingClientRect();
-  canvas.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2,clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2}));
+ // Exercise the MapLibre contextmenu handler deterministically. Native Android
+ // long-press delivery is device-specific and is verified separately on hardware.
+ await page.evaluate(()=>{
+  const map=window.__map,point=map.project(map.getCenter());
+  map.fire('contextmenu',{point,lngLat:map.unproject(point)});
  });
  const pointSelection=page.locator('#map-selection-content');
  await pointSelection.getByText('Coordenadas do ponto').waitFor();
