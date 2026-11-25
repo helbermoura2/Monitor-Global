@@ -142,7 +142,12 @@ public class TvDashboardUiTest {
   Button toggle=app.getWindow().getDecorView().findViewWithTag("sidebar-toggle");
   assertEquals(0,toggle.getPaddingTop());
   assertEquals(0,toggle.getPaddingBottom());
-  assertEquals(0,toggle.getMinHeight());
+  // TextView reports -1 when the minimum is expressed in lines rather than pixels.
+  assertTrue(toggle.getMinHeight()<=0);
+  assertEquals(0,toggle.getMinimumHeight());
+  toggle.measure(View.MeasureSpec.makeMeasureSpec(180,View.MeasureSpec.EXACTLY),
+   View.MeasureSpec.makeMeasureSpec(toggle.getLayoutParams().height,View.MeasureSpec.EXACTLY));
+  assertTrue(toggle.getMeasuredHeight()>=toggle.getPaint().getFontSpacing());
   assertFalse(toggle.getIncludeFontPadding());
   toggle.performClick();
   assertEquals("›",toggle.getText().toString());
