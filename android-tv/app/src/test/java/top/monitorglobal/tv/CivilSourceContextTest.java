@@ -19,7 +19,7 @@ public class CivilSourceContextTest {
   DefesaCivilSp.Notice notice=new DefesaCivilSp.Notice("phone-1","Celular",
    "Alerta recebido", "Extreme",now-2*60000,now+8*60000);
   String text=CivilSourceContext.describe(notice,now,true,false,false);
-  assertTrue(text.contains("CAPTURADO NO CELULAR"));
+  assertTrue(text.contains("ORIGEM CELULAR"));
   assertTrue(text.contains("NÃO VERIFICADO VIA CAP"));
   assertFalse(text.contains("CAP OFICIAL"));
   String replay=CivilSourceContext.describe(notice,now,true,true,false);
@@ -32,7 +32,7 @@ public class CivilSourceContextTest {
   DefesaCivilSp.Notice notice=new DefesaCivilSp.Notice("cap-old","Defesa Civil Estadual de São Paulo",
    "Aviso antigo", "Severe",now-60*60000,now-5*60000);
   String text=CivilSourceContext.describe(notice,now,false,true,false);
-  assertTrue(text.contains("REGISTRO HISTÓRICO"));
+  assertTrue(text.contains("REPLAY HISTÓRICO"));
   assertTrue(text.contains("NÃO É ALERTA ATUAL"));
   assertTrue(text.contains("VALIDADE ENCERRADA EM"));
  }
