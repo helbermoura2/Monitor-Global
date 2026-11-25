@@ -26,7 +26,7 @@ public class SatelliteMotionTest {
  @Test public void detectsKnownCloudPatternTranslationAndDirection(){
   Bitmap older=image(0,0),newer=image(8,4);
   try{
-   SatelliteMotion.Result result=SatelliteMotion.analyze(older,newer,1_000_000L,1_600_000L,InfraredPlan.SOUTHEAST);
+   SatelliteMotion.Result result=SatelliteMotion.analyze(older,newer,1_000_000L,5_200_000L,InfraredPlan.SOUTHEAST);
    assertNotNull(result);assertEquals("SE",result.direction);assertTrue(result.speedKmh>0);
    assertTrue(result.matched>=4);assertTrue(result.confidence>0);
   }finally{older.recycle();newer.recycle();}
