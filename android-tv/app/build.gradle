@@ -34,6 +34,7 @@ android {
 }
 // QR encoding is local; no camera permission or remote QR service.
 dependencies {
+ implementation project(':core')
  implementation 'com.google.zxing:core:3.5.3'
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.json:json:20240303'
