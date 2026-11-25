@@ -3,18 +3,25 @@ import android.content.*;import android.graphics.*;import android.graphics.drawa
 /** Prefetch during the weather countdown; always give bounded feedback after weather. */
 final class WeatherSatelliteSequence implements AutoCloseable {
  static final long AFTER_WEATHER=13000,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
- static final InfraredPlan.Scope RADAR_REGION=new InfraredPlan.Scope("SP/RJ",-48.7,-25.1,-40.7,-21.5);
+ static final InfraredPlan.Scope RADAR_REGION=new InfraredPlan.Scope("SP/RJ",-50,-27,-40,-18);
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();}
  private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){private volatile boolean stopped;public WeatherSatelliteClient.Frame load()throws Exception{
+   WeatherSatelliteClient.Frame primary=null,satellite=null;
    try{long now=System.currentTimeMillis();RadarMapClient.Frame observed=radar.latestWithin(now,10000);
     if(!stopped&&observed.at<=now&&now-observed.at<=60*60000L){
      Bitmap image=RadarMapRender.render(c,client,RADAR_REGION,observed);
      if(stopped){image.recycle();return null;}
-     return WeatherSatelliteClient.Frame.radar(image,observed,RADAR_REGION);
+     primary=WeatherSatelliteClient.Frame.radar(image,observed,RADAR_REGION);
     }
    }catch(Exception|OutOfMemoryError ignored){}finally{radar.close();}
-   return stopped?null:client.latest(InfraredPlan.SOUTHEAST,System.currentTimeMillis());
+   if(!stopped)try{
+    satellite=client.latest(RADAR_REGION,System.currentTimeMillis());
+    if(satellite!=null&&!stopped)try{satellite.previousObserved=client.previousForBroadcast(satellite,System.currentTimeMillis());}catch(Exception ignored){}
+   }catch(Exception|OutOfMemoryError ignored){}
+   if(stopped){if(primary!=null)primary.close();if(satellite!=null)satellite.close();return null;}
+   if(primary==null)return satellite;
+   primary.alternate=satellite;return primary;
   }public void close(){stopped=true;radar.close();client.close();}};});}
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed,java.util.function.Supplier<Loader> factory){context=c;this.allowed=allowed;this.factory=factory;banner=new Banner(c);}
  void prepare(){if(closed||pending)return;pending=true;flipExpected=false;int token=++generation;Prefs.get(context).edit().putString("satelliteStatus","Mapa: consultando radar e satélite do Sudeste").apply();
@@ -54,6 +61,16 @@ final class WeatherSatelliteSequence implements AutoCloseable {
    Prefs.get(context).edit().putString("satelliteStatus","Satélite: exibição da tarja indisponível").apply();
    cancel();
   }
+ }
+ static WeatherSatelliteClient.Frame displayFrame(WeatherSatelliteClient.Frame root,long elapsed,long now){
+  if(root==null)return null;
+  WeatherSatelliteClient.Frame satellite=root.isRadar()?root.alternate:root;
+  boolean radarValid=root.isRadar()&&root.validAt(now),satValid=satellite!=null&&satellite.validAt(now);
+  if(radarValid&&(!satValid||elapsed<5000))return root;
+  if(!satValid)return radarValid?root:null;
+  long phase=radarValid?Math.max(0,elapsed-5000):Math.max(0,elapsed);
+  WeatherSatelliteClient.Frame older=satellite.previousObserved;
+  return phase<3000&&older!=null&&older.validAt(now)&&older.source==satellite.source&&older.at<satellite.at?older:satellite;
  }
  private void closeReader(){if(reader!=null){reader.close();reader=null;}}
  WeatherSatelliteClient.Frame currentFrame(){return frame!=null&&frame.validAt(System.currentTimeMillis())?frame:null;}
