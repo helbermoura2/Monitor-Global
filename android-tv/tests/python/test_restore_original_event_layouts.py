@@ -9,7 +9,8 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2] / "app" / "src" / "main" / "java" / "top" / "monitorglobal" / "tv"
 WEATHER = (ROOT / "TvBroadcastInfoView.java").read_text(encoding="utf-8")
 SEISMIC = (ROOT / "NewsBannerView.java").read_text(encoding="utf-8")
-CHROME = (ROOT / "BroadcastVisuals.java").read_text(encoding="utf-8")
+CORE = pathlib.Path(__file__).resolve().parents[3] / "android-core" / "src" / "main" / "java" / "top" / "monitorglobal" / "tv"
+CHROME = (CORE / "BroadcastVisuals.java").read_text(encoding="utf-8")
 BANNER = (ROOT / "Banner.java").read_text(encoding="utf-8")
 
 
@@ -86,7 +87,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         self.assertIn('BREAKING_WIDTH=190f,FOOTER_TOP=94f,FOOTER_HEIGHT=32f', CHROME)
         self.assertNotIn('newsroomBody(', CHROME)
         self.assertIn('OledNewsChrome.base(c,p)', WEATHER)
-        skin=(ROOT / "OledNewsChrome.java").read_text(encoding="utf-8")
+        skin=(CORE / "OledNewsChrome.java").read_text(encoding="utf-8")
         self.assertIn('static final int OLED=Color.BLACK', skin)
         self.assertIn('static final float LEFT=8f', skin)
         self.assertIn('p.y=dp(32)-dp(TRAVEL_DP)', BANNER)
