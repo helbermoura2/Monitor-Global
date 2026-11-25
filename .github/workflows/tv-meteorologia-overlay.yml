@@ -29,4 +29,4 @@ jobs:
         working-directory: android-tv
         env:
           ARGOS_CAPPI_TEST_FILE: /tmp/argos-cappi.nc
-        run: ./gradlew --no-daemon -PnativeMapChecks :app:testDebugUnitTest --tests 'top.monitorglobal.tv.RadarMapRenderTest'
+        run: ./gradlew --no-daemon -Pandroid.useAndroidX=true -PnativeMapChecks :app:testDebugUnitTest --tests 'top.monitorglobal.tv.RadarMapRenderTest'
