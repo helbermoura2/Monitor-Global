@@ -58,7 +58,7 @@ final class TvBroadcastInfoView extends View {
   brentSession=brent==null?closedBrentOrUnknown():brent.session;dollarSession=dollar==null?MarketState.unknown():dollar.session;
   this.satellite=satellite;this.satelliteStatus=status==null?"":status;this.demo=demo;
   this.mapBelow=Prefs.get(c).getBoolean("themeTop",false);
-  this.mapSpace=kind==BRENT||kind==VOICE_STATUS||kind==CIVIL_ALERT||(kind==WEATHER||kind==RAIN)&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:Banner.insetDp(c);
+  this.mapSpace=kind==BRENT||kind==VOICE_STATUS||kind==CIVIL_ALERT||(kind==WEATHER||kind==RAIN)&&!Prefs.get(c).getBoolean("weatherSatellite",true)?0:weatherInsetDp(c);
   brand=OledNewsChrome.titleFont(null);
   data=OledNewsChrome.regularFont();
   accent=Color.parseColor(Prefs.get(c).getInt("themeVersion",0)<2?"#38bdf8":Prefs.get(c).getString("themeAccent","#38bdf8"));
@@ -300,7 +300,7 @@ final class TvBroadcastInfoView extends View {
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
   int tickerLayer=c.saveLayer(tickerLeft,95,tickerRight,124,null);
-  String visibleTicker=ticker;
+  String visibleTicker=kind==SATELLITE?(frame==null?"MAPA METEOROLÓGICO · DADOS INDISPONÍVEIS":(frame.isRadar()?"RADAR OBSERVADO":"SATÉLITE GOES-EAST")):ticker;
   if(kind==SATELLITE||kind==WEATHER||kind==RAIN)visibleTicker+=satelliteMotionTicker(frame);
   if(!visibleTicker.equals(tickerSource)){tickerSource=visibleTicker;tickerDisplay=OledNewsChrome.tickerDisplay(visibleTicker);}
   String display=tickerDisplay;
@@ -489,38 +489,48 @@ final class TvBroadcastInfoView extends View {
   label(c,frame==null?(satellite==null?satelliteStatus:"Imagem indisponível"):InfraredPlan.timing(frame.at,System.currentTimeMillis())+
     " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
  }
+ static int weatherInsetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(230,available);}
+ static float portraitWidth(float physicalHeight,float xScale){return physicalHeight*0.8f/xScale;}
  private WeatherSatelliteClient.Frame currentFrame(){
   WeatherSatelliteClient.Frame frame=kind==WEATHER||kind==RAIN
       ?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
-  return frame!=null&&frame.image!=null&&!frame.image.isRecycled()&&(!frame.isRadar()||frame.validAt(System.currentTimeMillis()))?frame:null;
+  return WeatherSatelliteSequence.displayFrame(frame,Math.max(0,android.os.SystemClock.uptimeMillis()-started),System.currentTimeMillis());
  }
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
-  if(mapSpace<=0||mapReveal<=0)return;
-  c.save();c.translate(0,mapBelow?126:0);c.scale(1,mapSpace/180f);c.clipRect(0,0,960,180);
-  float slide=(1-mapReveal)*(effects.full()?34:19);
-  // A mesma ancora usada nos sismos: nenhum deslocamento exclusivo do infravermelho.
-  c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
-  int mapLayer=mapReveal<1?c.saveLayerAlpha(0,0,310,176,Math.round(255*mapReveal)):c.save();
-  if(kind==WEATHER||kind==RAIN||kind==SATELLITE){
-   rounded(c,0,0,310,176,Color.BLACK,5);
-   if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}
-   if(displayed!=null){
-    p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
-    p.setAlpha(effects.imageOpacity(now-imageReadyAt));
-    float ratio=Math.min(310f/displayed.image.getWidth(),127f/displayed.image.getHeight());float w=displayed.image.getWidth()*ratio,h=displayed.image.getHeight()*ratio;c.drawBitmap(displayed.image,null,new RectF((310-w)/2,23+(127-h)/2,(310+w)/2,23+(127+h)/2),p);p.setAlpha(255);
-   }
-   fill(c,0,0,310,23,Color.BLACK);fill(c,0,22,310,23,OledNewsChrome.RED_DARK);
-   label(c,displayed!=null&&displayed.isRadar()?"RADAR OBSERVADO · SP/RJ":"INFRAVERMELHO · SUDESTE",9,17,15,Color.WHITE,OledNewsChrome.titleFont(null),286);
-   fill(c,0,150,310,26,Color.BLACK);
-   if(displayed!=null&&displayed.isRadar()){
-    label(c,"INPE / DECEA · dBZ",9,160,10,0xffbbd7e7,brand,125);
-    for(int i=0;i<RadarIntensity.count();i++){float x=139+i*23;fill(c,x,152,22,5,RadarIntensity.color(i)|0xff000000);label(c,RadarIntensity.label(i).split("–")[0],x+1,165,8,Color.WHITE,data,22);}
-   }else if(displayed!=null)label(c,displayed.credit(),9,160,10,0xffbbd7e7,brand,290);
-   label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,displayed!=null?173:168,12,0xffbbd7e7,brand,290);
-   p.setColor(0xff56595f);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
-   c.drawRoundRect(0,0,310,176,5,5,p);p.setStyle(Paint.Style.FILL);
+  if(mapSpace<=0||mapReveal<=0||!(kind==WEATHER||kind==RAIN||kind==SATELLITE))return;
+  float sx=getWidth()/960f,sy=getHeight()/(126f+mapSpace);if(sx<=0||sy<=0)return;
+  float height=mapSpace-4f,width=portraitWidth(height*sy,sx);
+  if(width<=0)return;
+  float slide=(1-mapReveal)*(effects.full()?24:14);
+  c.save();c.translate(OledNewsChrome.RIGHT-width,mapBelow?126+4-slide:slide);c.scale(width/200f,height/250f);
+  c.clipRect(0,0,200,250);
+  int save=mapReveal<1?c.saveLayerAlpha(0,0,200,250,Math.round(255*mapReveal)):c.save();
+  rounded(c,0,0,200,250,Color.BLACK,5);
+  boolean radar=displayed!=null&&displayed.isRadar();
+  if(fadingFrame!=displayed){fadingFrame=displayed;imageReadyAt=now;}
+  if(displayed!=null&&displayed.image!=null&&!displayed.image.isRecycled()){
+   p.setColor(Color.WHITE);p.setStyle(Paint.Style.FILL);p.setShader(null);p.setFilterBitmap(true);p.setAlpha(effects.imageOpacity(now-imageReadyAt));
+   float ratio=Math.min(196f/displayed.image.getWidth(),180f/displayed.image.getHeight());float w=displayed.image.getWidth()*ratio,h=displayed.image.getHeight()*ratio;
+   c.drawBitmap(displayed.image,null,new RectF((200-w)/2,24+(180-h)/2,(200+w)/2,24+(180+h)/2),p);p.setAlpha(255);
   }
-  c.restoreToCount(mapLayer);c.restore();
+  fill(c,0,0,200,23,Color.BLACK);fill(c,0,0,4,23,OledNewsChrome.RED_DARK);fill(c,0,22,200,23,OledNewsChrome.RED_DARK);
+  label(c,displayed==null?"MAPA METEOROLÓGICO":radar?"RADAR · SP/RJ":"INFRAVERMELHO · SE",8,16,13,Color.WHITE,brand,184);
+  fill(c,0,204,200,46,Color.BLACK);
+  if(radar){
+   for(int i=0;i<RadarIntensity.count();i++){float x=9+i*26;fill(c,x,206,25,5,RadarIntensity.color(i)|0xff000000);label(c,RadarIntensity.label(i).split("–")[0],x,220,9,Color.WHITE,data,25);}
+   label(c,"INPE/DECEA · dBZ · cinza: sem dado",8,232,9,0xffd3d7da,data,184);
+  }else if(displayed!=null){
+   if(displayed.legend!=null&&!displayed.legend.isRecycled()){
+    p.setColor(Color.WHITE);p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setFilterBitmap(true);
+    float r=Math.min(142f/displayed.legend.getWidth(),20f/displayed.legend.getHeight());float w=displayed.legend.getWidth()*r,h=displayed.legend.getHeight()*r;
+    c.drawBitmap(displayed.legend,null,new RectF(49,205,49+w,205+h),p);
+   }
+   label(c,"IR · °C",8,218,9,Color.WHITE,data,40);
+   label(c,displayed.source==WeatherSatelliteClient.Source.REALEARTH?"RealEarth / NOAA":"NASA GIBS / NOAA",8,232,10,0xffd3d7da,data,184);
+  }else label(c,"Dados indisponíveis",8,232,11,Color.WHITE,data,184);
+  if(displayed!=null)label(c,InfraredPlan.timing(displayed.at,System.currentTimeMillis()),8,245,10,0xffd3d7da,brand,184);
+  p.setColor(0xff45484d);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);c.drawRoundRect(0,0,200,250,5,5,p);p.setStyle(Paint.Style.FILL);
+  c.restoreToCount(save);c.restore();
  }
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();
@@ -533,6 +543,7 @@ final class TvBroadcastInfoView extends View {
   RuntimeDiagnostics.frame(drawStarted,SystemClock.elapsedRealtimeNanos()-drawStarted,motionEnabled());
   if(running&&isShown()){
    if(motionEnabled())postInvalidateOnAnimation();
+   else if(kind==SATELLITE||kind==WEATHER||kind==RAIN)postInvalidateDelayed(500);
    else postInvalidateDelayed(60000-Math.floorMod(System.currentTimeMillis(),60000));
   }
  }
