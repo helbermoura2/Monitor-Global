@@ -8,9 +8,9 @@ export function gaugeEvidence(rows, loc, now) {
   const latest = new Map();
   for (const row of rows) {
     if (row?.id_sensor !== 10 || row.qualificacao !== '0000' ||
-        typeof row.codestacao !== 'string' || !/^3550308\\w{3}$/.test(row.codestacao) ||
+        typeof row.codestacao !== 'string' || !/^3550308\w{3}$/.test(row.codestacao) ||
         !Number.isFinite(row.latitude) || !Number.isFinite(row.longitude) ||
-        !/^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}$/.test(row.datahora) ||
+        !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(row.datahora) ||
         !Number.isFinite(row.valor) || row.valor < 0 || row.valor > 300) continue;
     const at = Date.parse(row.datahora.replace(' ', 'T') + ':00Z');
     const distance = Math.hypot((row.latitude - loc.lat) * 111.32,
