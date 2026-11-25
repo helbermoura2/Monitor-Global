@@ -1,6 +1,12 @@
 name: Android mobile preview
 on:
   workflow_dispatch:
+    inputs:
+      publish_stable:
+        description: 'Publicar a versão estável após validar os artefatos'
+        required: true
+        type: boolean
+        default: false
   pull_request:
     paths:
       - 'android-mobile/**'
@@ -67,7 +73,7 @@ jobs:
           node --test tests/unit/phone-map-boundaries.test.mjs
       - name: Build and inspect phone APKs
         working-directory: android-mobile
-        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
+        run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleStable :app:lintStable :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
       - name: Verify native phone navigation and lifecycle
         working-directory: android-mobile
         run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest
@@ -116,6 +122,11 @@ jobs:
         with:
           name: monitor-global-mobile-preview
           path: android-mobile/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: monitor-global-mobile-stable
+          path: android-mobile/app/build/outputs/apk/stable/app-stable.apk
           retention-days: 14
       - name: Export native phone screens
         uses: actions/upload-artifact@v4
@@ -213,3 +224,48 @@ jobs:
 
 
 
+
+  publish-stable:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_stable == true && github.repository == 'helbermoura2/Monitor-Global'
+    needs: [build, rain-service]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: monitor-global-mobile-stable
+          path: stable-apk
+      - name: Create verified stable update manifest
+        env:
+          ANDROID_HOME: ${{ runner.temp }}/android-sdk
+        run: |
+          python - <<'PY'
+          import pathlib,hashlib,json,re,subprocess,os
+          apk=pathlib.Path('stable-apk/app-stable.apk')
+          target=pathlib.Path('stable-apk/monitor-global-mobile-stable.apk')
+          target.write_bytes(apk.read_bytes())
+          gradle=pathlib.Path('android-mobile/app/build.gradle').read_text()
+          version=re.search(r"versionName '([^']+)'",gradle).group(1)
+          code=int(re.search(r"versionCode\\s+(\\d+)",gradle).group(1))
+          signer_tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
+          certs=subprocess.check_output([str(signer_tool),'verify','--print-certs',str(target)],text=True)
+          match=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F:]+)',certs)
+          if not match: raise SystemExit('Stable APK has no verifiable signer')
+          certificate=match.group(1).replace(':','').lower()
+          manifest={'schema':1,'repository':'helbermoura2/Monitor-Global','channel':'mobile-stable','packageName':'top.monitorglobal.mobile.dev','release':{'enabled':True,'versionCode':code,'versionName':version,'url':'https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/monitor-global-mobile-stable.apk','sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'certificateSha256':certificate}}
+          pathlib.Path('stable-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\\n')
+          notes='Argos Orbis para Android — canal estável. Atualização pelo próprio aplicativo, com validação de pacote, versão, SHA-256 e certificado. A instalação sempre depende da confirmação do Android.\\n'
+          pathlib.Path('stable-notes.md').write_text(notes)
+          PY
+      - name: Publish stable release only after explicit manual dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view mobile-stable >/dev/null 2>&1; then
+            gh release edit mobile-stable --draft=false --prerelease=false --title 'Argos Orbis para Android · versão estável' --notes-file stable-notes.md
+          else
+            gh release create mobile-stable --target "$GITHUB_SHA" --title 'Argos Orbis para Android · versão estável' --notes-file stable-notes.md
+          fi
+          gh release upload mobile-stable stable-apk/monitor-global-mobile-stable.apk stable-apk/mobile-update.json --clobber
