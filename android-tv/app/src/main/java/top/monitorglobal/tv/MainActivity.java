@@ -14,7 +14,8 @@ public final class MainActivity extends Activity {
  private static final String[] OVERVIEW_HINTS={"Alertas reais e histórico","Fontes e último aviso regional","Tempo na Liberdade","Cotação real do Brent"};
  private String buildingPage=CATEGORIES[0],selectedPage=CATEGORIES[0];
  private boolean sidebarCollapsed;
- private TextView updateStatus,monitorBadge;
+ private TextView updateStatus,monitorBadge,marketDetail;
+ private static final int MENU_TOGGLE_DP=34;
  private Button sidebarToggle;
  private TextView status,weatherStatus,replayStatus,voiceStatus;
  private SpeechRecognizer speechRecognizer;
@@ -42,6 +43,7 @@ public final class MainActivity extends Activity {
    Button tile=button(category,v->selectPage(category,true));
    tile.setTag("overview-"+category);
    tile.setMinHeight(dp(82));tile.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+   tile.setIncludeFontPadding(false);tile.setPadding(dp(14),dp(8),dp(14),dp(8));
    tile.setMaxLines(3);tile.setEllipsize(android.text.TextUtils.TruncateAt.END);
    iconFor(tile,index,false);overviewCards[i-1]=tile;
    setTile(tile,category,OVERVIEW_HINTS[i-1]);
@@ -253,7 +255,9 @@ public final class MainActivity extends Activity {
   button("Testar cartão e chuva (fictício, em 10 s)",v->launch(MonitorService.TEST+"_RAIN"));
   section("CHUVA · COMO FUNCIONA");
   label("Chuva opcional · Liberdade, São Paulo: desligado, só cartão ou cartão com chuva. Usa estimativas por minuto do Rainbow Weather para um ponto da Liberdade, junto à Praça da Liberdade-Japão. Cartão por 12 segundos quando a chuva se aproxima, começa, muda de intensidade ou deixa de ser prevista. mm/h é intensidade estimada; mm nos próximos 60 minutos é acumulado previsto. Início e término só aparecem quando a fonte permite estimar. Sismos e tsunami têm prioridade. Não acompanha sua localização.",15,false);
-  section("MERCADO FINANCEIRO · BRENT");
+  section("MERCADO FINANCEIRO · BRENT E DÓLAR");
+  marketDetail=label("Aguardando cotação real",17,false);
+  marketDetail.setTag("market-full-status");
   Switch brentSwitch=new Switch(this);
   brentSwitch.setText("Mostrar cotação do Brent de hora em hora · só durante o mercado aberto");
   brentSwitch.setTextColor(Color.WHITE);brentSwitch.setTextSize(17);brentSwitch.setPadding(12,10,12,10);
@@ -309,17 +313,20 @@ public final class MainActivity extends Activity {
   sidebar=new LinearLayout(this);sidebar.setOrientation(LinearLayout.VERTICAL);
   sidebar.setPadding(dp(2),dp(3),dp(8),dp(3));menu.addView(sidebar);
   sidebarToggle=new Button(this);sidebarToggle.setText("‹  Recolher");sidebarToggle.setAllCaps(false);
-  sidebarToggle.setId(View.generateViewId());sidebarToggle.setTextColor(GOLD);sidebarToggle.setTextSize(15);
+  sidebarToggle.setId(View.generateViewId());sidebarToggle.setTextColor(GOLD);sidebarToggle.setTextSize(14);
+  sidebarToggle.setMinHeight(0);sidebarToggle.setMinimumHeight(0);sidebarToggle.setMinWidth(0);
+  sidebarToggle.setIncludeFontPadding(false);sidebarToggle.setSingleLine(true);sidebarToggle.setGravity(Gravity.CENTER);
+  sidebarToggle.setPadding(0,0,0,0);
   sidebarToggle.setContentDescription("Recolher ou expandir menu");sidebarToggle.setTag("sidebar-toggle");
   sidebarToggle.setOnClickListener(v->{sidebarCollapsed=!sidebarCollapsed;applySidebarWidth();});
   sidebarToggle.setOnFocusChangeListener((v,focused)->styleButton(sidebarToggle,focused));
   styleButton(sidebarToggle,false);
-  sidebar.addView(sidebarToggle,new LinearLayout.LayoutParams(-1,dp(30)));
+  sidebar.addView(sidebarToggle,new LinearLayout.LayoutParams(-1,dp(MENU_TOGGLE_DP)));
   Button previous=sidebarToggle;
   for(int i=0;i<CATEGORIES.length;i++){
    final String category=CATEGORIES[i];
    Button nav=new Button(this);nav.setId(View.generateViewId());nav.setTag("nav-"+category);
-   nav.setAllCaps(false);nav.setTextSize(16);nav.setMinHeight(0);nav.setMinimumHeight(0);nav.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
+   nav.setAllCaps(false);nav.setTextSize(16);nav.setIncludeFontPadding(false);nav.setSingleLine(true);nav.setMinHeight(0);nav.setMinimumHeight(0);nav.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
    nav.setPadding(dp(12),0,dp(8),0);nav.setContentDescription(category);
    nav.setText(category);iconFor(nav,i,false);
    nav.setOnClickListener(v->selectPage(category,true));
@@ -350,7 +357,7 @@ public final class MainActivity extends Activity {
  }
  private void fitSidebar(int height){
   if(height<=0)return;
-  int row=Math.max(dp(28),Math.min(dp(40),(height-dp(30)-sidebar.getPaddingTop()-sidebar.getPaddingBottom()-CATEGORIES.length*dp(1))/CATEGORIES.length));
+  int row=Math.max(dp(28),Math.min(dp(40),(height-dp(MENU_TOGGLE_DP)-sidebar.getPaddingTop()-sidebar.getPaddingBottom()-CATEGORIES.length*dp(1))/CATEGORIES.length));
   for(Button nav:navigation.values()){
    ViewGroup.LayoutParams p=nav.getLayoutParams();
    if(p.height!=row){p.height=row;nav.setLayoutParams(p);}
@@ -388,6 +395,7 @@ public final class MainActivity extends Activity {
   nav.setTextColor(selected||focused?INK:MUTED);
   nativeButton(nav);
   nav.setBackground(glass(focused,selected,9));
+  nav.setPadding(sidebarCollapsed?0:dp(10),0,sidebarCollapsed?0:dp(6),0);
   nav.setSelected(selected);
  }
  private void focusPage(){
@@ -689,26 +697,43 @@ public final class MainActivity extends Activity {
   b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
  }
  private GradientDrawable glass(boolean focus,boolean selected,int radius){
-  int top=focus?0xff30271d:selected?0xff211b14:0xff19191b;
-  int bottom=focus?0xff110e0a:selected?0xff100d09:0xff080809;
-  GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{top,bottom});
-  d.setCornerRadius(dp(radius));d.setStroke(dp(focus?2:1),focus?GOLD:selected?0xff745b3e:EDGE);return d;
+  int top=focus?0xff2b2117:selected?0xff1c1711:0xff131415;
+  int middle=focus?0xff17130f:selected?0xff100d09:0xff08090a;
+  int bottom=focus?0xff0a0806:0xff030304;
+  GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{top,middle,bottom});
+  d.setCornerRadius(dp(radius));d.setStroke(dp(focus?2:1),focus?GOLD:selected?0xff705638:0xff333031);return d;
  }
  private void styleButton(Button b,boolean focus){
-  nativeButton(b);b.setBackground(glass(focus,false,12));
+  int left=b.getPaddingLeft(),top=b.getPaddingTop(),right=b.getPaddingRight(),bottom=b.getPaddingBottom();
+  nativeButton(b);b.setBackground(glass(focus,false,12));b.setPadding(left,top,right,bottom);
  }
  private void setTile(Button tile,String title,String detail){
   if(tile==null)return;
   String cleaned=detail==null?"Aguardando consulta":detail.replaceAll("\\s+"," ").trim();
   if(cleaned.isEmpty())cleaned="Aguardando consulta";
-  if(cleaned.length()>86)cleaned=cleaned.substring(0,83)+"…";
-  String text=title+"\n"+cleaned;
+  tile.setContentDescription(title+" · "+cleaned);
+  if(!CATEGORIES[4].equals(title)&&cleaned.length()>86)cleaned=cleaned.substring(0,83)+"…";
+  String text=title+"\n"+(CATEGORIES[4].equals(title)?marketSummary(cleaned):cleaned);
   if(text.contentEquals(tile.getText()))return;
   android.text.SpannableString styled=new android.text.SpannableString(text);
   styled.setSpan(new android.text.style.ForegroundColorSpan(GOLD),0,title.length(),33);
   styled.setSpan(new android.text.style.RelativeSizeSpan(.76f),title.length()+1,text.length(),33);
   styled.setSpan(new android.text.style.ForegroundColorSpan(MUTED),title.length()+1,text.length(),33);
   tile.setText(styled);
+ }
+ // Compact only the known status formats, preserving values and explicit missing/closed states.
+ static String marketSummary(String status){
+  if(status==null||status.trim().isEmpty())return "Aguardando cotação real";
+  String[] parts=status.split(" · ");
+  if(parts.length>=3&&"COTAÇÕES".equals(parts[0])){
+   String brent=parts[1],fx=parts[2].replace("Yahoo USD/BRL","Dólar (Yahoo)");
+   return brent+"\n"+fx;
+  }
+  if(parts.length>=4&&"BRENT".equals(parts[0])&&"DÓLAR".equals(parts[2]))
+   return "Brent · "+parts[1]+"\nDólar · "+parts[3];
+  if(parts.length>=3&&"REAL".equals(parts[0]))
+   return "Brent "+parts[1]+"\n"+parts[2];
+  return status;
  }
  private void iconFor(Button b,int index,boolean compact){
   android.graphics.drawable.Drawable icon=new DashboardIcon(index);
@@ -809,6 +834,7 @@ public final class MainActivity extends Activity {
   setTile(overviewCards[1],CATEGORIES[2],cachedTarget!=null?RegionalReplayDetails.summary(cachedTarget):source);
   setTile(overviewCards[2],CATEGORIES[3],weather);
   setTile(overviewCards[3],CATEGORIES[4],brent);
+  setIfChanged(marketDetail,brent);
   if(replayStatus!=null)setIfChanged(replayStatus,
     "Último replay regional salvo: "+RegionalReplayDetails.summary(cachedTarget)
     +" · aparece SOBRE o vídeo, após 10 s");
