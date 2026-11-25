@@ -38,6 +38,10 @@ public class SatelliteMotionTest {
    assertNotNull(result);assertTrue(result.speedKmh<2.0);
   }finally{older.recycle();newer.recycle();}
  }
+ @Test public void tickerSpeedOverrideKeepsTheDefaultForOtherBanners(){
+  assertEquals(40f,BroadcastVisuals.tickerOffset(1000L,1000f,true),.001f);
+  assertEquals(65f,BroadcastVisuals.tickerOffset(1000L,1000f,true,65f),.001f);
+ }
  @Test public void rejectsInvalidTimeAndDifferentImageSizes(){
   Bitmap older=image(0,0),newer=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888);
   try{
