@@ -37,7 +37,7 @@ final class PhoneUpdater {
   executor.execute(()->{try{
    PhoneUpdateChannel.Release r=PhoneUpdateChannel.read();
    ui(()->{busy=false;if(r==null){show("Versão estável indisponível","Ainda não há uma atualização publicada no canal estável.",null,false);return;}
-    if(r.code<=BuildConfig.VERSION_CODE){show("Versão atualizada","Instalada: "+BuildConfig.VERSION_NAME+"\nCanal de testes: "+r.name+"\n\nNão há versão mais recente para instalar.",null,false);return;}
+    if(r.code<=BuildConfig.VERSION_CODE){show("Versão atualizada","Instalada: "+BuildConfig.VERSION_NAME+"\nVersão estável: "+r.name+"\n\nNão há versão mais recente para instalar.",null,false);return;}
     show("Nova versão "+r.name,"Há uma atualização estável disponível. O aplicativo vai conferir o arquivo e a assinatura antes de abrir o instalador do Android.",r,false);
    });
   }catch(Exception error){ui(()->{busy=false;show("Não foi possível verificar","O canal pode ainda não ter o arquivo de atualização ou a internet pode estar indisponível. Nenhum APK foi instalado.",null,false);});}});
