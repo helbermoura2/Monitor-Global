@@ -3,14 +3,15 @@ import android.content.*;import android.graphics.*;import android.graphics.drawa
 /** Prefetch during the weather countdown; always give bounded feedback after weather. */
 final class WeatherSatelliteSequence implements AutoCloseable {
  static final long AFTER_WEATHER=13000,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
+ static final InfraredPlan.Scope RADAR_REGION=new InfraredPlan.Scope("SP/RJ",-48.7,-25.1,-40.7,-21.5);
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();}
  private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){private volatile boolean stopped;public WeatherSatelliteClient.Frame load()throws Exception{
    try{long now=System.currentTimeMillis();RadarMapClient.Frame observed=radar.latestWithin(now,10000);
     if(!stopped&&observed.at<=now&&now-observed.at<=60*60000L){
-     Bitmap image=RadarMapRender.render(c,client,InfraredPlan.SOUTHEAST,observed);
+     Bitmap image=RadarMapRender.render(c,client,RADAR_REGION,observed);
      if(stopped){image.recycle();return null;}
-     return WeatherSatelliteClient.Frame.radar(image,observed,InfraredPlan.SOUTHEAST);
+     return WeatherSatelliteClient.Frame.radar(image,observed,RADAR_REGION);
     }
    }catch(Exception|OutOfMemoryError ignored){}finally{radar.close();}
    return stopped?null:client.latest(InfraredPlan.SOUTHEAST,System.currentTimeMillis());
