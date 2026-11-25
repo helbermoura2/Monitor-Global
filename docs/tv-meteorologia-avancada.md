@@ -13,8 +13,8 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 10 Histórico — catálogo de até seis horários publicados, cache de dois quadros decodificados, sem misturar horários; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
 - [x] 11 Animação — sequência do mais antigo ao mais recente, sem interpolar observações; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
 - [x] 12 Controles temporais — anterior, próximo, mais recente, reproduzir e pausar; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
-- [ ] 13 Nowcasting espacial — mapa experimental de deslocamento dos ecos em dBZ, +30/+45/+60 min desde observação, não chuva quantitativa; integração via botão Previsão, teste com par real e controle de translação pendente.
-- [ ] 14 Previsão espacial de seis horas — nove amostras ECMWF IFS via Open-Meteo, acumulado horário em mm, sem interpolação; mapa por hora integrado via botão Previsão; teste da fonte aprovado, teste de renderização pendente.
+- [x] 13 Nowcasting espacial — mapa experimental de deslocamento dos ecos em dBZ, +30/+45/+60 min desde observação, não chuva quantitativa; integração via botão Previsão, validação aprovada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718192306
+- [x] 14 Previsão espacial de seis horas — nove amostras ECMWF IFS via Open-Meteo, acumulado horário em mm, sem interpolação; mapa por hora integrado via botão Previsão; validação aprovada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718192306
 - [x] 15 Movimento GOES — escala física corrigida, comparação NASA original sem cartografia, RealEarth sem estimativa por marcas estáticas; teste de deslocamento aprovado https://github.com/helbermoura2/Monitor-Global/actions/runs/45717801807
 - [ ] 16 Tarja CNN
 - [ ] 17 Efeitos de chuva
