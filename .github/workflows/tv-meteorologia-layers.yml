@@ -1,0 +1,22 @@
+name: TV meteorology stage 05 layer contract
+on:
+  push:
+    branches: [feat/tv-meteorologia-avancada]
+    paths:
+      - '.github/workflows/tv-meteorologia-layers.yml'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherMapLayer.java'
+      - 'android-tv/tests/WeatherMapLayerCheck.java'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and verify layer contract without APK
+        run: |
+          mkdir -p /tmp/weather-layer-test
+          javac --release 11 -d /tmp/weather-layer-test android-tv/app/src/main/java/top/monitorglobal/tv/WeatherMapLayer.java android-tv/tests/WeatherMapLayerCheck.java
+          java -cp /tmp/weather-layer-test top.monitorglobal.tv.WeatherMapLayerCheck
