@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'android-tv/**'
+      - 'android-core/**'
       - '.github/workflows/android-tv-preview.yml'
       - '.github/workflows/android-tv-release.yml'
 permissions:
@@ -29,13 +30,13 @@ jobs:
       - name: Verify notification state machine
         run: |
           mkdir -p /tmp/tv-java-tests
-          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertTracker.java android-tv/tests/AlertTrackerCheck.java
+          javac -d /tmp/tv-java-tests android-core/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertTracker.java android-tv/tests/AlertTrackerCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.AlertTrackerCheck
           javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/TrustPolicy.java android-tv/tests/TrustPolicyCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.TrustPolicyCheck
-          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/DemoAlertsCheck.java
+          javac -d /tmp/tv-java-tests android-core/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/DemoAlertsCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.DemoAlertsCheck
-          javac -d /tmp/tv-java-tests android-tv/app/src/main/java/top/monitorglobal/tv/Alert.java android-tv/app/src/main/java/top/monitorglobal/tv/AlertPairing.java android-tv/app/src/main/java/top/monitorglobal/tv/BannerTimeline.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/BannerTimelineCheck.java
+          javac -d /tmp/tv-java-tests android-core/src/main/java/top/monitorglobal/tv/Alert.java android-core/src/main/java/top/monitorglobal/tv/AlertPairing.java android-tv/app/src/main/java/top/monitorglobal/tv/BannerTimeline.java android-tv/app/src/main/java/top/monitorglobal/tv/DemoAlerts.java android-tv/tests/BannerTimelineCheck.java
           java -cp /tmp/tv-java-tests top.monitorglobal.tv.BannerTimelineCheck
       - name: Build and inspect APK
         working-directory: android-tv

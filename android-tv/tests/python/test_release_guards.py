@@ -19,6 +19,26 @@ class DistributionGuards(unittest.TestCase):
   self.assertEqual(identity['packageName'],'top.monitorglobal.tv.preview')
   self.assertEqual(self.config['packageName'],identity['packageName'])
   self.assertEqual(self.config['certificateSha256'],identity['certificateSha256'])
+ def test_shared_core_is_consumed_by_both_android_apps(self):
+  core=ROOT/'android-core'
+  tv_settings=(ROOT/'android-tv/settings.gradle').read_text()
+  mobile_settings=(ROOT/'android-mobile/settings.gradle').read_text()
+  tv_build=(ROOT/'android-tv/app/build.gradle').read_text()
+  mobile_build=(ROOT/'android-mobile/app/build.gradle').read_text()
+  self.assertIn("namespace 'br.com.argosorbis.core'",(core/'build.gradle').read_text())
+  self.assertIn("id 'com.android.library' version '8.7.3' apply false",(ROOT/'android-tv/build.gradle').read_text())
+  self.assertIn("id 'com.android.library' version '8.7.3' apply false",(ROOT/'android-mobile/build.gradle').read_text())
+  self.assertIn("rootProject.name = 'ArgosOrbisMobile'",mobile_settings)
+  self.assertIn("include 'argos-official-logo-base.b64'",mobile_build)
+  self.assertIn("include 'argos-official-logo.b64'",mobile_build)
+  self.assertIn("project(':core').projectDir = file('../android-core')",tv_settings)
+  self.assertIn("project(':core').projectDir = file('../android-core')",mobile_settings)
+  self.assertIn("implementation project(':core')",tv_build)
+  self.assertIn("implementation project(':core')",mobile_build)
+  self.assertNotIn('preparePhoneModels',mobile_build)
+  for name in ['Alert','AlertCodec','AlertPairing','MapFrame','BrDates','CountryFlag','RainForecast','WeatherForecast','WeatherBriefing','WeatherBriefingClient','DailyWeatherBrief','DefesaCivilSp','RadarLogoView','OfficialArgosLogo','BroadcastVisuals','OledNewsChrome']:
+   self.assertTrue((core/'src/main/java/top/monitorglobal/tv'/f'{name}.java').is_file(),name)
+   self.assertFalse((ROOT/'android-tv/app/src/main/java/top/monitorglobal/tv'/f'{name}.java').exists(),name)
  def test_rejects_foreign_host(self):
   self.config['release']['url']='https://evil.example/fake.apk';self.write()
   with self.assertRaises(AssertionError):module.check('/no-build-tools-needed')

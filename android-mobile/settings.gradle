@@ -18,5 +18,6 @@ dependencyResolutionManagement {
   mavenCentral()
  }
 }
-rootProject.name = 'MonitorGlobalMobile'
-include ':app'
+rootProject.name = 'ArgosOrbisMobile'
+include ':app', ':core'
+project(':core').projectDir = file('../android-core')
