@@ -89,9 +89,10 @@ jobs:
               result=subprocess.check_output([str(tool),'verify','--print-certs',str(p)],text=True)
               return re.search(r'Signer #1 certificate SHA-256 digest: (\w+)',result).group(1)
           old,new=signer(previous),signer('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
-          print(json.dumps({'previousSigner':old,'newSigner':new,'sameSigner':old==new}))
-          if old != new:
-              raise SystemExit('Preview signing identity changed unexpectedly; refusing publication.')
+          stable=signer('android-mobile/app/build/outputs/apk/stable/app-stable.apk')
+          print(json.dumps({'previousPreviewSigner':old,'newPreviewSigner':new,'stableSigner':stable,'allSame':old==new==stable}))
+          if old != new or old != stable:
+              raise SystemExit('Preview/stable signing identity changed unexpectedly; refusing publication.')
           PY
       - name: Check packaged phone identity and permissions
         run: python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
