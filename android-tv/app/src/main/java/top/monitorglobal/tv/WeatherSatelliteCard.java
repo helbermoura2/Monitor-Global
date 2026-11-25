@@ -34,7 +34,7 @@ final class WeatherSatelliteCard extends LinearLayout {
    System.currentTimeMillis()-frame.at>InfraredPlan.FRESH_AGE?0xffffcf7e:TvCardStyle.WHITE,brand);
   label(footer,frame.credit(),large?14:12,TvCardStyle.MUTED,brand);
   if(frame.motion!=null){
-   label(footer,frame.motion.description()+" · coerência "+Math.round(frame.motion.confidence*100)+"%",
+   label(footer,frame.motion.description()+" · "+frame.motion.coherence(),
     large?16:13,TvCardStyle.CYAN,brand);
    label(footer,"Comparação de "+Math.max(1,(frame.motion.newerAt-frame.motion.olderAt)/60000)+" min entre quadros",
     large?13:11,TvCardStyle.MUTED,Typeface.DEFAULT);
