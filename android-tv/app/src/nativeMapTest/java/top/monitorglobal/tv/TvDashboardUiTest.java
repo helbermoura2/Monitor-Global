@@ -101,4 +101,25 @@ public class TvDashboardUiTest {
   assertEquals(View.VISIBLE,root.findViewWithTag("page-Meteorologia").getVisibility());
   app.finish();
  }
+ @Test public void dashboardShowsActualStoredStatusAndVectorIcons(){
+  Context context=RuntimeEnvironment.getApplication();
+  Prefs.get(context).edit().putString("weatherStatus","Liberdade: observação de teste 22 °C")
+   .putString("brentStatus","Cotação de teste indisponível").commit();
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
+  View root=app.getWindow().getDecorView();
+  Button weather=root.findViewWithTag("overview-Meteorologia");
+  Button market=root.findViewWithTag("overview-Mercado");
+  assertTrue(weather.getText().toString().contains("22 °C"));
+  assertTrue(market.getText().toString().contains("indisponível"));
+  assertNotNull(weather.getCompoundDrawables()[0]);
+  Button system=root.findViewWithTag("nav-Sistema");
+  assertNotNull(system.getCompoundDrawables()[0]);
+  root.findViewWithTag("sidebar-toggle").performClick();
+  assertNotNull(system.getCompoundDrawables()[1]);
+  root.findViewWithTag("sidebar-toggle").performClick();
+  assertNotNull(system.getCompoundDrawables()[0]);
+  system.performClick();
+  assertEquals(View.VISIBLE,root.findViewWithTag("page-Sistema").getVisibility());
+  app.finish();
+ }
 }
