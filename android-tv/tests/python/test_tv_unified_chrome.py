@@ -29,7 +29,7 @@ class UnifiedChrome(unittest.TestCase):
         self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",source("OledNewsChrome.java"))
         self.assertIn("RADAR_PERIOD_MS=7200L", shared)
         self.assertIn("postInvalidateOnAnimation()", other)
-        self.assertIn("private void drawIdentity(Canvas c,long elapsed)", other)
+        self.assertIn("private void drawIdentity(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame)", other)
         self.assertIn("BannerTimeline.page(elapsed,2)", other)
 
     def test_all_regional_notice_routes_use_the_original_seismic_banner(self):
