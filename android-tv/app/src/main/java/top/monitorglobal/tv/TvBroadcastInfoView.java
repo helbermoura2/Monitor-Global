@@ -157,9 +157,8 @@ final class TvBroadcastInfoView extends View {
   paint.setColor(v.foreground);paint.setTypeface(v.data);paint.setTextSize(15);
   v.civilMessage=android.text.StaticLayout.Builder.obtain(notice.message,0,notice.message.length(),paint,622)
    .setIncludePad(false).setMaxLines(2).setEllipsize(android.text.TextUtils.TruncateAt.END).build();
-  v.ticker=(replay?"REPLAY HISTÓRICO · NÃO É AVISO ATIVO · EMITIDO EM "+BrDates.dateTime(notice.sent)+" · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")
-    +notice.issuer+" · São Paulo, capital · "+BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":demo?"SIMULAÇÃO · NÃO É ALERTA REAL · ":"")+notice.level()+" · "+v.ticker);
+  v.ticker=CivilSourceContext.describe(notice,false,replay,demo)+" · São Paulo, capital · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
  /** Presentation metadata for the optional transparent full-screen radar layer. */
@@ -173,11 +172,8 @@ final class TvBroadcastInfoView extends View {
  static TvBroadcastInfoView civilPhone(Context c,DefesaCivilSp.Notice notice,boolean simulated,String sender){
   TvBroadcastInfoView v=civilAlert(c,notice,simulated,false);
   v.civilFromPhone=true;
-  v.ticker=(simulated?"ENVIADO PELO CELULAR · SIMULAÇÃO · AVISO FICTÍCIO · ":
-            "RETRANSMITIDO DO CELULAR · NÃO CONFIRMADO VIA CAP · ")+
-    BrDates.dateTime(notice.sent)+" · "+notice.message;
-  v.setContentDescription((simulated?"TESTE FICTÍCIO · ":"CAPTURA DO CELULAR · NÃO VERIFICADA VIA CAP · ")+notice.level()
-   +" · "+notice.message);
+  v.ticker=CivilSourceContext.describe(notice,System.currentTimeMillis(),true,false,simulated)+" · "+notice.message;
+  v.setContentDescription(notice.level()+" · "+v.ticker);
   return v;
  }
  /** Replay retains the phone origin and never impersonates an official CAP record. */
