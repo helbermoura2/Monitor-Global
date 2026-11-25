@@ -55,7 +55,8 @@ final class TvSoundSettings {
   enabled.setNextFocusRightId(test.getId());test.setNextFocusLeftId(enabled.getId());
   LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.bottomMargin=dp(a,4);body.addView(row,rp);
  }
- static void show(Activity a){
+ static void show(Activity a){show(a,()->{});}
+ static void show(Activity a,Runnable onClose){
   a.setVolumeControlStream(AudioManager.STREAM_MUSIC);
   SharedPreferences preferences=Prefs.get(a);
   LinearLayout root=new LinearLayout(a);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BLACK);
@@ -97,7 +98,7 @@ final class TvSoundSettings {
   Button done=button(a,"Concluir");done.setTag("sound-done");footer.addView(done,new LinearLayout.LayoutParams(dp(a,140),dp(a,44)));root.addView(footer);
   AlertDialog dialog=new AlertDialog.Builder(a).setView(root).create();
   done.setOnClickListener(v->dialog.dismiss());
-  dialog.setOnDismissListener(d->{preferences.unregisterOnSharedPreferenceChangeListener(statusListener);TvSounds.stopPreview();});
+  dialog.setOnDismissListener(d->{preferences.unregisterOnSharedPreferenceChangeListener(statusListener);TvSounds.stopPreview();onClose.run();});
   preferences.registerOnSharedPreferenceChangeListener(statusListener);
   dialog.show();
   Window window=dialog.getWindow();if(window!=null){window.setBackgroundDrawable(new ColorDrawable(BLACK));
