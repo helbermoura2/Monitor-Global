@@ -2,7 +2,18 @@ package top.monitorglobal.tv;
 import android.Manifest;import android.app.*;import android.content.*;import android.content.pm.PackageManager;import android.graphics.Color;import android.graphics.Typeface;import android.graphics.drawable.GradientDrawable;import android.net.Uri;import android.os.*;import android.provider.Settings;import android.speech.RecognizerIntent;import android.speech.SpeechRecognizer;import android.speech.RecognitionListener;import android.view.*;import android.widget.*;import java.text.*;import java.util.*;
 public final class MainActivity extends Activity {
  private OfficialUpdater updater;
- private LinearLayout content,actionRow;
+ private LinearLayout content,actionRow,sidebar;
+ private FrameLayout pageHost;
+ private final Map<String,ScrollView> pages=new LinkedHashMap<>();
+ private final Map<String,Button> navigation=new LinkedHashMap<>();
+ private final Map<String,View> rememberedFocus=new HashMap<>();
+ private static final String[] CATEGORIES={"Visão geral","Defesa Civil","Sismologia","Meteorologia","Mercado","Aparência","Áudio","Dispositivos","Laboratório","Sistema"};
+ private static final String[] SYMBOLS={"⌂","!","∿","☁","↗","◈","♪","⌘","◇","⚙"};
+ private static final int OLED=0xff08090a,SURFACE=0xff171719,EDGE=0xff353238,GOLD=0xffc4a16a,INK=0xfff2e9de,MUTED=0xffb9b6b2;
+ private String buildingPage=CATEGORIES[0],selectedPage=CATEGORIES[0];
+ private boolean sidebarCollapsed;
+ private TextView updateStatus,monitorBadge;
+ private Button sidebarToggle;
  private TextView status,weatherStatus,replayStatus,voiceStatus;
  private SpeechRecognizer speechRecognizer;
  private static final int VOICE_REQUEST=74,VOICE_AUDIO_PERMISSION=75;
@@ -19,15 +30,15 @@ public final class MainActivity extends Activity {
   super.onCreate(state);
   getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
   wideLayout=getResources().getConfiguration().screenWidthDp>=900;
-  ScrollView scroll=new ScrollView(this);
-  scroll.setFillViewport(true);
-  scroll.setBackgroundColor(Color.rgb(2,12,26));
-  scroll.setClipToPadding(false);
-  content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
-  content.setPadding(dp(32),dp(22),dp(32),dp(36));
-  scroll.addView(content);setContentView(scroll);
-  addBrandedHeader();
-  addStatusPanel();
+  buildOperationsShell();
+  section("CENTRAL DE MONITORAMENTO");
+  label("Controle do monitoramento e acesso rápido às funções reais.",17,false);
+  for(int i=1;i<=4;i++){
+   final String category=CATEGORIES[i];
+   button(SYMBOLS[i]+"   "+category,v->selectPage(category,true));
+  }
+  Button quickReplay=button("Último alerta real · Defesa Civil",v->selectPage(CATEGORIES[1],true));
+  Button quickUpdate=button("Atualização oficial · Sistema",v->selectPage(CATEGORIES[9],true));
   section("ALEXA · CONTROLE DO FIRE STICK");
   button("Vincular Alexa · mostrar código de 6 dígitos",v->{
    new AlertDialog.Builder(this).setTitle("Vincular Argos Orbis à Alexa")
@@ -65,10 +76,12 @@ public final class MainActivity extends Activity {
   button("🎙 Testar reconhecimento local do Android (pode abrir pesquisa)",v->startVoiceInput());
   voiceStatus=label("Teste separado da Alexa. O Fire OS pode reservar o microfone do controle ao assistente do sistema.",15,false);
   section("INÍCIO RÁPIDO");
-  button("1 · Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
-  start=button("2 · Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  button("Autorizar sobreposição / ajuda para Fire Stick",v->OverlayPermissionHelp.show(this));
+  start=button("Ativar monitoramento",v->{if(Prefs.get(this).getBoolean("enabled",false)){stopService(new Intent(this,MonitorService.class));Prefs.get(this).edit().putBoolean("enabled",false).apply();update();return;}if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},7);}Prefs.get(this).edit().putBoolean("enabled",true).apply();launch(MonitorService.START);update();});
+  section("ESTADO DO SISTEMA E DAS FONTES");
+  addStatusPanel();
   section("DEFESA CIVIL · ÚLTIMO ALERTA REAL RECEBIDO");
-  button("Ver e reproduzir o ÚLTIMO ALERTA (celular ou CAP)",v->{
+  Button latestReplay=button("Ver e reproduzir o ÚLTIMO ALERTA (celular ou CAP)",v->{
    CivilLatestReplay.Record latest=CivilLatestReplay.last(this);
    if(latest==null){
     new AlertDialog.Builder(this).setTitle("Nenhum alerta real gravado")
@@ -99,6 +112,7 @@ public final class MainActivity extends Activity {
   button("Replay · último SEVERO recebido do celular",v->replayCivilReal(true,false));
   button("Replay · último EXTREMO recebido do celular",v->replayCivilReal(true,true));
   label("Guarda por até sete dias o último aviso real de cada nível recebido pela TV via celular. NÃO é boletim CAP verificado. Replays são históricos, silenciosos e não mostram uma ameaça atual. Simulações não entram no histórico.",14,false);
+  section("DIAGNÓSTICO · DEFESA CIVIL");
   button("Diagnóstico · celular → Worker → TV",v->{
    android.content.SharedPreferences p=Prefs.get(this);
    long poll=p.getLong("civilPhoneLastPollAt",0);
@@ -158,6 +172,7 @@ public final class MainActivity extends Activity {
    ((Button)v).setText("Efeitos das tarjas: "+TvEffectsController.label(this));
   });
   label("Completo, Suave ou Sem efeitos. A redução de movimento do Android/Fire TV tem prioridade. Alertas, sons e duração permanecem iguais.",14,false);
+  section("TESTES · EFEITOS DAS TARJAS");
   button("Testar todos os efeitos (simulações em 10 s)",v->launch(MonitorService.TEST+"_EFFECTS"));
   button("Cancelar teste de efeitos",v->launch(MonitorService.TEST+"_EFFECTS_CANCEL"));
   section("REPLAY E RESUMOS SÍSMICOS");
@@ -167,7 +182,9 @@ public final class MainActivity extends Activity {
     Prefs.get(this).edit().putBoolean(GlobalM6Intro.PREF_ENABLED,next).apply();
     ((Button)v).setText("Abertura animada M6+: "+(next?"ativada (vídeo 2)":"desativada · tarja clássica"));
    });
-   button("Testar abertura M6+ · vídeo 2 (fictício, em 10 s)",v->launch(MonitorService.TEST+"_M6_INTRO"));
+   section("TESTES · SISMO E TSUNAMI");
+  button("Testar abertura M6+ · vídeo 2 (fictício, em 10 s)",v->launch(MonitorService.TEST+"_M6_INTRO"));
+  section("BRASIL · REPLAY E MAPA");
   button("Replay · Último sismo no Brasil, qualquer magnitude (72 h)",v->launch(MonitorService.REPLAY_BRAZIL));
    button("Mapa da tarja Brasil: "+(Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED)==BrazilNationalBannerView.MODEL_BACKUP?"Ampliado":"Compacto"),v->{
     int current=Prefs.get(this).getInt(BrazilNationalBannerView.PREF_MODEL,BrazilNationalBannerView.MODEL_APPROVED);
@@ -175,17 +192,25 @@ public final class MainActivity extends Activity {
     Prefs.get(this).edit().putInt(BrazilNationalBannerView.PREF_MODEL,next).apply();
     ((Button)v).setText("Mapa da tarja Brasil: "+(next==BrazilNationalBannerView.MODEL_BACKUP?"Ampliado":"Compacto"));
    });
-   button("Testar tarja do Brasil (simulação, 10 s)",v->launch(MonitorService.TEST+"_BRAZIL"));
+   section("TESTES · TARJA DO BRASIL");
+  button("Testar tarja do Brasil (simulação, 10 s)",v->launch(MonitorService.TEST+"_BRAZIL"));
+  section("RESUMOS SÍSMICOS");
   button("Maiores de hoje · parcial até agora",v->launch(MonitorService.SUMMARY_TODAY));
   button("Replay · Resumo de ontem completo (6 s por sismo)",v->launch(MonitorService.SUMMARY_REPLAY));
+  section("TESTES · SEQUÊNCIAS E TSUNAMI");
   button("3 · Testar sismo com indicação de tsunami (fictício)",v->launch(MonitorService.TEST));
   button("4 · Testar revisão M7,2 → M6,9 (fictícia)",v->launch(MonitorService.TEST_REVISION));
   button("5 · Testar aviso de tsunami (fictício)",v->launch(MonitorService.TEST_TSUNAMI));
   button("6 · Testar encerramento de tsunami (fictício)",v->launch(MonitorService.TEST_END));
   button("Testar tsunami sem ameaça (dados fictícios)",v->launch(MonitorService.TEST_NO_THREAT));
   button("7 · Testar sequência completa em 10 segundos (fictícia)",v->launch(MonitorService.TEST_SEQUENCE));
+  section("DIAGNÓSTICO LOCAL");
   button("Diagnóstico local · memória e desenho da tarja",v->startActivity(new Intent(this,DiagnosticsActivity.class)));
-  updater=new OfficialUpdater(this,s->{Prefs.get(this).edit().putString("updateStatus",s).apply();update();});button("Verificar atualização oficial",v->updater.check());
+  section("ATUALIZAÇÃO DO APK");
+  updater=new OfficialUpdater(this,s->{Prefs.get(this).edit().putString("updateStatus",s).apply();update();});Button officialUpdate=button("Verificar atualização oficial",v->updater.check());
+  updateStatus=label("Aguardando verificação de atualização",16,false);
+  quickReplay.setOnClickListener(v->latestReplay.performClick());
+  quickUpdate.setOnClickListener(v->{selectPage(CATEGORIES[9],true);officialUpdate.requestFocus();});
   section("AVISOS REGIONAIS · M5+");
   Switch targets=new Switch(this);targets.setText("Aviso menor · M5,0–5,9 raso nas áreas monitoradas");targets.setTextColor(Color.WHITE);targets.setTextSize(17);targets.setPadding(12,10,12,10);targets.setChecked(Prefs.get(this).getBoolean("targetAlerts",true));targets.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("targetAlerts",checked).putBoolean("targetsReady",false).putLong("targetSettingsRevision",System.currentTimeMillis()).apply();});addSwitch(targets);
   button("Escolher áreas monitoradas para M5+",v->{Set<String> disabled=new HashSet<>(Prefs.get(this).getStringSet("disabledTargetAreas",Collections.emptySet()));boolean[] checked=new boolean[TargetAreaNames.ALL.length];for(int i=0;i<checked.length;i++)checked[i]=!disabled.contains(TargetAreaNames.ALL[i]);new AlertDialog.Builder(this).setTitle("Áreas M5+ · escolha as regiões").setMultiChoiceItems(TargetAreaNames.ALL,checked,(dialog,index,on)->{if(on)disabled.remove(TargetAreaNames.ALL[index]);else disabled.add(TargetAreaNames.ALL[index]);}).setPositiveButton("Salvar",(dialog,which)->Prefs.get(this).edit().putStringSet("disabledTargetAreas",disabled).putBoolean("targetsReady",false).putLong("targetSettingsRevision",System.currentTimeMillis()).apply()).setNegativeButton("Cancelar",null).show();});
@@ -197,6 +222,7 @@ public final class MainActivity extends Activity {
       .setMessage(RegionalReplayDetails.detail(Prefs.lastTarget(this)))
       .setPositiveButton("Entendi",null).show());
   label("Replay do último aviso regional real salvo no aparelho. Começa em 10 segundos para você voltar à TV; mostra REPLAY e a data original, sem som ou nova consulta. Alertas prioritários interrompem o replay.",14,false);
+  section("TESTES · AVISO REGIONAL");
   button("Testar aviso menor M5+ (fictício, em 10 s)",v->launch(MonitorService.TEST+"_TARGET"));
   section("METEOROLOGIA, IA E SATÉLITE");
   button("IA meteorológica · entender e consultar agora",v->startActivity(new Intent(this,WeatherAiInfoActivity.class)));
@@ -210,8 +236,10 @@ public final class MainActivity extends Activity {
   label("Resumo por 12 segundos nas horas cheias de Brasília; à meia-noite, aparece às 00h05 depois do resumo sísmico. Se a TV estiver desligada, recupera apenas o resumo atual ao retomar. Sismos, tsunami e resumos sísmicos têm prioridade. Valores horários são estimativas do modelo; campos ausentes não viram zero. Chuva por minuto e condições horárias aparecem juntas quando disponíveis.",15,false);
   section("CHUVA E APRESENTAÇÃO");
   button("Avisos de chuva na Liberdade: "+rainModeLabel(),v->{int next=(Prefs.get(this).getInt("rainMode",2)+1)%3;Prefs.get(this).edit().putInt("rainMode",next).apply();((Button)v).setText("Avisos de chuva na Liberdade: "+rainModeLabel());if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});
+  section("TESTES · CHUVA E TEMPO");
   button("Testar chuva em tela inteira · fictícia",v->WeatherPreviewOptions.show(this,()->launch(MonitorService.TEST+"_STORM")));
   button("Testar cartão e chuva (fictício, em 10 s)",v->launch(MonitorService.TEST+"_RAIN"));
+  section("CHUVA · COMO FUNCIONA");
   label("Chuva opcional · Liberdade, São Paulo: desligado, só cartão ou cartão com chuva. Usa estimativas por minuto do Rainbow Weather para um ponto da Liberdade, junto à Praça da Liberdade-Japão. Cartão por 12 segundos quando a chuva se aproxima, começa, muda de intensidade ou deixa de ser prevista. mm/h é intensidade estimada; mm nos próximos 60 minutos é acumulado previsto. Início e término só aparecem quando a fonte permite estimar. Sismos e tsunami têm prioridade. Não acompanha sua localização.",15,false);
   section("MERCADO FINANCEIRO · BRENT");
   Switch brentSwitch=new Switch(this);
@@ -223,18 +251,23 @@ public final class MainActivity extends Activity {
    if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);
   });addSwitch(brentSwitch);
   label("Card silencioso de 12 s aos 15 minutos de cada hora, sobre o vídeo. Preço indicativo Brent (BZ=F) em US$/barril, variação e horário da fonte Yahoo Finance. Sem cotação válida, não aparece. Horários de Londres com ajuste de verão: de sexta após o fechamento até domingo às 23h de Londres, não exibe. Alertas sísmicos, tsunami, chuva, satélite e replays têm prioridade.",15,false);
+  section("TESTES · MERCADO");
   button("Testar visual do card Brent (valores fictícios · 10 s)",v->launch(MonitorService.TEST+"_BRENT"));
   label("O teste é uma simulação manual, identificada como fictícia. Não consulta o mercado e pode ser visto também quando a bolsa está fechada.",13,false);
+  section("MERCADO · CONSULTA REAL");
   button("Conferir cotação REAL do Brent agora",v->launch(MonitorService.CHECK_BRENT));
   label("Com monitoramento ativo e pregão aberto: consulta Yahoo em 10 s. Volte ao vídeo. Se a cotação estiver indisponível, a seção FONTES explica o motivo; nenhum preço será inventado.",13,false);
   section("PREFERÊNCIAS E ROTINA");
   Switch sound=new Switch(this);sound.setText("Sons diferentes por aviso · volume de mídia da TV");sound.setTextColor(Color.WHITE);sound.setTextSize(17);sound.setPadding(12,10,12,10);sound.setChecked(Prefs.get(this).getBoolean("sound",true));sound.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("sound",checked).apply();if(!checked)TvSounds.stop();});addSwitch(sound);
   button("Configurar e ouvir os sons de cada aviso",v->TvSoundSettings.show(this));
   label("Sismos, tsunami, avisos regionais, chuva, tempo, cotações e resumo diário têm sinais próprios. Ajuste a intensidade e teste cada categoria. Depende do volume de mídia da TV; não toca com a tela desligada. Replays permanecem silenciosos.",15,false);
+  section("RESUMO AUTOMÁTICO");
   Switch daily=new Switch(this);daily.setText("Resumo automático à meia-noite · horário de Brasília");daily.setTextColor(Color.WHITE);daily.setTextSize(17);daily.setPadding(12,10,12,10);daily.setChecked(Prefs.get(this).getBoolean("dailyAuto",true));daily.setOnCheckedChangeListener((v,checked)->{Prefs.get(this).edit().putBoolean("dailyAuto",checked).apply();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);});addSwitch(daily);
   label("À meia-noite: resumo do dia encerrado. Se a TV estiver desligada ou sem internet, tenta recuperar o último dia encerrado ao retomar o monitoramento. Alertas reais têm prioridade; o resumo interrompido volta depois.",15,false);
+  section("DURAÇÃO E APRESENTAÇÃO");
   button("Duração: "+Prefs.get(this).getInt("seconds",20)+" segundos",v->{int current=Prefs.get(this).getInt("seconds",20),next=current==15?20:current==20?30:current==30?60:current==60?90:current==90?120:15;Prefs.get(this).edit().putInt("seconds",next).apply();((Button)v).setText("Duração: "+next+" segundos");});
   label("Depois de ativar, volte ao conteúdo que deseja assistir. A faixa não captura os botões do controle e fecha automaticamente.",16,false);
+  section("REGRAS SÍSMICAS");
   label("Sismo com tsunami: alterna a cada 8 segundos por pelo menos 32 segundos. Replay busca o último sismo M6+ ou no Brasil das últimas 72 horas, inclusive enquanto a TV estava desligada. Sem internet, tenta o último registro local.",15,false);
   label("Replay do resumo de ontem: até cinco maiores sismos do dia anterior completo, de 00h a 23h59 de Brasília. Maiores de hoje mostra apenas o parcial do dia atual e não substitui o replay de ontem. Sem internet, o replay usa o resumo completo de ontem salvo no aparelho; nunca troca por um parcial ou por outro dia. Cada sismo tem seis segundos completos de leitura, mais animações. Alertas reais têm prioridade.",15,false);
   label("Cobertura equivalente às regras sísmicas do Telegram: USGS, EMSC e GEOFON para M6+ globais; USP/RSBR, USGS, EMSC e GEOFON para sismos no Brasil, sem magnitude mínima. Estimativas de agências diferentes são identificadas separadamente de revisões da mesma fonte. Revisões importantes e boletins oficiais de tsunami por região, incluindo SEM AMEAÇA e encerramentos. Falha de uma fonte não interrompe as outras.",15,false);
@@ -242,6 +275,147 @@ public final class MainActivity extends Activity {
   label("Primeira conexão: os eventos existentes viram referência, sem disparar avisos antigos. Consultas a cada 30 segundos. O aparelho precisa continuar ligado e com acesso à internet.",15,false);
   label("A exibição sobre outros aplicativos e a permanência em segundo plano ainda precisam ser testadas nesta TV/Fire Stick. O teste demonstrativo não confirma a chegada de um alerta real.",15,false);
   label("Setas: navegar · OK: selecionar · Voltar: sair da configuração",14,false);
+  String restored=state==null?CATEGORIES[0]:state.getString("operations_page",CATEGORIES[0]);
+  sidebarCollapsed=state!=null&&state.getBoolean("operations_collapsed",false);
+  applySidebarWidth();
+  selectPage(pages.containsKey(restored)?restored:CATEGORIES[0],false);
+  navigation.get(selectedPage).requestFocus();
+ }
+ @Override protected void onSaveInstanceState(Bundle out){
+  out.putString("operations_page",selectedPage);
+  out.putBoolean("operations_collapsed",sidebarCollapsed);
+  super.onSaveInstanceState(out);
+ }
+ private void buildOperationsShell(){
+  LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
+  root.setBackgroundColor(OLED);root.setPadding(dp(20),dp(8),dp(20),dp(8));
+  content=root;addBrandedHeader();
+  LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.HORIZONTAL);
+  root.addView(body,new LinearLayout.LayoutParams(-1,0,1f));
+  ScrollView menu=new ScrollView(this);menu.setFillViewport(true);menu.setVerticalScrollBarEnabled(false);
+  menu.setTag("operations-sidebar");body.addView(menu,new LinearLayout.LayoutParams(dp(wideLayout?218:178),-1));
+  sidebar=new LinearLayout(this);sidebar.setOrientation(LinearLayout.VERTICAL);
+  sidebar.setPadding(dp(2),dp(6),dp(8),dp(6));menu.addView(sidebar);
+  sidebarToggle=new Button(this);sidebarToggle.setText("‹   Recolher menu");sidebarToggle.setAllCaps(false);
+  sidebarToggle.setId(View.generateViewId());sidebarToggle.setTextColor(GOLD);sidebarToggle.setTextSize(15);
+  sidebarToggle.setContentDescription("Recolher ou expandir menu");sidebarToggle.setTag("sidebar-toggle");
+  sidebarToggle.setOnClickListener(v->{sidebarCollapsed=!sidebarCollapsed;applySidebarWidth();});
+  sidebarToggle.setOnFocusChangeListener((v,focused)->styleButton(sidebarToggle,focused));
+  styleButton(sidebarToggle,false);
+  sidebar.addView(sidebarToggle,new LinearLayout.LayoutParams(-1,dp(42)));
+  Button previous=sidebarToggle;
+  for(int i=0;i<CATEGORIES.length;i++){
+   final String category=CATEGORIES[i];
+   Button nav=new Button(this);nav.setId(View.generateViewId());nav.setTag("nav-"+category);
+   nav.setAllCaps(false);nav.setTextSize(17);nav.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
+   nav.setPadding(dp(12),0,dp(8),0);nav.setContentDescription(category);
+   nav.setText(SYMBOLS[i]+"   "+category);
+   nav.setOnClickListener(v->selectPage(category,true));
+   nav.setOnFocusChangeListener((v,focused)->styleNavigation(nav,category));
+   LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,dp(43));np.topMargin=dp(2);
+   sidebar.addView(nav,np);navigation.put(category,nav);
+   previous.setNextFocusDownId(nav.getId());nav.setNextFocusUpId(previous.getId());previous=nav;
+  }
+  previous.setNextFocusDownId(previous.getId());sidebarToggle.setNextFocusUpId(sidebarToggle.getId());
+  View divider=new View(this);divider.setBackgroundColor(EDGE);
+  body.addView(divider,new LinearLayout.LayoutParams(dp(1),-1));
+  pageHost=new FrameLayout(this);body.addView(pageHost,new LinearLayout.LayoutParams(0,-1,1f));
+  TextView footer=display("← → ↑ ↓  Navegar     OK  Selecionar     Voltar  Menu / sair",13,MUTED,false);
+  footer.setGravity(Gravity.CENTER);footer.setPadding(0,dp(5),0,0);root.addView(footer);
+  setContentView(root);
+ }
+ private void applySidebarWidth(){
+  View menu=(View)sidebar.getParent();ViewGroup.LayoutParams lp=menu.getLayoutParams();
+  lp.width=dp(sidebarCollapsed?66:(wideLayout?218:178));menu.setLayoutParams(lp);
+  sidebarToggle.setText(sidebarCollapsed?"›":"‹   Recolher menu");
+  for(int i=0;i<CATEGORIES.length;i++){
+   Button nav=navigation.get(CATEGORIES[i]);
+   nav.setText(sidebarCollapsed?SYMBOLS[i]:SYMBOLS[i]+"   "+CATEGORIES[i]);
+   nav.setGravity(sidebarCollapsed?Gravity.CENTER:Gravity.CENTER_VERTICAL|Gravity.START);
+   nav.setPadding(sidebarCollapsed?0:dp(12),0,sidebarCollapsed?0:dp(8),0);
+  }
+ }
+ private void route(String category){
+  buildingPage=category;actionRow=null;
+  ScrollView scroll=pages.get(category);
+  if(scroll==null){
+   scroll=new ScrollView(this);scroll.setTag("page-"+category);
+   scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
+   LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);
+   panel.setPadding(dp(22),dp(8),dp(12),dp(22));
+   panel.addView(display(category,wideLayout?30:25,INK,true));
+   scroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
+   pageHost.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
+   scroll.setVisibility(View.GONE);pages.put(category,scroll);
+  }
+  content=(LinearLayout)scroll.getChildAt(0);
+ }
+ private void selectPage(String category,boolean focusContent){
+  ScrollView next=pages.get(category);if(next==null)return;
+  boolean changed=!category.equals(selectedPage)||next.getVisibility()!=View.VISIBLE;
+  selectedPage=category;
+  for(Map.Entry<String,ScrollView> entry:pages.entrySet())
+   entry.getValue().setVisibility(entry.getKey().equals(category)?View.VISIBLE:View.GONE);
+  for(Map.Entry<String,Button> entry:navigation.entrySet())styleNavigation(entry.getValue(),entry.getKey());
+  if(changed&&android.animation.ValueAnimator.areAnimatorsEnabled()){
+   next.animate().cancel();next.setAlpha(.72f);next.animate().alpha(1f).setDuration(150).start();
+  }else{next.animate().cancel();next.setAlpha(1f);}
+  if(focusContent)focusPage();
+ }
+ private void styleNavigation(Button nav,String category){
+  boolean selected=category.equals(selectedPage),focused=nav.hasFocus();
+  nav.setTextColor(selected||focused?INK:MUTED);
+  nav.setBackground(card(focused?0xff483828:selected?0xff2a221a:OLED,
+   focused?GOLD:selected?0xff85673f:OLED,10));
+  nav.setSelected(selected);
+ }
+ private void focusPage(){
+  ScrollView page=pages.get(selectedPage);if(page==null)return;
+  View last=rememberedFocus.get(selectedPage);
+  if(last!=null&&last.isShown()&&last.requestFocus())return;
+  for(View view:page.getFocusables(View.FOCUS_FORWARD))
+   if(view!=page&&view.isShown()&&view.requestFocus())return;
+ }
+ private void trackFocus(View view,boolean leftmost){
+  final String page=buildingPage;
+  if(view.getId()==View.NO_ID)view.setId(View.generateViewId());
+  if(leftmost)view.setNextFocusLeftId(navigation.get(page).getId());
+  View.OnFocusChangeListener original=view.getOnFocusChangeListener();
+  view.setOnFocusChangeListener((v,focused)->{
+   if(original!=null)original.onFocusChange(v,focused);
+   if(focused)rememberedFocus.put(page,v);
+  });
+ }
+ @Override public boolean dispatchKeyEvent(KeyEvent event){
+  if(event.getAction()==KeyEvent.ACTION_DOWN&&event.getKeyCode()==KeyEvent.KEYCODE_DPAD_RIGHT){
+   View focused=getCurrentFocus();
+   for(Map.Entry<String,Button> item:navigation.entrySet())if(focused==item.getValue()){
+    selectPage(item.getKey(),true);return true;
+   }
+  }
+  return super.dispatchKeyEvent(event);
+ }
+ @Override public void onBackPressed(){
+  if(getCurrentFocus()!=null&&rememberedFocus.get(selectedPage)==getCurrentFocus()){
+   navigation.get(selectedPage).requestFocus();return;
+  }
+  if(!CATEGORIES[0].equals(selectedPage)){
+   selectPage(CATEGORIES[0],false);navigation.get(selectedPage).requestFocus();return;
+  }
+  super.onBackPressed();
+ }
+ private String categoryFor(String title){
+  if(title.startsWith("TESTES")||title.startsWith("DIAGNÓSTICO")||title.contains("SIMULAÇÃO NA TV")||title.startsWith("RECONHECIMENTO LOCAL"))return CATEGORIES[8];
+  if(title.startsWith("DEFESA CIVIL")&&title.contains("VINCULAR"))return CATEGORIES[7];
+  if(title.startsWith("DEFESA CIVIL"))return CATEGORIES[1];
+  if(title.startsWith("ALEXA")||title.startsWith("GOOGLE HOME"))return CATEGORIES[7];
+  if(title.startsWith("EFEITOS")||title.startsWith("DURAÇÃO"))return CATEGORIES[5];
+  if(title.startsWith("PREFERÊNCIAS"))return CATEGORIES[6];
+  if(title.startsWith("REPLAY E")||title.startsWith("AVISOS REGIONAIS")||title.startsWith("BRASIL")||title.startsWith("RESUMO")||title.startsWith("REGRAS SÍSMICAS"))return CATEGORIES[2];
+  if(title.startsWith("METEOROLOGIA")||title.startsWith("CHUVA"))return CATEGORIES[3];
+  if(title.startsWith("MERCADO"))return CATEGORIES[4];
+  if(title.startsWith("ATUALIZAÇÃO")||title.startsWith("COMO FUNCIONA"))return CATEGORIES[9];
+  return CATEGORIES[0];
  }
  private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
  private GradientDrawable card(int base,int stroke,int radius){
@@ -259,35 +433,35 @@ public final class MainActivity extends Activity {
   RadarLogoView radar=new RadarLogoView(this);
   // Animated eye and radar reproduce the Argos Orbis compact brand.
   // Keep the accessibility-friendly native view used by Android TV.
-  header.addView(radar,new LinearLayout.LayoutParams(dp(104),dp(104)));
+  header.addView(radar,new LinearLayout.LayoutParams(dp(86),dp(86)));
   LinearLayout titles=new LinearLayout(this);titles.setOrientation(LinearLayout.VERTICAL);
   LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1f);tp.leftMargin=dp(16);
   header.addView(titles,tp);
-  TextView name=display("ARGOS ORBIS",wideLayout?38:30,Color.WHITE,true);
+  TextView name=display("ARGOS ORBIS",wideLayout?32:27,GOLD,true);
   try{name.setTypeface(Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf"));}catch(RuntimeException ignored){}
   titles.addView(name);
-  TextView tagline=display("INTELIGÊNCIA PLANETÁRIA · SISMOS · METEOROLOGIA",wideLayout?19:15,0xffc0d2dc,false);
+  TextView tagline=display("INTELIGÊNCIA PLANETÁRIA · SISMOS · METEOROLOGIA",wideLayout?15:13,MUTED,false);
   titles.addView(tagline);
-  TextView links=display("argosorbis.com.br  •  t.me/argosorbis",wideLayout?17:14,0xff68e2e4,false);
+  TextView links=display("argosorbis.com.br  •  t.me/argosorbis",wideLayout?14:12,GOLD,false);
   titles.addView(links);
+  LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.VERTICAL);
+  monitorBadge=display("Monitoramento: verificando",15,INK,true);meta.addView(monitorBadge);
+  meta.addView(display("VERSÃO "+BuildConfig.VERSION_NAME,13,MUTED,false));header.addView(meta);
   content.addView(header);
-  TextView version=display("VERSÃO "+BuildConfig.VERSION_NAME+"  ·  CONFIGURAÇÕES",14,0xff6be9f4,true);
-  LinearLayout.LayoutParams vp=new LinearLayout.LayoutParams(-1,-2);vp.topMargin=dp(10);
-  content.addView(version,vp);
  }
  private void addStatusPanel(){
   LinearLayout panel=new LinearLayout(this);
   panel.setOrientation(wideLayout?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);
   panel.setPadding(dp(20),dp(12),dp(20),dp(12));
-  panel.setBackground(card(0xff102a40,0xff2a627e,16));
+  panel.setBackground(card(SURFACE,EDGE,16));
   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
   lp.topMargin=dp(16);lp.bottomMargin=dp(10);content.addView(panel,lp);
   status=display("Verificando permissões e monitoramento…",17,Color.WHITE,false);
-  weatherStatus=display("Verificando fontes e meteorologia…",17,0xffd6e7ec,false);
+  weatherStatus=display("Verificando fontes e meteorologia…",17,MUTED,false);
   if(wideLayout){
    LinearLayout.LayoutParams a=new LinearLayout.LayoutParams(0,-2,1f);a.rightMargin=dp(22);
    panel.addView(status,a);
-   View divider=new View(this);divider.setBackgroundColor(0xff27607c);
+   View divider=new View(this);divider.setBackgroundColor(EDGE);
    panel.addView(divider,new LinearLayout.LayoutParams(dp(1),-1));
    LinearLayout.LayoutParams b=new LinearLayout.LayoutParams(0,-2,1f);b.leftMargin=dp(22);
    panel.addView(weatherStatus,b);
@@ -297,21 +471,23 @@ public final class MainActivity extends Activity {
   }
  }
  private void section(String title){
-  actionRow=null;currentSection=title;
-  TextView t=display(title,21,0xff56e9f4,true);
+  route(categoryFor(title));currentSection=title;
+  TextView t=display(title,18,GOLD,true);
   t.setPadding(dp(16),dp(14),dp(16),dp(14));
-  t.setBackground(card(0xff0b2437,0xff22516b,12));
+  t.setBackgroundColor(OLED);
   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
   lp.topMargin=dp(18);lp.bottomMargin=dp(8);content.addView(t,lp);
  }
  private void addSwitch(Switch toggle){
   actionRow=null;toggle.setFocusable(true);
   toggle.setPadding(dp(18),dp(10),dp(18),dp(10));
-  toggle.setBackground(card(0xff142b43,0xff426276,12));
+  toggle.setBackground(card(SURFACE,EDGE,12));
+  toggle.setThumbTintList(android.content.res.ColorStateList.valueOf(GOLD));
   toggle.setMinHeight(dp(64));
   toggle.setOnFocusChangeListener((v,focused)->
-    v.setBackground(card(focused?0xff124456:0xff142b43,
-      focused?0xff00ecf4:0xff426276,12)));
+    v.setBackground(card(focused?0xff392e23:SURFACE,
+      focused?GOLD:EDGE,12)));
+  trackFocus(toggle,true);
   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
   lp.setMargins(0,dp(5),0,dp(5));content.addView(toggle,lp);
  }
@@ -463,18 +639,22 @@ public final class MainActivity extends Activity {
  private void launch(String action){try{startForegroundService(new Intent(this,MonitorService.class).setAction(action));}catch(RuntimeException e){Prefs.status(this,"Não foi possível iniciar. Verifique as permissões do aparelho.");}}
  private TextView label(String s,int size,boolean bold){
   actionRow=null;
-  TextView t=display(s,size,bold?Color.WHITE:0xffbdcfd8,bold);
+  TextView t=display(s,size,bold?INK:MUTED,bold);
   if(!bold&&s.length()>145){
    // Long manuals stay accessible, but no longer fill the TV's first screen.
    t.setVisibility(View.GONE);t.setPadding(dp(14),dp(8),dp(14),dp(12));
    Button more=new Button(this);more.setAllCaps(false);more.setTextSize(15);
-   more.setTextColor(0xffb2e8f3);more.setText("ⓘ  Detalhes · "+currentSection);
-   more.setBackground(card(0xff10263a,0xff224c64,10));
-   final String title=currentSection;
-   more.setOnClickListener(v->{
+   more.setTextColor(GOLD);more.setText("ⓘ  Informações e detalhes");
+   more.setContentDescription("Informações e detalhes · "+currentSection);
+   more.setMinHeight(dp(44));more.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);more.setPadding(dp(12),0,dp(12),0);
+   styleButton(more,false);
+   more.setOnFocusChangeListener((v,focused)->styleButton(more,focused));
+   trackFocus(more,true);
+      more.setOnClickListener(v->{
     boolean open=t.getVisibility()!=View.VISIBLE;
     t.setVisibility(open?View.VISIBLE:View.GONE);
-    more.setText((open?"Ocultar":"ⓘ  Detalhes")+" · "+title);
+    more.setText(open?"Ocultar informações":"ⓘ  Informações e detalhes");
+    more.setContentDescription((open?"Ocultar informações · ":"Informações e detalhes · ")+t.getText().toString().substring(0,Math.min(65,t.length())));
    });
    LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(-1,-2);mp.topMargin=dp(4);
    content.addView(more,mp);
@@ -484,13 +664,13 @@ public final class MainActivity extends Activity {
   return t;
  }
  private void styleButton(Button b,boolean focus){
-  b.setBackground(card(focus?0xff064656:0xff1c344b,
-    focus?0xff00f0f4:0xff4b7084,12));
+  b.setBackground(card(focus?0xff392e23:SURFACE,
+    focus?GOLD:EDGE,12));
  }
  private Button button(String s,View.OnClickListener listener){
   Button b=new Button(this);
   b.setText(s);b.setTextSize(wideLayout?18:17);
-  b.setTextColor(Color.WHITE);b.setAllCaps(false);
+  b.setTextColor(INK);b.setAllCaps(false);
   b.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
   b.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
   b.setMinHeight(dp(72));b.setPadding(dp(18),dp(11),dp(18),dp(11));
@@ -498,6 +678,7 @@ public final class MainActivity extends Activity {
   b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
   styleButton(b,false);
   if(!wideLayout){
+   trackFocus(b,true);
    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
    lp.setMargins(0,dp(5),0,dp(5));content.addView(b,lp);
   }else{
@@ -507,6 +688,7 @@ public final class MainActivity extends Activity {
     rp.setMargins(0,dp(5),0,dp(5));content.addView(actionRow,rp);
    }
    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1f);
+   trackFocus(b,actionRow.getChildCount()==0);
    lp.setMargins(dp(3),0,dp(3),0);actionRow.addView(b,lp);
   }
   return b;
@@ -546,7 +728,10 @@ public final class MainActivity extends Activity {
   if(replayStatus!=null)setIfChanged(replayStatus,
     "Último replay regional salvo: "+RegionalReplayDetails.summary(cachedTarget)
     +" · aparece SOBRE o vídeo, após 10 s");
-  if(start!=null)setIfChanged(start,enabled?"Parar monitoramento":"2 · Ativar monitoramento");
+  if(start!=null)setIfChanged(start,enabled?"Parar monitoramento":"Ativar monitoramento");
+  setIfChanged(updateStatus,p.getString("updateStatus","Aguardando verificação de atualização"));
+  setIfChanged(monitorBadge,enabled?(overlay?"● Monitoramento ativo":"! Sobreposição bloqueada"):"○ Monitoramento inativo");
+  if(monitorBadge!=null)monitorBadge.setTextColor(enabled&&overlay?0xff75caa0:GOLD);
  }
  @Override protected void onDestroy(){TvSounds.stopPreview();endDirectVoice();if(updater!=null)updater.close();super.onDestroy();}
  @Override protected void onResume(){super.onResume();if(updater!=null)updater.resume();if(Prefs.get(this).getBoolean("enabled",false))launch(MonitorService.START);handler.removeCallbacks(refresh);update();handler.postDelayed(refresh,9000);}
