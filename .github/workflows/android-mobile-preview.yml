@@ -237,9 +237,12 @@ jobs:
         with:
           name: monitor-global-mobile-stable
           path: stable-apk
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
       - name: Create verified stable update manifest
-        env:
-          ANDROID_HOME: ${{ runner.temp }}/android-sdk
         run: |
           python - <<'PY'
           import pathlib,hashlib,json,re,subprocess,os
