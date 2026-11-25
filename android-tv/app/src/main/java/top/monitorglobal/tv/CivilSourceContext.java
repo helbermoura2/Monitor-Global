@@ -11,9 +11,13 @@ final class CivilSourceContext {
   if(notice==null)return "ORIGEM DO AVISO INDISPONÍVEL";
   StringBuilder out=new StringBuilder();
   if(demo)out.append("SIMULAÇÃO · NÃO É FONTE REAL");
-  else if(replay)out.append("REGISTRO HISTÓRICO · NÃO É ALERTA ATUAL");
-  else if(phone)out.append("CAPTURADO NO CELULAR · NÃO VERIFICADO VIA CAP");
-  else out.append("CAP OFICIAL · EMISSOR: ").append(notice.issuer);
+  else if(phone){
+   out.append(replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":"");
+   out.append("ORIGEM CELULAR · NÃO VERIFICADO VIA CAP");
+  }else{
+   out.append(replay?"REPLAY HISTÓRICO · NÃO É ALERTA ATUAL · ":"");
+   out.append("CAP OFICIAL · EMISSOR: ").append(notice.issuer);
+  }
   if(notice.sent>0&&notice.sent<=now){
    long age=(now-notice.sent)/60000;
    append(out,age<1?"EMITIDO HÁ MENOS DE 1 MIN":"EMITIDO HÁ "+age+" MIN");
