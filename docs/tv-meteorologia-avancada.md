@@ -13,9 +13,9 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 10 Histórico — catálogo de até seis horários publicados, cache de dois quadros decodificados, sem misturar horários; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
 - [x] 11 Animação — sequência do mais antigo ao mais recente, sem interpolar observações; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
 - [x] 12 Controles temporais — anterior, próximo, mais recente, reproduzir e pausar; teste de contrato aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45717140004
-- [ ] 13 Nowcasting espacial
-- [ ] 14 Previsão espacial de seis horas
-- [ ] 15 Movimento GOES
+- [ ] 13 Nowcasting espacial — módulo experimental de advecção de refletividade, limitado a dois quadros do mesmo radar, horizonte máximo de 60 min desde a observação e validade futura; integração e validação em dados reais pendentes.
+- [ ] 14 Previsão espacial de seis horas — piloto de nove pontos ECMWF IFS via Open-Meteo para uso pessoal não comercial; acumulado horário em mm, horário de rodada não informado; não interpolar como radar, integração e validação pendentes.
+- [ ] 15 Movimento GOES — corrigida distância física por amostra nos dois eixos, rejeição de correspondência no limite de busca; comparação somente do mesmo provedor NASA em imagens sem sobreposição de cartografia. RealEarth sem estimativa devido a marcas estáticas. Teste pendente.
 - [ ] 16 Tarja CNN
 - [ ] 17 Efeitos de chuva
 - [ ] 18 Refinamento visual e D-pad
