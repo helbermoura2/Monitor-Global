@@ -17,6 +17,12 @@ final class PhoneUpdateChannel {
   Release(long c,String n,String u,String s,String cert){code=c;name=n;url=u;sha=s;certificate=cert;}
  }
  static boolean digest(String value){return value!=null&&value.matches("[0-9a-f]{64}");}
+ static String verificationFailure(Exception error){
+  String detail=error==null?"":String.valueOf(error.getMessage());
+  if(detail.contains("HTTP 404"))return "A versão estável ainda não foi publicada no GitHub. Nenhum APK foi instalado; tente novamente quando a publicação oficial estiver disponível.";
+  if(detail.contains("HTTP 429")||detail.contains("HTTP 403"))return "O GitHub limitou temporariamente o acesso ao canal de atualização. Aguarde um pouco e tente novamente. Nenhum APK foi instalado.";
+  return "Não foi possível acessar o canal estável. Verifique a conexão com a internet e tente novamente. Nenhum APK foi instalado.";
+ }
  static Release parse(String raw,String installedPackage)throws Exception {
   if(raw==null||raw.length()>16384)throw new IOException("Manifesto excedeu o limite");
   JSONObject root=new JSONObject(raw);
