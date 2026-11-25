@@ -16,9 +16,9 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 13 Nowcasting espacial — mapa experimental de deslocamento dos ecos em dBZ, +30/+45/+60 min desde observação, não chuva quantitativa; integração via botão Previsão, validação aprovada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718192306
 - [x] 14 Previsão espacial de seis horas — nove amostras ECMWF IFS via Open-Meteo, acumulado horário em mm, sem interpolação; mapa por hora integrado via botão Previsão; validação aprovada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718192306
 - [x] 15 Movimento GOES — escala física corrigida, comparação NASA original sem cartografia, RealEarth sem estimativa por marcas estáticas; teste de deslocamento aprovado https://github.com/helbermoura2/Monitor-Global/actions/runs/45717801807
-- [ ] 16 Tarja CNN — WeatherMapNewsStrip reaproveita OledNewsChrome, logo oficial, divisórias, ticker e origem/idade dos dados; teste gráfico pendente.
-- [ ] 17 Efeitos de chuva — efeito existente condicionado à estimativa quantitativa vigente ou demonstração explícita; texto ilustrativo, sem efeito sobre radar, sem inferência de chuva por nuvens/dBZ. Teste pendente.
-- [ ] 18 Refinamento visual e D-pad
+- [x] 16 Tarja CNN — chrome OLED compartilhado, logo, divisórias e origem/idade; validação gráfica aprovada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718731810
+- [x] 17 Efeitos de chuva — somente estimativa quantitativa vigente ou demonstração explícita; efeito ilustrativo; teste aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718731810
+- [x] 18 Refinamento visual e D-pad — OLED, botões focáveis, painel escuro e contratos aprovados: https://github.com/helbermoura2/Monitor-Global/actions/runs/45718731810; validação física na TCL pendente.
 - [ ] 19 Testes integrados
 - [ ] 20 Publicação única
 ## Etapa 04: arquitetura proposta
