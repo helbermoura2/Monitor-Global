@@ -4,8 +4,8 @@ final class RainBannerContent {
  final String topic,headline,amount,rate,duration,durationLabel,end,accessible;
  RainBannerContent(RainForecast.Summary r){
   if(r!=null&&r.state.equals("evidence")){
-   topic=r.level.equals("gauge")?"PLUVIÔMETRO · CEMADEN":"MODELOS HORÁRIOS";
-   headline=r.level.equals("gauge")?"CHUVA MEDIDA PERTO":"MODELOS INDICAM CHUVA";
+   topic=r.level.equals("gauge")?"PLUVIÔMETRO · CEMADEN":r.level.equals("consensus")?"CONSENSO · 6 HORAS":"MODELOS HORÁRIOS";
+   headline=r.level.equals("gauge")?"CHUVA MEDIDA PERTO":r.level.equals("consensus")?"CONSENSO DE CHUVA":"MODELOS INDICAM CHUVA";
    amount=rate=duration="—";
    durationLabel="DURAÇÃO ESTIMADA";
    end=r.stopText;

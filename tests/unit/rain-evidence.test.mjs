@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {gaugeEvidence,hourlyEvidence,collectRainEvidence} from '../../worker/rain-evidence.mjs';
+import {gaugeEvidence,hourlyEvidence,modelConsensus,collectRainEvidence} from '../../worker/rain-evidence.mjs';
 import {createTvRain,TV_RAIN_LIBERDADE as loc} from '../../worker/tv-rain.mjs';
 
 const now=Date.parse('2026-11-18T19:23:00Z');
@@ -18,9 +18,26 @@ test('uses only recent positive readings from nearby, quality-checked gauges',()
   }
 });
 
-test('two hourly models must independently indicate precipitation in the same window',()=>{
+test('six-hour model consensus counts independent votes without calling them calibrated probability',()=>{
+  const times=Array.from({length:6},(_,i)=>Date.parse('2026-11-18T20:00:00Z')/1000+i*3600);
+  const data={utc_offset_seconds:0,hourly:{time:times,
+    precipitation_ecmwf_ifs025:[.4,.5,0,0,0,0],
+    precipitation_gfs_seamless:[.3,0,0,0,0,0],
+    precipitation_icon_seamless:[.2,.4,0,0,0,0]}};
+  const result=modelConsensus(data,now);
+  assert.equal(result.peakVotes,3);
+  assert.equal(result.wetHours,2);
+  assert.equal(result.arrivalMinutes,37);
+  assert.equal(result.accumulatedMedianMm,.7);
+  assert.match(result.calibration,/não é probabilidade calibrada/);
+  assert.equal(hourlyEvidence(data,now).consensus.peakVotes,3);
+});
+test('two models agreeing in one forecast hour is required; one vote is not consensus',()=>{
   assert.equal(hourlyEvidence(hour(.3,null,.4),now).kind,'hourly');
   assert.equal(hourlyEvidence(hour(.3,null,0),now),null);
+  const times=[Date.parse('2026-11-18T20:00:00Z')/1000];
+  assert.equal(modelConsensus({utc_offset_seconds:0,hourly:{time:times,
+    precipitation_ecmwf_ifs025:[.5],precipitation_gfs_seamless:[0],precipitation_icon_seamless:[null]}},now).peakVotes,1);
 });
 
 test('gauge credentials only go to Cemaden and a failed gauge request preserves hourly evidence',async()=>{
