@@ -41,7 +41,9 @@ final class RadarMapClient implements AutoCloseable {
   for(int i=0;i<Math.min(60,list.length());i++){
    try{
     JSONObject f=list.getJSONObject(i),p=f.getJSONObject("properties");
-    String radar=p.getString("radar"),owner=p.getString("owner");
+    String radar=p.optString("radar"),owner=p.optString("owner");
+    String id=f.optString("id");java.util.regex.Matcher match=java.util.regex.Pattern.compile("decea_(saoroque|picocouto)_[0-9]{12}").matcher(id);
+    if(match.matches()){if(radar.isEmpty())radar=match.group(1);if(owner.isEmpty())owner="decea";if(!radar.equals(match.group(1)))continue;}
     if(!PILOT.contains(radar)||!"decea".equals(owner)||!COLLECTION.equals(f.optString("collection",COLLECTION)))continue;
     long at=Instant.parse(p.getString("datetime")).toEpochMilli();
     if(at<=0||at>now||now-at>180*60000L)continue;
@@ -66,16 +68,15 @@ final class RadarMapClient implements AutoCloseable {
   }catch(RuntimeException e){return false;}
  }
  List<Long> times(long now)throws Exception{
-  refresh(now);return new ArrayList<>(catalog.keySet());
+  refresh(now,SystemClock.elapsedRealtime()+25000);return new ArrayList<>(catalog.keySet());
  }
- private void refresh(long now)throws Exception{
+ private void refresh(long now,long deadline)throws Exception{
   if(closed)throw new IOException("Cancelado");
   if(queried>0&&now>=queried&&now-queried<10*60000L){
    if(catalog.isEmpty())throw new IOException("Nova tentativa em até 10 minutos");
    return;
   }
   queried=now;
-  long deadline=SystemClock.elapsedRealtime()+25000;
   String period=URLEncoder.encode(Instant.ofEpochMilli(now-3*3600000L)+"/"+Instant.ofEpochMilli(now),"UTF-8");
   String url=ROOT+"?collections="+COLLECTION+"&bbox=-47.8,-24.5,-45.5,-22.8&datetime="+period+"&limit=60";
   NavigableMap<Long,List<Item>> result=parseHistory(new String(read(url,4*1024*1024,deadline),StandardCharsets.UTF_8),now);
@@ -88,18 +89,21 @@ final class RadarMapClient implements AutoCloseable {
   return frame(prev,now);
  }
  Frame latest(long now)throws Exception{
-  refresh(now);
+  return latestWithin(now,50000);
+ }
+ Frame latestWithin(long now,long budget)throws Exception{
+  long deadline=SystemClock.elapsedRealtime()+Math.max(1,Math.min(budget,50000));refresh(now,deadline);
   for(long at:catalog.descendingKeySet()){
    if(now-at>60*60000L||at>now)continue;
-   try{return frame(at,now);}catch(IOException e){if(closed)throw e;break;}
+   try{return frame(at,now,deadline);}catch(IOException e){if(closed)throw e;break;}
   }
   throw new IOException("Radar recente indisponível");
  }
- Frame frame(long at,long now)throws Exception{
+ Frame frame(long at,long now)throws Exception{return frame(at,now,SystemClock.elapsedRealtime()+25000);}
+ private Frame frame(long at,long now,long deadline)throws Exception{
   if(closed||at>now||now-at>180*60000L)throw new IOException("Quadro indisponível");
   Frame existing=history.get(at);if(existing!=null)return existing;
   List<Item> items=catalog.get(at);if(items==null)throw new IOException("Quadro não publicado");
-  long deadline=SystemClock.elapsedRealtime()+25000;
   List<RadarCappi> grids=new ArrayList<>();List<String> radars=new ArrayList<>();
   for(Item item:items){
    try{
