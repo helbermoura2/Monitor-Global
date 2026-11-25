@@ -7,10 +7,10 @@ import android.widget.*;
 
 /** Compact legend below the existing map, never covering geography. */
 final class RadarLegend extends LinearLayout {
- private final TextView metadata;
+ private final TextView metadata;private final boolean compactSide;
  RadarLegend(Context c){this(c,false);}
  RadarLegend(Context c,boolean side){
-  super(c);setOrientation(VERTICAL);setPadding(dp(8),dp(4),dp(8),dp(4));setBackgroundColor(0xff111316);
+  super(c);compactSide=side;setOrientation(VERTICAL);setPadding(dp(8),dp(4),dp(8),dp(4));setBackgroundColor(0xff111316);
   LinearLayout scale=new LinearLayout(c);scale.setOrientation(side?VERTICAL:HORIZONTAL);scale.setGravity(Gravity.CENTER_VERTICAL);
   TextView unit=text("dBZ",13);scale.addView(unit,new LayoutParams(side?-1:dp(46),-2));
   for(int i=0;i<RadarIntensity.count();i++){
@@ -24,9 +24,10 @@ final class RadarLegend extends LinearLayout {
   setFocusable(false);setContentDescription("Legenda de refletividade observada, não taxa de chuva");
  }
  void update(RadarMapClient.Frame frame,long now){
-  if(frame==null){metadata.setText("INPE / DECEA · Radar indisponível · Não equivale a ausência de chuva");return;}
+  if(frame==null){metadata.setText("Radar indisponível. Não equivale a ausência de chuva.");return;}
   long age=Math.max(0,(now-frame.at)/60000L);
   String validity=now<frame.at?"HORÁRIO INVÁLIDO":age>=60?"DADO VENCIDO":age>30?"DEFASADO":"DISPONÍVEL";
+  if(compactSide){metadata.setText(validity+"\nCinza hachurado: sem dado confirmado\n<5 dBZ: abaixo da escala\n"+RadarIntensity.rainRate()+" · "+RadarIntensity.accumulation());return;}
   metadata.setText("OBSERVADO · "+frame.credit()+" · "+InfraredPlan.timing(frame.at,now)+" · "+validity+
     "\nCinza hachurado: sem dado confirmado · <5 dBZ: abaixo da escala · "+RadarIntensity.rainRate()+" · "+RadarIntensity.accumulation());
  }
