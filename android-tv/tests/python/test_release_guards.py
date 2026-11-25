@@ -9,6 +9,16 @@ class DistributionGuards(unittest.TestCase):
   self.config=json.loads((self.root/'android-tv/distribution/stable.json').read_text());version=self.config['release']['versionName'];name=f'downloads/monitor-global-tv-{version}.apk';p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/name,p);self.apk=p
  def tearDown(self):module.ROOT=self.old;self.tmp.cleanup()
  def write(self):(self.root/'android-tv/distribution/stable.json').write_text(json.dumps(self.config))
+ def test_argos_orbis_project_name_preserves_installed_tv_identity(self):
+  settings=(ROOT/'android-tv/settings.gradle').read_text()
+  gradle=(ROOT/'android-tv/app/build.gradle').read_text()
+  identity=json.loads((ROOT/'android-tv/signing/identity.json').read_text())
+  self.assertIn("rootProject.name = 'ArgosOrbisTV'",settings)
+  self.assertIn("applicationId 'top.monitorglobal.tv.preview'",gradle)
+  self.assertIn("namespace 'top.monitorglobal.tv'",gradle)
+  self.assertEqual(identity['packageName'],'top.monitorglobal.tv.preview')
+  self.assertEqual(self.config['packageName'],identity['packageName'])
+  self.assertEqual(self.config['certificateSha256'],identity['certificateSha256'])
  def test_rejects_foreign_host(self):
   self.config['release']['url']='https://evil.example/fake.apk';self.write()
   with self.assertRaises(AssertionError):module.check('/no-build-tools-needed')
