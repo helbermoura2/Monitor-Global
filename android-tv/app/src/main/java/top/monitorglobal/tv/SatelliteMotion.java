@@ -56,6 +56,7 @@ final class SatelliteMotion {
   if(total==0||vectors.size()<4)return null;
   List<Integer> xs=new ArrayList<>(),ys=new ArrayList<>();for(Vector v:vectors){xs.add(v.x);ys.add(v.y);}
   Collections.sort(xs);Collections.sort(ys);int dx=xs.get(xs.size()/2),dy=ys.get(ys.size()/2),consistent=0;double error=0;
+  if(Math.abs(dx)+Math.abs(dy)<2){dx=0;dy=0;}
   for(Vector v:vectors)if(Math.abs(v.x-dx)<=2&&Math.abs(v.y-dy)<=2){consistent++;error+=v.score;}
   if(consistent<4||consistent<vectors.size()*.55)return null;
   double minutes=(newerAt-olderAt)/60000.0;
