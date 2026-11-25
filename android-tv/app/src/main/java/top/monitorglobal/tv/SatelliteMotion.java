@@ -25,6 +25,7 @@ final class SatelliteMotion {
    if(speedKmh<2.0)return "Padrões de nuvens quase estacionários";
    return "Nuvens deslocando-se para "+direction+" · "+String.format(java.util.Locale.ROOT,"%.0f km/h",speedKmh);
   }
+  String coherence(){return "COERÊNCIA ESPACIAL "+matched+"/"+total+" BLOCOS";}
  }
 
  private static final class Vector {final int x,y;final double score;Vector(int x,int y,double s){this.x=x;this.y=y;score=s;}}
