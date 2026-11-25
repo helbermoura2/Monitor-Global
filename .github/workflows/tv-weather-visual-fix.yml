@@ -25,9 +25,9 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
-      - name: Validate real image dimensions, radar legend and newsroom strip
+      - name: Validate map and AI dashboard layout, remote navigation and lifecycle
         working-directory: android-tv
-        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest'
+        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest' --tests 'top.monitorglobal.tv.WeatherAiInfoTest' --tests 'top.monitorglobal.tv.WeatherAiPresentationTest'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
