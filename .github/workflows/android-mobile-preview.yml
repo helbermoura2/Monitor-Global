@@ -98,13 +98,13 @@ jobs:
         run: |
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/stable/app-stable.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-mobile/app/build/outputs/apk/stable/app-stable.apk | grep -F "versionName='0.1.65'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-mobile/app/build/outputs/apk/stable/app-stable.apk | grep -F "versionName='0.1.66'"
           python - <<'PY'
           import os,re,subprocess,pathlib
           aapt=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/aapt'
           def package(path):
               raw=subprocess.check_output([str(aapt),'dump','badging',path],text=True)
-              match=re.search(r"package: name='([^']+)' versionCode='(\\d+)' versionName='([^']+)'",raw)
+              match=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",raw)
               if not match: raise SystemExit('Cannot inspect APK identity')
               return match.group(1),int(match.group(2)),match.group(3)
           debug=package('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
