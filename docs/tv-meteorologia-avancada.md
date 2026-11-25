@@ -4,7 +4,7 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 01 Auditoria preliminar
 - [x] 02 Validação operacional INPE — https://github.com/helbermoura2/Monitor-Global/actions/runs/45714844709
 - [x] 03 Cobertura meteorológica — conclusão comunicada pelo usuário; relatório independente ainda não localizado. Não inferir cobertura efetiva nacional da bbox da coleção.
-- [ ] 04 Infraestrutura e custo zero — arquitetura proposta abaixo; prova de acesso e formato pendente.
+- [x] 04 Infraestrutura e custo zero — https://github.com/helbermoura2/Monitor-Global/actions/runs/45715671942; acesso direto HTTPS sem autenticação, 27.450 bytes de metadados, ativo 1.009.052 bytes, NETCDF3_64BIT_OFFSET (CDF-2), eixos monotônicos, 3,48 s para a prova. Decoder Android ainda não testado.
 - [ ] 05 Estrutura das camadas
 - [ ] 06 Sobreposição de radar
 - [ ] 07 Intensidade da precipitação
