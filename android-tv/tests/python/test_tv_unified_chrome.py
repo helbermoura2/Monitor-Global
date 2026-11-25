@@ -3,10 +3,14 @@ import pathlib
 import unittest
 
 JAVA = pathlib.Path(__file__).resolve().parents[2] / "app/src/main/java/top/monitorglobal/tv"
+CORE = pathlib.Path(__file__).resolve().parents[3] / "android-core/src/main/java/top/monitorglobal/tv"
 
 
 def source(name):
-    return (JAVA / name).read_text(encoding="utf-8")
+    path = JAVA / name
+    if not path.exists():
+        path = CORE / name
+    return path.read_text(encoding="utf-8")
 
 
 class UnifiedChrome(unittest.TestCase):
