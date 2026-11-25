@@ -109,7 +109,10 @@ final class BroadcastVisuals {
  static final long RADAR_PERIOD_MS=7200L,BLINK_PERIOD_MS=11000L;
  static final int TICKER_START_X=100;
  static float tickerOffset(long elapsed,float length,boolean animated){
-  return animated&&length>0?(elapsed/1000f*TICKER_PX_PER_SECOND)%length:0f;
+  return tickerOffset(elapsed,length,animated,TICKER_PX_PER_SECOND);
+ }
+ static float tickerOffset(long elapsed,float length,boolean animated,float speed){
+  return animated&&length>0?(elapsed/1000f*Math.max(0f,speed))%length:0f;
  }
  static void radar(Canvas c,Paint paint,long elapsed,boolean animated){
   // Full official Argos Orbis radar-eye plus wordmark, same pixel geometry in every strip.
