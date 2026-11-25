@@ -96,8 +96,8 @@ final class TvBroadcastInfoView extends View {
       (dollar!=null?" · "+(dollar.percent==null?"Variação indisponível":(dollar.percent>=0?"+":"")+amount(dollar.percent)+"%")+" · ref. "+BrentQuote.clock(dollar.at):"")+
       "     •     Variação sobre o fechamento anterior · Fonte: Yahoo Finance · dados podem sofrer atraso";
    }else{
-    ticker=(satellite!=null?"SATÉLITE GOES-EAST · "+satellite.credit()+" · "+InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
-      " · Infravermelho não mede intensidade da chuva":"SATÉLITE GOES-EAST · "+this.satelliteStatus);
+    ticker=(satellite!=null?(satellite.isRadar()?"RADAR OBSERVADO · ":"SATÉLITE GOES-EAST · ")+satellite.credit()+" · "+InfraredPlan.timing(satellite.at,System.currentTimeMillis())+
+      (satellite.isRadar()?" · Refletividade dBZ, não mm/h":" · Infravermelho não mede intensidade da chuva"):"MAPA METEOROLÓGICO · "+this.satelliteStatus);
    }
   }
   if(kind==WEATHER||kind==RAIN){int[] icons=kind==RAIN?new int[]{WeatherCardView.Icon.RAIN,WeatherCardView.Icon.DROP,WeatherCardView.Icon.RAIN,WeatherCardView.Icon.HOURGLASS}:new int[]{WeatherCardView.conditionIcon(weather==null?"":weather.conditionKey),WeatherCardView.Icon.DROP,WeatherCardView.Icon.WIND,WeatherCardView.Icon.GUST};for(int i=0;i<4;i++){weatherIcons[i]=new WeatherCardView.Icon(c,icons[i]);weatherIcons[i].layout(0,0,24,24);}}
@@ -280,6 +280,7 @@ final class TvBroadcastInfoView extends View {
  }
  private String satelliteMotionTicker(WeatherSatelliteClient.Frame frame){
   if(frame==null)return "";
+  if(frame.isRadar())return " · RADAR OBSERVADO · "+frame.credit()+" · "+InfraredPlan.timing(frame.at,System.currentTimeMillis())+" · dBZ não é taxa de chuva · cinza: sem dado confirmado";
   String motion=frame.motion==null
     ?"MOVIMENTO DAS NUVENS: SEM ESTIMATIVA CONFIÁVEL"
     :frame.motion.description()+" · "+frame.motion.coherence()+" · COMPARAÇÃO "+
@@ -482,6 +483,7 @@ final class TvBroadcastInfoView extends View {
   return reference+BrentQuote.reference(at)+" · "+source;
  }
  private void drawSatelliteNews(Canvas c,WeatherSatelliteClient.Frame frame){
+  if(frame!=null&&frame.isRadar()){eventCategory(c,"RADAR","INPE / DECEA");primary(c,"RADAR OBSERVADO · SUDESTE",142,28,foreground,705);label(c,InfraredPlan.timing(frame.at,System.currentTimeMillis())+" · dBZ, NÃO mm/h",142,88,16,0xffb8d2df,data,705);return;}
   eventCategory(c,"SATÉLITE","GOES-EAST");
   primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,foreground,705);
   label(c,frame==null?(satellite==null?satelliteStatus:"Imagem indisponível"):InfraredPlan.timing(frame.at,System.currentTimeMillis())+
@@ -490,7 +492,7 @@ final class TvBroadcastInfoView extends View {
  private WeatherSatelliteClient.Frame currentFrame(){
   WeatherSatelliteClient.Frame frame=kind==WEATHER||kind==RAIN
       ?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
-  return frame!=null&&frame.image!=null&&!frame.image.isRecycled()?frame:null;
+  return frame!=null&&frame.image!=null&&!frame.image.isRecycled()&&(!frame.isRadar()||frame.validAt(System.currentTimeMillis()))?frame:null;
  }
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0)return;
@@ -505,12 +507,12 @@ final class TvBroadcastInfoView extends View {
    if(displayed!=null){
     p.setColor(Color.WHITE);p.setFilterBitmap(true);p.setStyle(Paint.Style.FILL);
     p.setAlpha(effects.imageOpacity(now-imageReadyAt));
-    c.drawBitmap(displayed.image,null,satelliteImageBounds,p);p.setAlpha(255);
+    float ratio=Math.min(310f/displayed.image.getWidth(),127f/displayed.image.getHeight());float w=displayed.image.getWidth()*ratio,h=displayed.image.getHeight()*ratio;c.drawBitmap(displayed.image,null,new RectF((310-w)/2,23+(127-h)/2,(310+w)/2,23+(127+h)/2),p);p.setAlpha(255);
    }
    fill(c,0,0,310,23,Color.BLACK);fill(c,0,22,310,23,OledNewsChrome.RED_DARK);
-   label(c,"INFRAVERMELHO · SUDESTE",9,17,15,Color.WHITE,OledNewsChrome.titleFont(null),286);
+   label(c,displayed!=null&&displayed.isRadar()?"RADAR OBSERVADO · SP/RJ":"INFRAVERMELHO · SUDESTE",9,17,15,Color.WHITE,OledNewsChrome.titleFont(null),286);
    fill(c,0,150,310,26,Color.BLACK);
-   if(displayed!=null)label(c,displayed.credit(),9,160,10,0xffbbd7e7,brand,290);
+   if(displayed!=null)label(c,displayed.credit()+(displayed.isRadar()?" · dBZ":""),9,160,10,0xffbbd7e7,brand,290);
    label(c,displayed!=null?InfraredPlan.timing(displayed.at,System.currentTimeMillis()):"Satélite indisponível nesta consulta",9,displayed!=null?173:168,12,0xffbbd7e7,brand,290);
    p.setColor(0xff56595f);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);
    c.drawRoundRect(0,0,310,176,5,5,p);p.setStyle(Paint.Style.FILL);
