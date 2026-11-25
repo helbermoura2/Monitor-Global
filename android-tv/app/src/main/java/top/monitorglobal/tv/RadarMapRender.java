@@ -7,6 +7,10 @@ import android.content.Context;
 final class RadarMapRender {
  static int color(float v,int x,int y){return RadarIntensity.pixel(v,x,y);}
  static Bitmap render(Context context,WeatherSatelliteClient geography,InfraredPlan.Scope scope,RadarMapClient.Frame frame)throws Exception{
+  return render(geography,scope,frame::sample);
+ }
+ interface Sampler {float sample(double lat,double lon);}
+ static Bitmap render(WeatherSatelliteClient geography,InfraredPlan.Scope scope,Sampler sampler)throws Exception{
   int w=InfraredPlan.WIDTH,h=scope.height;int[] pixels=new int[w*h];
   double top=InfraredPlan.merc(scope.north),bottom=InfraredPlan.merc(scope.south);
   for(int y=0;y<h;y++){
@@ -14,7 +18,7 @@ final class RadarMapRender {
    double merc=top-(y+.5)/h*(top-bottom),lat=Math.toDegrees(2*Math.atan(Math.exp(merc))-Math.PI/2);
    for(int x=0;x<w;x++){
     double lon=scope.west+(x+.5)/w*(scope.east-scope.west);
-    pixels[y*w+x]=color(frame.sample(lat,lon),x,y);
+    pixels[y*w+x]=color(sampler.sample(lat,lon),x,y);
    }
   }
   Bitmap out=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
