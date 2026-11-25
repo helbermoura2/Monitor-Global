@@ -29,8 +29,20 @@ final class WeatherSatelliteClient implements AutoCloseable {
  Frame latest(InfraredPlan.Scope scope,long now)throws Exception{
   long deadline=SystemClock.elapsedRealtime()+20000;available(now,false);TreeSet<Long> candidates=new TreeSet<>(nasaTimes);candidates.addAll(realTimes);int tried=0;
   for(Iterator<Long> it=candidates.descendingIterator();it.hasNext()&&!closed&&tried<6&&SystemClock.elapsedRealtime()<deadline;tried++){
-   long at=it.next();try{Frame f=frame(scope,at,now,deadline);if(f!=null){int index=f.times.indexOf(f.at);if(index>0&&SystemClock.elapsedRealtime()<deadline){Frame previous=null;try{previous=frame(scope,f.times.get(index-1),now,Math.min(deadline,SystemClock.elapsedRealtime()+4500));if(previous!=null)f.motion=SatelliteMotion.analyze(previous.image,f.image,previous.at,f.at,scope);}catch(Exception ignored){}finally{if(previous!=null)previous.close();}}return f;}}catch(IOException error){if(closed||Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=deadline)break;rejected.add(key(scope,at));}
+   long at=it.next();try{Frame f=frame(scope,at,now,deadline);if(f!=null){int index=f.times.indexOf(f.at);if(index>0&&SystemClock.elapsedRealtime()<deadline){Frame previous=null;try{previous=frame(scope,f.times.get(index-1),now,Math.min(deadline,SystemClock.elapsedRealtime()+4500));if(previous!=null&&previous.source==f.source)f.motion=rawMotion(previous,f,scope,Math.min(deadline,SystemClock.elapsedRealtime()+4500));}catch(Exception ignored){}finally{if(previous!=null)previous.close();}}return f;}}catch(IOException error){if(closed||Thread.currentThread().isInterrupted()||SystemClock.elapsedRealtime()>=deadline)break;rejected.add(key(scope,at));}
   }return null;
+ }
+ private SatelliteMotion.Result rawMotion(Frame older,Frame newer,InfraredPlan.Scope scope,long deadline)throws Exception{
+  if(older.source!=newer.source)return null;
+  // Use the cached original NASA tiles, before borders, labels or background.
+  // RealEarth can embed a fixed watermark and provider cartography; don't estimate from that product.
+  if(newer.source!=Source.NASA)return null;
+  byte[] a,b;synchronized(cache){a=cache.get(key(scope,older.at));b=cache.get(key(scope,newer.at));}
+  if(a==null||b==null||SystemClock.elapsedRealtime()>deadline)return null;
+  Bitmap first=null,second=null;
+  try{first=BitmapFactory.decodeByteArray(a,0,a.length);second=BitmapFactory.decodeByteArray(b,0,b.length);
+   return SatelliteMotion.analyze(first,second,older.at,newer.at,scope);
+  }finally{if(first!=null)first.recycle();if(second!=null)second.recycle();}
  }
  private Source source(long at){return realTimes.contains(at)?Source.REALEARTH:Source.NASA;}
  private String key(InfraredPlan.Scope scope,long at){return source(at)+":"+scope.name+"@"+at;}
