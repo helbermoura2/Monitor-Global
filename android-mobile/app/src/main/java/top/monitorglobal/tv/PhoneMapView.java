@@ -31,7 +31,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-/** Local MapLibre page with a small ID-only bridge; no TV overlay or location permission. */
+/** Local MapLibre page with a small ID-only bridge; no TV overlay; location only on the weather page. */
 final class PhoneMapView extends FrameLayout {
  interface Listener { void onEventSelected(Alert alert); }
  static final String ASSET_PREFIX="/assets/v"+top.monitorglobal.mobile.BuildConfig.VERSION_CODE+"/";
@@ -64,7 +64,18 @@ final class PhoneMapView extends FrameLayout {
    // MapLibre handles pan/pinch/zoom; avoid WebView's duplicate native +/- overlay.
    settings.setSupportZoom(false);settings.setBuiltInZoomControls(false);settings.setDisplayZoomControls(false);
    settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setAllowFileAccessFromFileURLs(false);settings.setAllowUniversalAccessFromFileURLs(false);
-   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setGeolocationEnabled(false);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setSafeBrowsingEnabled(true);
+   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setGeolocationEnabled(brazilPage);settings.setJavaScriptCanOpenWindowsAutomatically(false);settings.setSupportMultipleWindows(false);settings.setMediaPlaybackRequiresUserGesture(true);settings.setSafeBrowsingEnabled(true);
+   current.setWebChromeClient(new android.webkit.WebChromeClient(){
+    @Override public void onGeolocationPermissionsShowPrompt(String origin,android.webkit.GeolocationPermissions.Callback callback){
+     if(!brazilPage||closed||!active||web!=current||!"https://appassets.androidplatform.net".equals(origin)){callback.invoke(origin,false,false);return;}
+     Context context=getContext();
+     boolean granted=context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)==android.content.pm.PackageManager.PERMISSION_GRANTED||context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==android.content.pm.PackageManager.PERMISSION_GRANTED;
+     if(!granted&&context instanceof android.app.Activity){
+      ((android.app.Activity)context).requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION},7314);
+     }
+     callback.invoke(origin,granted,false);
+    }
+   });
    current.addJavascriptInterface(bridge,"MonitorMapBridge");
    current.setWebViewClient(new WebViewClient(){
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
