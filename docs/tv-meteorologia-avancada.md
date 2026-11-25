@@ -7,8 +7,8 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 04 Infraestrutura e custo zero — https://github.com/helbermoura2/Monitor-Global/actions/runs/45715671942; acesso direto HTTPS sem autenticação, 27.450 bytes de metadados, ativo 1.009.052 bytes, NETCDF3_64BIT_OFFSET (CDF-2), eixos monotônicos, 3,48 s para a prova. Decoder Android ainda não testado.
 - [x] 05 Estrutura das camadas — WeatherMapLayer.java e teste Java 11 aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45715816642
 - [x] 06 Sobreposição de radar — leitor CDF-2 aprovado (64.646 células, pico 55,84 dBZ), renderização no visualizador Android validada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716402181
-- [ ] 07 Intensidade da precipitação — escala dBZ compartilhada, sem conversão não validada para mm/h; taxa e acumulado indisponíveis no radar, preparados para fonte quantitativa posterior. Teste pendente.
-- [ ] 08 Legenda meteorológica — legenda compacta abaixo do mapa, cores, unidade, fonte, hora, idade atualizada e validade. Teste pendente.
+- [x] 07 Intensidade da precipitação — escala dBZ compartilhada, sem conversão não validada para mm/h; taxa e acumulado indisponíveis no radar até validação de fonte quantitativa. Teste aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716787253
+- [x] 08 Legenda meteorológica — legenda compacta, cores, unidade, fonte, hora, idade e validade; teste aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716787253
 - [ ] 09 Consulta regional
 - [ ] 10 Histórico
 - [ ] 11 Animação
