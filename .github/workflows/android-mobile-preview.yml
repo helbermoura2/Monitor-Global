@@ -20,9 +20,6 @@ on:
       - 'android-mobile/**'
       - 'android-core/**'
       - '.github/workflows/android-mobile-preview.yml'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherForecast.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefing.java'
-      - 'android-tv/app/src/main/java/top/monitorglobal/tv/WeatherBriefingClient.java'
       - 'worker/weather-briefing.mjs'
       - 'monitor-global-worker-7_7_0.js'
 permissions:
