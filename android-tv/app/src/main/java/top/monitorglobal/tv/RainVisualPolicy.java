@@ -16,4 +16,20 @@ final class RainVisualPolicy {
    return Float.isFinite(speed)&&speed>=0?Math.min(80f,speed):0f;
   }catch(NumberFormatException ignored){return 0f;}
  }
+ /** Perspective scale: distant droplets stay smaller and nearer glass beads stand out. */
+ static float depthScale(float depth){
+  float d=Float.isFinite(depth)?Math.max(0f,Math.min(1f,depth)):0f;
+  return .72f+.46f*d;
+ }
+ /** A short late phase lets a subset of beads leave a subtle vertical water trail. */
+ static float runoffProgress(float phase){
+  if(!Float.isFinite(phase))return 0f;
+  float t=Math.max(0f,Math.min(1f,(phase-.48f)/.52f));
+  return t*t*(3f-2f*t);
+ }
+ static float runoffLength(float depth,float progress){
+  float d=Float.isFinite(depth)?Math.max(0f,Math.min(1f,depth)):0f;
+  float p=Float.isFinite(progress)?Math.max(0f,Math.min(1f,progress)):0f;
+  return (4f+14f*d)*p;
+ }
 }
