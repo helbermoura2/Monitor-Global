@@ -229,5 +229,5 @@ function create({map,host=document.body,onPlace=null,shouldOpen=()=>true,present
   panel.remove();
  }});
 }
-root.ArgosBoundaries={create,MUNICIPAL_ZOOM};
+root.ArgosBoundaries={create,MUNICIPAL_ZOOM,containsPoint};
 })(window);
