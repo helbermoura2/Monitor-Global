@@ -1,0 +1,67 @@
+name: TV meteorology stage 04 infrastructure probe
+on:
+  push:
+    branches: [feat/tv-meteorologia-avancada]
+    paths: ['.github/workflows/tv-meteorologia-infra.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check netCDF4 requests
+      - name: Validate bounded direct access and format
+        run: |
+          python - <<'PY'
+          import datetime as dt, requests, netCDF4, numpy as np, time
+          from urllib.parse import urlparse
+          base='https://data.inpe.br/bdc/stac/v1'
+          collection='br-weather-radar-cappi-1'
+          now=dt.datetime.now(dt.timezone.utc)
+          stamp=lambda t:t.isoformat(timespec='seconds').replace('+00:00','Z')
+          session=requests.Session()
+          session.headers['User-Agent']='ArgosOrbis-TV-infrastructure-audit/1'
+          start=time.monotonic()
+          with session.get(base+'/search',params={'collections':collection,'bbox':'-47.8,-24.5,-45.5,-22.8','datetime':stamp(now-dt.timedelta(hours=3))+'/'+stamp(now),'limit':12},stream=True,timeout=(8,20),allow_redirects=False) as r:
+              r.raise_for_status()
+              assert r.status_code==200
+              metadata=bytearray()
+              for chunk in r.iter_content(65536):
+                  metadata.extend(chunk)
+                  assert len(metadata)<=4*1024*1024
+          import json
+          items=json.loads(metadata)['features']
+          print('STAC bytes',len(metadata),'items',len(items))
+          items=sorted(items,key=lambda x:x['properties']['datetime'],reverse=True)
+          item=next(x for x in items if x.get('assets',{}).get('cappi3km'))
+          href=item['assets']['cappi3km']['href']
+          u=urlparse(href)
+          assert u.scheme=='https' and u.hostname=='data.inpe.br' and not u.username and not u.password
+          with session.get(href,stream=True,timeout=(8,20),allow_redirects=False) as r:
+              r.raise_for_status()
+              assert r.status_code==200
+              data=bytearray()
+              for chunk in r.iter_content(65536):
+                  data.extend(chunk)
+                  assert len(data)<=12*1024*1024
+          print('ASSET',item['id'],len(data),'bytes','magic',data[:8].hex())
+          with netCDF4.Dataset('sample.nc',memory=bytes(data)) as ds:
+              print('FORMAT',ds.data_model)
+              print('GLOBAL ATTRS',{a:str(ds.getncattr(a))[:500] for a in ds.ncattrs()})
+              v=ds.variables['dbz']
+              print('DBZ ATTRS',{a:str(v.getncattr(a))[:500] for a in v.ncattrs()})
+              assert v.dimensions==('time','lat','lon') and v.shape==(1,500,500)
+              for k in ('lat','lon'):
+                  a=np.asarray(ds.variables[k][:])
+                  assert np.all(np.isfinite(a)) and (np.all(np.diff(a)>0) or np.all(np.diff(a)<0))
+                  print('AXIS',k,'first',a[0],'last',a[-1])
+              arr=np.ma.masked_invalid(v[:])
+              print('SPECIAL -99 count',int(np.count_nonzero(arr.filled(-9999.9)==-99)), 'masked',int(np.ma.count_masked(arr)))
+              assert ds.data_model in ('NETCDF3_CLASSIC','NETCDF3_64BIT_OFFSET','NETCDF3_64BIT_DATA'), 'Need alternative parser evaluation before choosing direct Java decode'
+          print('PROBE_OK public direct HTTPS, bounded transfer, classic data format; Android decoder not yet tested',round(time.monotonic()-start,2),'seconds')
+          PY

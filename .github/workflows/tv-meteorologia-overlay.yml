@@ -1,0 +1,32 @@
+name: TV meteorology stage 06 overlay validation
+on:
+  push:
+    branches: [feat/tv-meteorologia-avancada]
+    paths: ['.github/workflows/tv-meteorologia-overlay.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - name: Obtain validated real observation
+        run: |
+          curl --fail --silent --show-error --max-time 45 --max-filesize 12582912 'https://data.inpe.br/bdc/data/br-weather-radar-cappi/decea/picocouto/cappi/cappi3km_nc/2026/11/cappi3km_202611252210.nc' -o /tmp/argos-cappi.nc
+          echo 'cd0904eeb2ac2604595f65bfbc57ba1759bebdf360d5581d28be20be7d121416  /tmp/argos-cappi.nc' | sha256sum -c -
+      - name: Compile and validate radar map on Android graphics runtime
+        working-directory: android-tv
+        env:
+          ARGOS_CAPPI_TEST_FILE: /tmp/argos-cappi.nc
+        run: ./gradlew --no-daemon -Pandroid.useAndroidX=true -PnativeMapChecks :app:testDebugUnitTest --tests 'top.monitorglobal.tv.RadarMapRenderTest'

@@ -1,6 +1,10 @@
 package top.monitorglobal.tv;
 /** Visual strength follows liquid precipitation; thunderstorm requires a source condition. */
 final class RainVisualPolicy {
+ static boolean decorativeAllowed(RainForecast.Summary rain,boolean demo,long now){
+  if(!TvEffectsController.wet(rain))return false;
+  return demo||(rain.at>0&&rain.at<=now&&rain.expiresAt>now);
+ }
  static int level(double rate,boolean stormForecast){
   if(!Double.isFinite(rate)||rate<=0)return 0;
   if(stormForecast)return 3;
