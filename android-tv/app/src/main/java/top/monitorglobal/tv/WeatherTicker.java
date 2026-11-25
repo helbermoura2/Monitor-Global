@@ -39,6 +39,20 @@ final class WeatherTicker {
   out.append(value);
  }
 
+ static String trend(WeatherForecast.Summary previous,WeatherForecast.Summary current){
+  if(previous==null||current==null||previous.generatedAt<=0||current.generatedAt<=previous.generatedAt)return "";
+  double before=parseTemperature(previous.temperatureValue),after=parseTemperature(current.temperatureValue);
+  if(!Double.isFinite(before)||!Double.isFinite(after))return "";
+  double delta=Math.abs(after-before);
+  if(delta<0.5)return "Temperatura estável desde a última atualização horária";
+  return "Temperatura "+(after>before?"subiu ":"caiu ")+RainForecast.number(delta)+"°C desde a última atualização horária";
+ }
+ private static double parseTemperature(String value){
+  if(value==null)return Double.NaN;
+  try{return Double.parseDouble(value.replace("°C","").replace(',','.').trim());}
+  catch(NumberFormatException ignored){return Double.NaN;}
+ }
+
  static String compose(String ai,String outlook){
   StringBuilder result=new StringBuilder();Set<String> seen=new HashSet<>();
   for(String source:new String[]{ai,outlook}){
