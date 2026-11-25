@@ -22,6 +22,10 @@ public class CivilSourceContextTest {
   assertTrue(text.contains("CAPTURADO NO CELULAR"));
   assertTrue(text.contains("NÃO VERIFICADO VIA CAP"));
   assertFalse(text.contains("CAP OFICIAL"));
+  String replay=CivilSourceContext.describe(notice,now,true,true,false);
+  assertTrue(replay.contains("REPLAY HISTÓRICO"));
+  assertTrue(replay.contains("ORIGEM CELULAR"));
+  assertTrue(replay.contains("NÃO VERIFICADO VIA CAP"));
  }
  @Test public void replayAndExpiredValidityRemainExplicit(){
   long now=1800000000000L;
