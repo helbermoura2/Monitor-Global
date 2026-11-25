@@ -1,0 +1,44 @@
+name: TV meteorology stage 06 real radar decoder
+on:
+  push:
+    branches: [feat/tv-meteorologia-avancada]
+    paths:
+      - '.github/workflows/tv-meteorologia-radar.yml'
+      - 'android-tv/app/src/main/java/top/monitorglobal/tv/RadarCappi.java'
+      - 'android-tv/tests/RadarCappiCheck.java'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  decoder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check netCDF4 requests
+      - name: Compare Java decoder to independent NetCDF library on real file
+        run: |
+          mkdir -p /tmp/weather-radar
+          javac --release 11 -d /tmp/weather-radar android-tv/app/src/main/java/top/monitorglobal/tv/WeatherMapLayer.java android-tv/app/src/main/java/top/monitorglobal/tv/RadarCappi.java android-tv/tests/RadarCappiCheck.java
+          python - <<'PY'
+          import requests, numpy as np, netCDF4, subprocess, pathlib, hashlib
+          url='https://data.inpe.br/bdc/data/br-weather-radar-cappi/decea/picocouto/cappi/cappi3km_nc/2026/11/cappi3km_202611252210.nc'
+          expected='cd0904eeb2ac2604595f65bfbc57ba1759bebdf360d5581d28be20be7d121416'
+          p=pathlib.Path('/tmp/weather-radar/sample.nc')
+          data=bytearray()
+          with requests.get(url,stream=True,timeout=(8,20),allow_redirects=False) as r:
+              assert r.status_code==200
+              for chunk in r.iter_content(65536):
+                  data.extend(chunk)
+                  assert len(data)<=12*1024*1024
+          assert hashlib.sha256(data).hexdigest()==expected
+          p.write_bytes(data)
+          with netCDF4.Dataset(p) as ds:
+              a=np.ma.masked_invalid(ds.variables['dbz'][:]).compressed()
+              a=a[(a!=-99)&(a>-100)&(a<=100)]
+              args=[str(len(a)),str(float(a.max())),str(float(ds.variables['lat'][0])),str(float(ds.variables['lon'][0]))]
+          subprocess.run(['java','-cp','/tmp/weather-radar','top.monitorglobal.tv.RadarCappiCheck',str(p),*args],check=True)
+          PY
