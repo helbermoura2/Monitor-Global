@@ -52,21 +52,21 @@ final class SatelliteMotion {
     error/=PATCH*PATCH;
     if(error<best){best=error;bestX=dx;bestY=dy;}
    }
-   if(best<=34)vectors.add(new Vector(bestX,bestY,best));
+   if(best<=34&&Math.abs(bestX)<SEARCH&&Math.abs(bestY)<SEARCH)vectors.add(new Vector(bestX,bestY,best));
   }
   if(total==0||vectors.size()<4)return null;
   List<Integer> xs=new ArrayList<>(),ys=new ArrayList<>();for(Vector v:vectors){xs.add(v.x);ys.add(v.y);}
   Collections.sort(xs);Collections.sort(ys);int dx=xs.get(xs.size()/2),dy=ys.get(ys.size()/2),consistent=0;double error=0;
-  if(Math.abs(dx)+Math.abs(dy)<2){dx=0;dy=0;}
+  
   for(Vector v:vectors)if(Math.abs(v.x-dx)<=2&&Math.abs(v.y-dy)<=2){consistent++;error+=v.score;}
   if(consistent<4||consistent<vectors.size()*.55)return null;
   double minutes=(newerAt-olderAt)/60000.0;
   double mid=(scope.north+scope.south)/2.0;
-  double kmX=111.32*Math.cos(Math.toRadians(mid))*(scope.east-scope.west)/w*SCALE;
-  double kmY=111.32*(scope.north-scope.south)/(h*SCALE);
+  double kmX=kmPerSampleX(scope,w);
+  double kmY=kmPerSampleY(scope,h);
   double speed=Math.hypot(dx*kmX,dy*kmY)/(minutes/60.0);
   if(!Double.isFinite(speed)||speed>220)return null;
-  String direction=direction(dx,-dy);
+  String direction=direction(dx*kmX,-dy*kmY);
   double confidence=Math.min(1.0,consistent/(double)Math.max(4,total))*(1.0-Math.min(1.0,(error/consistent)/40.0));
   return new Result(olderAt,newerAt,speed,direction,consistent,total,confidence);
  }
@@ -83,11 +83,13 @@ final class SatelliteMotion {
   }
   return out;
  }
- private static String direction(int east,int north){
-  if(Math.abs(east)+Math.abs(north)<2)return "sem direção definida";
+ private static String direction(double east,double north){
+  if(Math.abs(east)+Math.abs(north)<1e-9)return "sem direção definida";
   double angle=(Math.toDegrees(Math.atan2(east,north))+360)%360;
   String[] names={"N","NE","L","SE","S","SO","O","NO"};
   return names[(int)Math.round(angle/45.0)%8];
  }
+ static double kmPerSampleX(InfraredPlan.Scope s,int w){return 6371.0088*Math.cos(Math.toRadians((s.north+s.south)/2))*Math.toRadians(s.east-s.west)/w;}
+ static double kmPerSampleY(InfraredPlan.Scope s,int h){return 6371.0088*Math.cos(Math.toRadians((s.north+s.south)/2))*(InfraredPlan.merc(s.north)-InfraredPlan.merc(s.south))/h;}
  private SatelliteMotion(){}
 }
