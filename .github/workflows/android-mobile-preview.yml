@@ -272,7 +272,7 @@ jobs:
           gradle=pathlib.Path('android-mobile/app/build.gradle').read_text()
           version=re.search(r"versionName '([^']+)'",gradle).group(1)
           badging=subprocess.check_output([str(signer_tool.with_name('aapt')),'dump','badging',str(target)],text=True)
-          identity=re.search(r"package: name='([^']+)' versionCode='(\\d+)' versionName='([^']+)'",badging)
+          identity=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",badging)
           if not identity or identity.group(1) != 'top.monitorglobal.mobile.dev': raise SystemExit('Stable APK package identity is invalid')
           code=int(identity.group(2))
           version=identity.group(3)
