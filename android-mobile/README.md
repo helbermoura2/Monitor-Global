@@ -1,4 +1,4 @@
-# Argos Orbis para Android — prévia 0.1.24
+# Argos Orbis para Android — prévia 0.1.66
 
 > **Nome público:** Argos Orbis. Identificadores Android (`top.monitorglobal.*`), nomes de APK de teste e certificados continuam os mesmos para não impedir atualizações. O rótulo real depende da versão instalada.
 
