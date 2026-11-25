@@ -43,7 +43,7 @@ public final class WeatherSatelliteActivity extends Activity {
   new android.app.AlertDialog.Builder(this).setTitle("Consultar região · célula de radar").setSingleChoiceItems(names,regionIndex,(dialog,which)->{regionIndex=which;updateRegional();dialog.dismiss();}).setNegativeButton("Voltar",null).show();
  }
  private void updateTimeline(){
-  int n=timeline.size();timelineLabel.setText(n==0?"Sem quadros publicados":"OBSERVAÇÃO · "+(timeline.index()+1)+"/"+n+" · "+InfraredPlan.timing(timeline.current(),System.currentTimeMillis()));
+  int n=timeline.size();timelineLabel.setText(n==0?"Sem quadros publicados":(displayedRadar==null?"QUADRO INDISPONÍVEL · ":"OBSERVAÇÃO · ")+(timeline.index()+1)+"/"+n+" · "+InfraredPlan.timing(timeline.current(),System.currentTimeMillis()));
   previous.setEnabled(!busy&&timeline.index()>0);next.setEnabled(!busy&&n>0&&!timeline.atEnd());newest.setEnabled(!busy&&n>0);animation.setEnabled(!busy&&n>1);
  }
  private void stopPlayback(){playing=false;main.removeCallbacks(step);main.removeCallbacks(radarStep);if(animation!=null)animation.setText("Animar");}
