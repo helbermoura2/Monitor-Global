@@ -9,10 +9,10 @@ Referência estável: 1.0.154 / 10154. Uma única publicação oficial depois da
 - [x] 06 Sobreposição de radar — leitor CDF-2 aprovado (64.646 células, pico 55,84 dBZ), renderização no visualizador Android validada: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716402181
 - [x] 07 Intensidade da precipitação — escala dBZ compartilhada, sem conversão não validada para mm/h; taxa e acumulado indisponíveis no radar até validação de fonte quantitativa. Teste aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716787253
 - [x] 08 Legenda meteorológica — legenda compacta, cores, unidade, fonte, hora, idade e validade; teste aprovado: https://github.com/helbermoura2/Monitor-Global/actions/runs/45716787253
-- [ ] 09 Consulta regional
-- [ ] 10 Histórico
-- [ ] 11 Animação
-- [ ] 12 Controles temporais
+- [ ] 09 Consulta regional — seleção D-pad de sete pontos, leitura real da célula CAPPI, fonte e idade; validação pendente.
+- [ ] 10 Histórico — catálogo de até seis horários publicados, cache de dois quadros decodificados, sem misturar horários; validação pendente.
+- [ ] 11 Animação — sequência do mais antigo ao mais recente, sem interpolar observações; validação pendente.
+- [ ] 12 Controles temporais — anterior, próximo, mais recente, reproduzir e pausar; validação pendente.
 - [ ] 13 Nowcasting espacial
 - [ ] 14 Previsão espacial de seis horas
 - [ ] 15 Movimento GOES
