@@ -99,6 +99,22 @@ jobs:
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/stable/app-stable.apk
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-mobile/app/build/outputs/apk/stable/app-stable.apk | grep -F "versionName='0.1.65'"
+          python - <<'PY'
+          import os,re,subprocess,pathlib
+          aapt=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/aapt'
+          def package(path):
+              raw=subprocess.check_output([str(aapt),'dump','badging',path],text=True)
+              match=re.search(r"package: name='([^']+)' versionCode='(\\d+)' versionName='([^']+)'",raw)
+              if not match: raise SystemExit('Cannot inspect APK identity')
+              return match.group(1),int(match.group(2)),match.group(3)
+          debug=package('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
+          stable=package('android-mobile/app/build/outputs/apk/stable/app-stable.apk')
+          if debug[0] != stable[0] or stable[1] <= debug[1]:
+              raise SystemExit(f'Stable APK must keep the same package and have a higher versionCode: debug={debug}, stable={stable}')
+          if debug[2].endswith('-teste') is False or stable[2].endswith('-teste'):
+              raise SystemExit(f'Preview/stable version labels are inconsistent: debug={debug[2]}, stable={stable[2]}')
+          print(f'Update eligibility confirmed: preview {debug[1]} -> stable {stable[1]}')
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
