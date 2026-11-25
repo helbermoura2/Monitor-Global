@@ -282,7 +282,7 @@ final class TvBroadcastInfoView extends View {
   if(frame==null)return "";
   String motion=frame.motion==null
     ?"MOVIMENTO DAS NUVENS: SEM ESTIMATIVA CONFIÁVEL"
-    :frame.motion.description()+" · COERÊNCIA "+Math.round(frame.motion.confidence*100)+"% · COMPARAÇÃO "+
+    :frame.motion.description()+" · "+frame.motion.coherence()+" · COMPARAÇÃO "+
       Math.max(1,(frame.motion.newerAt-frame.motion.olderAt)/60000)+" MIN";
   return " · "+motion+" · DESLOCAMENTO VISUAL DAS NUVENS; NÃO É PREVISÃO DE CHUVA · "+
     frame.credit()+" · "+InfraredPlan.timing(frame.at,System.currentTimeMillis());
