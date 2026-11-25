@@ -36,7 +36,8 @@ test('current share image keeps population in the panel but excludes verbose exp
  // The current Concept 6 uses a graphic brand/epicenter marker and an optional engraved regional map; these are not canvas text. Keep assertions on the actual textual metadata and the current Telegram handle.
  for(const needle of ['SISMO','PROFUNDIDADE','INTENSIDADE EST.','argosorbis.com.br','Telegram · @argosorbis'])expect(texts).toContain(needle);
  for(const removed of ['123.456','VI+:','USGS PAGER','POPULAÇÃO POTENCIALMENTE EXPOSTA','COMO LER O MAPA · INTENSIDADE LOCAL','PESSOAS QUE PODEM TER SENTIDO','ALCANCE DA ONDA','CIDADES PRÓXIMAS','Animação do sismo','Replay do mapa'])expect(texts).not.toContain(removed);
- expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='StoryRajdhani'&&f.status==='loaded'))).toBe(true);
+ // Concept 6 loads StoryInter and StorySerif; StoryRajdhani is a legacy font no longer used by this renderer.
  expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='StoryInter'&&f.status==='loaded'))).toBe(true);
+ expect(await page.evaluate(()=>[...document.fonts].some(f=>f.family==='StorySerif'&&f.status==='loaded'))).toBe(true);
  expect(await page.evaluate(()=>__mapDraws)).toBeGreaterThan(0);
 });
