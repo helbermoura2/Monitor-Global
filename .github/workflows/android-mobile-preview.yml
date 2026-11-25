@@ -269,14 +269,13 @@ jobs:
           apk=pathlib.Path('stable-apk/app-stable.apk')
           target=pathlib.Path('stable-apk/monitor-global-mobile-stable.apk')
           target.write_bytes(apk.read_bytes())
-          gradle=pathlib.Path('android-mobile/app/build.gradle').read_text()
-          version=re.search(r"versionName '([^']+)'",gradle).group(1)
-          badging=subprocess.check_output([str(signer_tool.with_name('aapt')),'dump','badging',str(target)],text=True)
+          signer_tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
+          aapt_tool=signer_tool.with_name('aapt')
+          badging=subprocess.check_output([str(aapt_tool),'dump','badging',str(target)],text=True)
           identity=re.search(r"package: name='([^']+)' versionCode='(\d+)' versionName='([^']+)'",badging)
           if not identity or identity.group(1) != 'top.monitorglobal.mobile.dev': raise SystemExit('Stable APK package identity is invalid')
           code=int(identity.group(2))
           version=identity.group(3)
-          signer_tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
           certs=subprocess.check_output([str(signer_tool),'verify','--print-certs',str(target)],text=True)
           match=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F:]+)',certs)
           if not match: raise SystemExit('Stable APK has no verifiable signer')
