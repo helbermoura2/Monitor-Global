@@ -52,5 +52,7 @@ test('three maps share boundary overlays and explicit source modes',()=>{
  assert.match(map,/ArgosBoundaries\.create/);
  assert.match(brazil,/ArgosBoundaries\.create/);
  assert.match(rain,/ArgosBoundaries\.create/);
- assert.match(brazil,/selectCity\(local\)/);
+ assert.match(brazil,/selectCity\(local,false\)/);
+ assert.match(brazil,/function selectCity\(p,recenter=true\)/);
+ assert.match(brazil,/if\(map&&recenter\)/);
 });
