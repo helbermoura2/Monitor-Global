@@ -6,15 +6,21 @@ on:
       - 'android-tv/distribution/stable.json'
       - '.github/workflows/android-tv-pages-refresh.yml'
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Android TV official release']
+    types: [completed]
+    branches: [main]
 permissions:
   contents: read
   pages: write
 jobs:
   refresh:
-    if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main'
+    if: github.repository == 'helbermoura2/Monitor-Global' && github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - name: Request GitHub Pages rebuild and verify the exact TV endpoint
         env:
           GH_TOKEN: ${{ github.token }}
