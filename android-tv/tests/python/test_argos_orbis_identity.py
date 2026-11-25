@@ -5,6 +5,7 @@ import re
 
 ROOT=Path(__file__).resolve().parents[3]
 SRC=ROOT/"android-tv/app/src/main/java/top/monitorglobal/tv"
+CORE=ROOT/"android-core/src/main/java/top/monitorglobal/tv"
 
 class ArgosOrbisIdentity(unittest.TestCase):
  def test_tv_header_uses_official_brand_and_destinations(self):
@@ -20,15 +21,15 @@ class ArgosOrbisIdentity(unittest.TestCase):
    self.assertIn("OledNewsChrome.brandFooter(",s)
    self.assertNotIn('"monitorglobal.top":"@monitor_global"',s)
    self.assertIn("BroadcastVisuals.radar(",s)
-  oled=(SRC/"OledNewsChrome.java").read_text(encoding="utf-8")
+  oled=(CORE/"OledNewsChrome.java").read_text(encoding="utf-8")
   self.assertIn('"argosorbis.com.br":"@argosorbis"',oled)
   self.assertIn("FOOTER_FADE_MS=400L",oled)
   self.assertIn("footerOpacity(long elapsed,boolean animated)",oled)
-  radar=(SRC/"BroadcastVisuals.java").read_text(encoding="utf-8")
+  radar=(CORE/"BroadcastVisuals.java").read_text(encoding="utf-8")
   self.assertIn("OledNewsChrome.brand(c,paint,elapsed,animated)",radar)
   self.assertIn("RadarLogoView.drawArtwork(c,logo,sweep,open,false)",(SRC/"OledNewsChrome.java").read_text(encoding="utf-8"))
   self.assertIn("BRAND_RIGHT_INSET=35f",radar)
-  self.assertIn("c.rotate(sweep,64,64)",(SRC/"RadarLogoView.java").read_text(encoding="utf-8"))
+  self.assertIn("c.rotate(sweep,64,64)",(CORE/"RadarLogoView.java").read_text(encoding="utf-8"))
  def test_launcher_brand_preserves_official_eye_and_release_compatibility(self):
   banner=(ROOT/"android-tv/app/src/main/res/drawable/tv_banner.xml").read_text(encoding="utf-8")
   self.assertIn("ARGOS / ORBIS",banner)
