@@ -60,4 +60,45 @@ public class TvDashboardUiTest {
   assertTrue(contains(app.getWindow().getDecorView(),"Costa do Pacífico Sul"));
   app.finish();
  }
+ @Test public void operationsCenterSeparatesRealReplayFromSimulationAndKeepsUpdater(){
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
+  View root=app.getWindow().getDecorView();
+  View overview=root.findViewWithTag("page-Visão geral");
+  View defense=root.findViewWithTag("page-Defesa Civil");
+  View laboratory=root.findViewWithTag("page-Laboratório");
+  View system=root.findViewWithTag("page-Sistema");
+  assertEquals(View.VISIBLE,overview.getVisibility());
+  assertEquals(View.GONE,defense.getVisibility());
+  root.findViewWithTag("nav-Defesa Civil").performClick();
+  assertEquals(View.VISIBLE,defense.getVisibility());
+  assertEquals(View.GONE,overview.getVisibility());
+  assertTrue(contains(defense,"Replay · último SEVERO recebido do celular"));
+  assertTrue(contains(defense,"Replay · último EXTREMO recebido do celular"));
+  assertFalse(contains(defense,"Testar aviso SEVERO"));
+  root.findViewWithTag("nav-Laboratório").performClick();
+  assertEquals(View.VISIBLE,laboratory.getVisibility());
+  assertEquals(View.GONE,defense.getVisibility());
+  assertTrue(contains(laboratory,"Testar aviso SEVERO"));
+  assertTrue(contains(laboratory,"Diagnóstico · celular"));
+  assertFalse(contains(laboratory,"Replay · último SEVERO recebido do celular"));
+  root.findViewWithTag("nav-Sistema").performClick();
+  assertEquals(View.VISIBLE,system.getVisibility());
+  assertTrue(contains(system,"Verificar atualização oficial"));
+  assertFalse(contains(overview,"Verificar atualização oficial"));
+  app.finish();
+ }
+ @Test public void sidebarCanCollapseWithoutLosingCategoryAccess(){
+  MainActivity app=Robolectric.buildActivity(MainActivity.class).setup().get();
+  View root=app.getWindow().getDecorView();
+  View sidebar=root.findViewWithTag("operations-sidebar");
+  int expanded=sidebar.getLayoutParams().width;
+  root.findViewWithTag("sidebar-toggle").performClick();
+  assertTrue(sidebar.getLayoutParams().width<expanded);
+  root.findViewWithTag("nav-Meteorologia").performClick();
+  assertEquals(View.VISIBLE,root.findViewWithTag("page-Meteorologia").getVisibility());
+  root.findViewWithTag("sidebar-toggle").performClick();
+  assertEquals(expanded,sidebar.getLayoutParams().width);
+  assertEquals(View.VISIBLE,root.findViewWithTag("page-Meteorologia").getVisibility());
+  app.finish();
+ }
 }
