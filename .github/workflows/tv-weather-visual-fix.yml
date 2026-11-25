@@ -2,7 +2,10 @@ name: TV weather visual correction
 on:
   push:
     branches: [fix/tv-weather-visual-layout]
-    paths: ['.github/workflows/tv-weather-visual-fix.yml']
+    paths:
+      - '.github/workflows/tv-weather-visual-fix.yml'
+      - 'android-tv/settings.gradle'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherViewerLayoutTest.java'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,6 +24,7 @@ jobs:
           cmdline-tools-version: '13114758'
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
       - name: Validate real image dimensions, radar legend and newsroom strip
         working-directory: android-tv
         run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest'
