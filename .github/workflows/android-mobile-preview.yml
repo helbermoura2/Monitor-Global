@@ -252,14 +252,14 @@ jobs:
           target.write_bytes(apk.read_bytes())
           gradle=pathlib.Path('android-mobile/app/build.gradle').read_text()
           version=re.search(r"versionName '([^']+)'",gradle).group(1)
-          code=int(re.search(r"versionCode\\s+(\\d+)",gradle).group(1))
+          code=int(re.search(r"versionCode\s+(\d+)",gradle).group(1))
           signer_tool=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/apksigner'
           certs=subprocess.check_output([str(signer_tool),'verify','--print-certs',str(target)],text=True)
           match=re.search(r'Signer #1 certificate SHA-256 digest: ([0-9a-fA-F:]+)',certs)
           if not match: raise SystemExit('Stable APK has no verifiable signer')
           certificate=match.group(1).replace(':','').lower()
           manifest={'schema':1,'repository':'helbermoura2/Monitor-Global','channel':'mobile-stable','packageName':'top.monitorglobal.mobile.dev','release':{'enabled':True,'versionCode':code,'versionName':version,'url':'https://github.com/helbermoura2/Monitor-Global/releases/download/mobile-stable/monitor-global-mobile-stable.apk','sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'certificateSha256':certificate}}
-          pathlib.Path('stable-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\\n')
+          pathlib.Path('stable-apk/mobile-update.json').write_text(json.dumps(manifest,indent=2)+'\n')
           notes='Argos Orbis para Android — canal estável. Atualização pelo próprio aplicativo, com validação de pacote, versão, SHA-256 e certificado. A instalação sempre depende da confirmação do Android.\\n'
           pathlib.Path('stable-notes.md').write_text(notes)
           PY
