@@ -67,6 +67,17 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#rain24-impact').innerText(),/drenagem/);
  await page.locator('#map-city-close').click();
  assert.equal(await cityCard.isVisible(),false);
+ // Android WebView exposes a long-press on the map as a contextmenu event.
+ // Exercise the same MapLibre event path and verify the coordinate panel.
+ await page.locator('#brazil-map canvas').evaluate(canvas=>{
+  const rect=canvas.getBoundingClientRect();
+  canvas.dispatchEvent(new MouseEvent('contextmenu',{bubbles:true,cancelable:true,button:2,clientX:rect.left+rect.width/2,clientY:rect.top+rect.height/2}));
+ });
+ const pointSelection=page.locator('#map-selection-content');
+ await pointSelection.getByText('Coordenadas do ponto').waitFor();
+ assert.match(await pointSelection.innerText(),/-?\\d+\\.\\d{6},\\s*-?\\d+\\.\\d{6}/);
+ await page.locator('#map-selection-close').click();
+ assert.equal(await page.locator('#map-selection').isVisible(),false);
  await page.locator('.brazil-toolbar [data-layer=wind]').click();
  assert.equal(await page.locator('.brazil-toolbar [data-layer=wind]').getAttribute('aria-pressed'),'true');
  await page.locator('#layers-toggle').click();
