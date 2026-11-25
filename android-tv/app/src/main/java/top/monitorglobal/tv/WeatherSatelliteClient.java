@@ -3,12 +3,16 @@ import android.content.Context;import android.graphics.*;import android.os.Syste
 /** Bounded native snapshots. No WebView, background polling or retained decoded history. */
 final class WeatherSatelliteClient implements AutoCloseable {
  interface Reader {byte[] read(String url,int limit,long deadline)throws Exception;default void close(){}}
- enum Source {NASA,REALEARTH}
+ enum Source {NASA,REALEARTH,RADAR}
  static final class Frame implements AutoCloseable {
-  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;SatelliteMotion.Result motion;
+  final Bitmap image,legend;final long at;final InfraredPlan.Scope scope;final List<Long> times;final Source source;final String radarCredit;SatelliteMotion.Result motion;
   Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times){this(image,legend,at,scope,times,Source.NASA);}
-  Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source){this.image=image;this.legend=legend;this.at=at;this.scope=scope;this.times=new ArrayList<>(times);this.source=source;}
-  String credit(){return source==Source.REALEARTH?"GOES-East · SSEC RealEarth / NOAA":"GOES-East · NASA GIBS / NOAA";}
+  Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source){this(image,legend,at,scope,times,source,"");}
+  private Frame(Bitmap image,Bitmap legend,long at,InfraredPlan.Scope scope,List<Long> times,Source source,String radarCredit){this.image=image;this.legend=legend;this.at=at;this.scope=scope;this.times=new ArrayList<>(times);this.source=source;this.radarCredit=radarCredit;}
+  static Frame radar(Bitmap image,RadarMapClient.Frame radar,InfraredPlan.Scope scope){return new Frame(image,null,radar.at,scope,Collections.singletonList(radar.at),Source.RADAR,radar.credit());}
+  boolean isRadar(){return source==Source.RADAR;}
+  boolean validAt(long now){return at>0&&at<=now&&now-at<=(isRadar()?60*60000L:InfraredPlan.MAX_AGE);}
+  String credit(){if(isRadar())return radarCredit;return source==Source.REALEARTH?"GOES-East · SSEC RealEarth / NOAA":"GOES-East · NASA GIBS / NOAA";}
   String legendDescription(){return source==Source.REALEARTH?"Legenda original infravermelha SSEC RealEarth":"Legenda original de temperatura infravermelha NASA";}
   public void close(){if(!image.isRecycled())image.recycle();if(legend!=null&&!legend.isRecycled())legend.recycle();}
  }
