@@ -272,3 +272,34 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 .map-stage .maplibregl-ctrl-group button{width:44px;height:44px}
 .map-stage .maplibregl-ctrl-icon{filter:invert(1)}
 @media(prefers-reduced-motion:no-preference){.brazil-overlays button,.layer-menu button{transition:background-color .18s,color .18s}}
+
+/* Block 1: unified OLED surface and compact map controls. */
+.brazil-main{background:#000;color:#f2f2f2;color-scheme:dark}
+.map-stage{background:#000}
+.map-stage .brazil-toolbar{inset:8px 10px auto}
+.brazil-overlays{background:#080808ed;box-shadow:0 2px 12px #0005;gap:0}
+.brazil-overlays button{padding-inline:8px;color:#ddd;min-width:0}
+.brazil-overlays button[aria-pressed=true],.brazil-overlays button[aria-expanded=true],.layer-menu button[aria-pressed=true]{background:#4a3826;color:#ffe0b5;box-shadow:none}
+.brazil-location .brazil-search input,.brazil-location #severe-toggle,.brazil-location #recenter{background:#080808ed;color:#eee;border:0}
+.brazil-location .brazil-search input{width:100%;padding-inline:14px}
+.brazil-location #severe-toggle{color:#f4d197}
+.brazil-location #severe-toggle[aria-pressed=true]{background:#e8bc7c;color:#23180c}
+#city-results,.layer-menu{background:#0b0b0bf7;color:#eee;box-shadow:0 6px 20px #0007}
+.layer-menu button{background:#202020;color:#eee}
+.map-dock{background:#080808ed;box-shadow:0 4px 16px #0006;scrollbar-width:thin}
+.map-dock .radar-actions button,.map-dock .play-row>button,.map-stage .map-actions button{background:#181818ed;color:#eee;border:0}
+.map-stage .map-actions button{font-size:12px;padding-inline:12px}
+.map-stage .map-actions button[aria-pressed=true]{color:#ffe0b5;background:#4a3826}
+.map-stage .maplibregl-ctrl-group{background:#080808ed;box-shadow:0 2px 12px #0005}
+.map-stage .maplibregl-ctrl-group button{background:transparent}
+.map-stage .maplibregl-ctrl-group button+button{border-top:1px solid #ffffff20}
+.map-stage .maplibregl-ctrl-attrib{background:#080808e8!important;color:#ddd!important}
+.map-stage .admin-boundary-controls{top:118px}
+#map-city-card{background:#080808f5;color:#eee}
+.map-city-head strong{color:#f3d3ac}
+.map-city-head button{background:#202020}
+#map-details-panel,.brazil-main .outlook{background:#000;color:#eee}
+#map-details-panel :is(.map-sources summary,.severe-panel,#map-selection,#city-rain-summary,.map-summary>div,#radar-key){background:#101010;border-color:#333}
+.brazil-main button:focus-visible,.brazil-main input:focus-visible,.brazil-main summary:focus-visible{outline:2px solid #e8bc7c;outline-offset:-2px}
+@media(max-width:360px){.map-stage .brazil-toolbar{inset:6px 6px auto}.brazil-overlays button{padding-inline:7px;font-size:11px}.brazil-location{gap:4px}.brazil-location #severe-toggle{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.brazil-main button{transition:none!important}}
