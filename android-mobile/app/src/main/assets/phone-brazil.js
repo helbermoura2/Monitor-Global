@@ -152,11 +152,11 @@ function initMap(){
    ready=true;createMarker();
    try{satellite=window.BrazilSatellite.create({map,host:$('overlay-panel'),enabled:false});const satellitePanel=$('overlay-panel').querySelector('.brazil-satellite-control');satellitePanel.querySelector('details').open=true;satellitePanel.prepend(satellitePanel.querySelector('.br-satellite-status'));satelliteCheckbox()?.addEventListener('change',()=>{if(!severeOn&&satellite?.state.enabled&&radar?.enabled){radar.toggle(false);$('radar-toggle').setAttribute('aria-pressed','false');}syncOverlays();});}catch(e){note('Satélite indisponível nesta visualização.');}
    try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'),()=>{severe?.raise();severe?.analyze();});}catch(e){note('Radar indisponível nesta visualização.');}
-   try{boundaries=window.ArgosBoundaries.create({map,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!severe?.hasMarkerAt(point),presentPlace:showSelection,onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
-     if(!local)return place.municipalityId?'Município identificado; localize-o pela busca para consultar a previsão.':'Selecione um município pelo campo de busca.';
-     const button=document.createElement('button');button.type='button';button.textContent='Consultar previsão de '+local.name;
-     button.addEventListener('click',()=>{selectCity(local);returnToMap();openCityCard();});place.element.appendChild(button);
-     return 'Toque no botão para usar o modelo da cidade selecionada.';}});boundaries?.setActive(active);}
+   try{boundaries=window.ArgosBoundaries.create({map,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!severe?.hasMarkerAt(point),presentPlace:content=>{if(content.dataset.citySelected==='true')return;showSelection(content);},onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
+     if(!local)return 'Amplie o mapa para identificar o município pelo limite do IBGE.';
+     place.element.dataset.citySelected='true';
+     selectCity(local,false);returnToMap();openCityCard();
+     return '';}});boundaries?.setActive(active);}
    catch(e){note('Limites estaduais e municipais indisponíveis. A previsão segue funcionando.');}
    try{severe=window.PhoneSevereWeather.create(map,$('severe-panel'),()=>radar?.state,()=>{
     const rain=forecast&&M.nextRain(forecast);
@@ -180,14 +180,14 @@ function showResults(){
  }
  box.hidden=!matches.length;
 }
-function selectCity(p){
+function selectCity(p,recenter=true){
  if(!p)return;
  $('city-search').value=p.name+', '+p.uf;$('city-results').hidden=true;
  if(city.id===p.id)return;
  requestId++;controller?.abort();controller=null;loading=false;stop();city={id:p.id,name:p.name,uf:p.uf,lat:p.lat,lon:p.lon};forecast=null;lastSuccess=0;step=0;$('city-rain-summary').hidden=true;
  $('frame').disabled=true;$('play').disabled=true;$('place').textContent=city.name.toUpperCase()+' · '+city.uf;
  $('headline').textContent='Consultando '+city.name+'…';$('facts').replaceChildren();updateCityCard();
- createMarker();if(map)map.jumpTo({center:[city.lon,city.lat],zoom:Math.max(5,map.getZoom())});
+ createMarker();if(map&&recenter)map.jumpTo({center:[city.lon,city.lat],zoom:Math.max(5,map.getZoom())});
  restore();load(false);
 }
 async function loadCities(){
