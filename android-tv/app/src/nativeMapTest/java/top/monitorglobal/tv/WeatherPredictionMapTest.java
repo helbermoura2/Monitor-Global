@@ -14,10 +14,14 @@ import java.util.*;
 @Config(sdk=35)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 public class WeatherPredictionMapTest {
+ private void requireFixtures(String... keys){
+  for(String key:keys){String v=System.getenv(key);if("1".equals(System.getenv("ARGOS_REQUIRE_WEATHER_FIXTURES")))assertNotNull(key,v);org.junit.Assume.assumeTrue("External fixture not supplied: "+key,v!=null);}
+ }
  private RadarCappi read(String env)throws Exception{
   String file=System.getenv(env);assertNotNull(env,file);return RadarCappi.decode(Files.readAllBytes(Paths.get(file)));
  }
  @Test public void knownTranslationAndRealRadarPair()throws Exception{
+  requireFixtures("ARGOS_SHIFT_OLD","ARGOS_SHIFT_NEW","ARGOS_REAL_OLD","ARGOS_REAL_NEW");
   long now=1800000000000L,a=now-20*60000L,b=now-10*60000L;
   RadarCappi old=read("ARGOS_SHIFT_OLD"),latest=read("ARGOS_SHIFT_NEW");
   RadarNowcast.Motion m=RadarNowcast.estimate(old,latest,a,b);
@@ -38,6 +42,7 @@ public class WeatherPredictionMapTest {
   assertTrue(WeatherPredictionMap.derive(r1,other).isEmpty());
  }
  @Test public void forecastDrawsOnlyPublishedPointSamples()throws Exception{
+  requireFixtures("ARGOS_FORECAST_TIME","ARGOS_FORECAST_FIXTURE");
   long fetched=Long.parseLong(System.getenv("ARGOS_FORECAST_TIME"));
   RegionalForecast.Data data=RegionalForecast.parse(new String(Files.readAllBytes(Paths.get(System.getenv("ARGOS_FORECAST_FIXTURE"))),java.nio.charset.StandardCharsets.UTF_8),fetched);
   WeatherSatelliteClient geo=new WeatherSatelliteClient(RuntimeEnvironment.getApplication());
