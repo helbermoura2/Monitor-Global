@@ -56,7 +56,7 @@ class OriginalEventLayoutsTest(unittest.TestCase):
         for piece in (
             'eventCategory(c,"SATÉLITE","GOES-EAST")',
             'primary(c,frame==null?"IMAGEM INDISPONÍVEL":"GOES-EAST · SUDESTE",142,28,',
-            'eventCategory(c,"CONSULTA","POR VOZ")',
+            'eventCategory(c,dailyWeatherText!=null?"PREVISÃO":"CONSULTA",dailyWeatherText!=null?"OPEN-METEO":"POR VOZ")',
             'primary(c,voiceTitle,170,27,',
             'label(c,voiceDetail,170,88,16,',
         ):
