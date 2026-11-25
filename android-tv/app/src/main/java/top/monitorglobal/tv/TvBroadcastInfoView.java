@@ -314,7 +314,7 @@ final class TvBroadcastInfoView extends View {
   // Let viewers read the beginning of emergency notices before the ticker starts moving.
   // Other event tickers keep their established cadence.
   long tickerTime=kind==CIVIL_ALERT?Math.max(0L,elapsed-3500L):elapsed;
-  float tickerSpeed=(kind==SATELLITE||kind==WEATHER||kind==RAIN)?65f:BroadcastVisuals.TICKER_PX_PER_SECOND;
+  float tickerSpeed=(kind==SATELLITE||frame!=null&&(kind==WEATHER||kind==RAIN))?65f:BroadcastVisuals.TICKER_PX_PER_SECOND;
   float offset=BroadcastVisuals.tickerOffset(tickerTime,length,motionEnabled(),tickerSpeed);
   label(c,display,tickerLeft-offset,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
   label(c,display,tickerLeft-offset+length,118.5f,14,Color.WHITE,tickerFace,Float.MAX_VALUE);
