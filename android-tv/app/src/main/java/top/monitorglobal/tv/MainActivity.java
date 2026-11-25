@@ -9,7 +9,9 @@ public final class MainActivity extends Activity {
  private final Map<String,View> rememberedFocus=new HashMap<>();
  private static final String[] CATEGORIES={"Visão geral","Defesa Civil","Sismologia","Meteorologia","Mercado","Aparência","Áudio","Dispositivos","Laboratório","Sistema"};
  private static final String[] SYMBOLS={"⌂","!","∿","☁","↗","◈","♪","⌘","◇","⚙"};
- private static final int OLED=0xff08090a,SURFACE=0xff171719,EDGE=0xff353238,GOLD=0xffc4a16a,INK=0xfff2e9de,MUTED=0xffb9b6b2;
+ private static final int OLED=0xff000000,SURFACE=0xff111113,EDGE=0xff292729,GOLD=0xffc4a16a,INK=0xfff2eee8,MUTED=0xffaaa8a5;
+ private final Button[] overviewCards=new Button[4];
+ private static final String[] OVERVIEW_HINTS={"Alertas reais e histórico","Fontes e último aviso regional","Tempo na Liberdade","Cotação real do Brent"};
  private String buildingPage=CATEGORIES[0],selectedPage=CATEGORIES[0];
  private boolean sidebarCollapsed;
  private TextView updateStatus,monitorBadge;
@@ -31,14 +33,24 @@ public final class MainActivity extends Activity {
   getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
   wideLayout=getResources().getConfiguration().screenWidthDp>=900;
   buildOperationsShell();
-  section("CENTRAL DE MONITORAMENTO");
-  label("Controle do monitoramento e acesso rápido às funções reais.",17,false);
+  route(CATEGORIES[0]);
+  TextView liveCaption=display("CENTRAL DE OPERAÇÕES  /  DADOS DO MONITORAMENTO",12,GOLD,true);
+  liveCaption.setLetterSpacing(.08f);content.addView(liveCaption);
   for(int i=1;i<=4;i++){
+   final int index=i;
    final String category=CATEGORIES[i];
-   button(SYMBOLS[i]+"   "+category,v->selectPage(category,true));
+   Button tile=button(category,v->selectPage(category,true));
+   tile.setTag("overview-"+category);
+   tile.setMinHeight(dp(82));tile.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+   tile.setMaxLines(3);tile.setEllipsize(android.text.TextUtils.TruncateAt.END);
+   iconFor(tile,index,false);overviewCards[i-1]=tile;
+   setTile(tile,category,OVERVIEW_HINTS[i-1]);
   }
+  actionRow=null;
   Button quickReplay=button("Último alerta real · Defesa Civil",v->selectPage(CATEGORIES[1],true));
+  iconFor(quickReplay,1,false);
   Button quickUpdate=button("Atualização oficial · Sistema",v->selectPage(CATEGORIES[9],true));
+  iconFor(quickUpdate,9,false);
   section("ALEXA · CONTROLE DO FIRE STICK");
   button("Vincular Alexa · mostrar código de 6 dígitos",v->{
    new AlertDialog.Builder(this).setTitle("Vincular Argos Orbis à Alexa")
@@ -288,35 +300,36 @@ public final class MainActivity extends Activity {
  }
  private void buildOperationsShell(){
   LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);
-  root.setBackgroundColor(OLED);root.setPadding(dp(20),dp(8),dp(20),dp(8));
+  root.setBackgroundColor(OLED);getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(OLED));root.setPadding(dp(18),dp(5),dp(18),dp(5));
   content=root;addBrandedHeader();
   LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.HORIZONTAL);
   root.addView(body,new LinearLayout.LayoutParams(-1,0,1f));
   ScrollView menu=new ScrollView(this);menu.setFillViewport(true);menu.setVerticalScrollBarEnabled(false);
   menu.setTag("operations-sidebar");body.addView(menu,new LinearLayout.LayoutParams(dp(wideLayout?218:178),-1));
   sidebar=new LinearLayout(this);sidebar.setOrientation(LinearLayout.VERTICAL);
-  sidebar.setPadding(dp(2),dp(6),dp(8),dp(6));menu.addView(sidebar);
-  sidebarToggle=new Button(this);sidebarToggle.setText("‹   Recolher menu");sidebarToggle.setAllCaps(false);
+  sidebar.setPadding(dp(2),dp(3),dp(8),dp(3));menu.addView(sidebar);
+  sidebarToggle=new Button(this);sidebarToggle.setText("‹  Recolher");sidebarToggle.setAllCaps(false);
   sidebarToggle.setId(View.generateViewId());sidebarToggle.setTextColor(GOLD);sidebarToggle.setTextSize(15);
   sidebarToggle.setContentDescription("Recolher ou expandir menu");sidebarToggle.setTag("sidebar-toggle");
   sidebarToggle.setOnClickListener(v->{sidebarCollapsed=!sidebarCollapsed;applySidebarWidth();});
   sidebarToggle.setOnFocusChangeListener((v,focused)->styleButton(sidebarToggle,focused));
   styleButton(sidebarToggle,false);
-  sidebar.addView(sidebarToggle,new LinearLayout.LayoutParams(-1,dp(42)));
+  sidebar.addView(sidebarToggle,new LinearLayout.LayoutParams(-1,dp(30)));
   Button previous=sidebarToggle;
   for(int i=0;i<CATEGORIES.length;i++){
    final String category=CATEGORIES[i];
    Button nav=new Button(this);nav.setId(View.generateViewId());nav.setTag("nav-"+category);
-   nav.setAllCaps(false);nav.setTextSize(17);nav.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
+   nav.setAllCaps(false);nav.setTextSize(16);nav.setMinHeight(0);nav.setMinimumHeight(0);nav.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
    nav.setPadding(dp(12),0,dp(8),0);nav.setContentDescription(category);
-   nav.setText(SYMBOLS[i]+"   "+category);
+   nav.setText(category);iconFor(nav,i,false);
    nav.setOnClickListener(v->selectPage(category,true));
    nav.setOnFocusChangeListener((v,focused)->styleNavigation(nav,category));
-   LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,dp(43));np.topMargin=dp(2);
+   LinearLayout.LayoutParams np=new LinearLayout.LayoutParams(-1,dp(35));np.topMargin=dp(1);
    sidebar.addView(nav,np);navigation.put(category,nav);
    previous.setNextFocusDownId(nav.getId());nav.setNextFocusUpId(previous.getId());previous=nav;
   }
   previous.setNextFocusDownId(previous.getId());sidebarToggle.setNextFocusUpId(sidebarToggle.getId());
+  menu.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->fitSidebar(b-t));
   View divider=new View(this);divider.setBackgroundColor(EDGE);
   body.addView(divider,new LinearLayout.LayoutParams(dp(1),-1));
   pageHost=new FrameLayout(this);body.addView(pageHost,new LinearLayout.LayoutParams(0,-1,1f));
@@ -327,12 +340,20 @@ public final class MainActivity extends Activity {
  private void applySidebarWidth(){
   View menu=(View)sidebar.getParent();ViewGroup.LayoutParams lp=menu.getLayoutParams();
   lp.width=dp(sidebarCollapsed?66:(wideLayout?218:178));menu.setLayoutParams(lp);
-  sidebarToggle.setText(sidebarCollapsed?"›":"‹   Recolher menu");
+  sidebarToggle.setText(sidebarCollapsed?"›":"‹  Recolher");
   for(int i=0;i<CATEGORIES.length;i++){
    Button nav=navigation.get(CATEGORIES[i]);
-   nav.setText(sidebarCollapsed?SYMBOLS[i]:SYMBOLS[i]+"   "+CATEGORIES[i]);
+   nav.setText(sidebarCollapsed?"":CATEGORIES[i]);iconFor(nav,i,sidebarCollapsed);
    nav.setGravity(sidebarCollapsed?Gravity.CENTER:Gravity.CENTER_VERTICAL|Gravity.START);
-   nav.setPadding(sidebarCollapsed?0:dp(12),0,sidebarCollapsed?0:dp(8),0);
+   nav.setPadding(sidebarCollapsed?0:dp(10),0,sidebarCollapsed?0:dp(6),0);
+  }
+ }
+ private void fitSidebar(int height){
+  if(height<=0)return;
+  int row=Math.max(dp(28),Math.min(dp(40),(height-dp(30)-sidebar.getPaddingTop()-sidebar.getPaddingBottom()-CATEGORIES.length*dp(1))/CATEGORIES.length));
+  for(Button nav:navigation.values()){
+   ViewGroup.LayoutParams p=nav.getLayoutParams();
+   if(p.height!=row){p.height=row;nav.setLayoutParams(p);}
   }
  }
  private void route(String category){
@@ -342,8 +363,8 @@ public final class MainActivity extends Activity {
    scroll=new ScrollView(this);scroll.setTag("page-"+category);
    scroll.setFillViewport(true);scroll.setClipToPadding(false);scroll.setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
    LinearLayout panel=new LinearLayout(this);panel.setOrientation(LinearLayout.VERTICAL);
-   panel.setPadding(dp(22),dp(8),dp(12),dp(22));
-   panel.addView(display(category,wideLayout?30:25,INK,true));
+   panel.setPadding(dp(18),dp(5),dp(10),dp(18));
+   TextView title=display(category,wideLayout?29:25,INK,false);title.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));panel.addView(title);
    scroll.addView(panel,new ScrollView.LayoutParams(-1,-2));
    pageHost.addView(scroll,new FrameLayout.LayoutParams(-1,-1));
    scroll.setVisibility(View.GONE);pages.put(category,scroll);
@@ -365,8 +386,8 @@ public final class MainActivity extends Activity {
  private void styleNavigation(Button nav,String category){
   boolean selected=category.equals(selectedPage),focused=nav.hasFocus();
   nav.setTextColor(selected||focused?INK:MUTED);
-  nav.setBackground(card(focused?0xff483828:selected?0xff2a221a:OLED,
-   focused?GOLD:selected?0xff85673f:OLED,10));
+  nativeButton(nav);
+  nav.setBackground(glass(focused,selected,9));
   nav.setSelected(selected);
  }
  private void focusPage(){
@@ -433,16 +454,16 @@ public final class MainActivity extends Activity {
   RadarLogoView radar=new RadarLogoView(this);
   // Animated eye and radar reproduce the Argos Orbis compact brand.
   // Keep the accessibility-friendly native view used by Android TV.
-  header.addView(radar,new LinearLayout.LayoutParams(dp(86),dp(86)));
+  header.addView(radar,new LinearLayout.LayoutParams(dp(68),dp(68)));
   LinearLayout titles=new LinearLayout(this);titles.setOrientation(LinearLayout.VERTICAL);
-  LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1f);tp.leftMargin=dp(16);
+  LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(0,-2,1f);tp.leftMargin=dp(12);
   header.addView(titles,tp);
-  TextView name=display("ARGOS ORBIS",wideLayout?32:27,GOLD,true);
+  TextView name=display("ARGOS ORBIS",wideLayout?29:25,GOLD,true);
   try{name.setTypeface(Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf"));}catch(RuntimeException ignored){}
   titles.addView(name);
-  TextView tagline=display("INTELIGÊNCIA PLANETÁRIA · SISMOS · METEOROLOGIA",wideLayout?15:13,MUTED,false);
+  TextView tagline=display("INTELIGÊNCIA PLANETÁRIA · SISMOS · METEOROLOGIA",wideLayout?13:12,MUTED,false);
   titles.addView(tagline);
-  TextView links=display("argosorbis.com.br  •  t.me/argosorbis",wideLayout?14:12,GOLD,false);
+  TextView links=display("argosorbis.com.br  •  t.me/argosorbis",wideLayout?12:11,GOLD,false);
   titles.addView(links);
   LinearLayout meta=new LinearLayout(this);meta.setOrientation(LinearLayout.VERTICAL);
   monitorBadge=display("Monitoramento: verificando",15,INK,true);meta.addView(monitorBadge);
@@ -473,10 +494,10 @@ public final class MainActivity extends Activity {
  private void section(String title){
   route(categoryFor(title));currentSection=title;
   TextView t=display(title,18,GOLD,true);
-  t.setPadding(dp(16),dp(14),dp(16),dp(14));
+  t.setPadding(dp(2),dp(5),dp(2),dp(4));
   t.setBackgroundColor(OLED);
   LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
-  lp.topMargin=dp(18);lp.bottomMargin=dp(8);content.addView(t,lp);
+  lp.topMargin=dp(12);lp.bottomMargin=dp(5);content.addView(t,lp);
  }
  private void addSwitch(Switch toggle){
   actionRow=null;toggle.setFocusable(true);
@@ -663,9 +684,67 @@ public final class MainActivity extends Activity {
   lp.setMargins(0,dp(5),0,dp(7));content.addView(t,lp);
   return t;
  }
+ private void nativeButton(Button b){
+  b.setBackgroundTintList(null);b.setStateListAnimator(null);
+  b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));
+ }
+ private GradientDrawable glass(boolean focus,boolean selected,int radius){
+  int top=focus?0xff30271d:selected?0xff211b14:0xff19191b;
+  int bottom=focus?0xff110e0a:selected?0xff100d09:0xff080809;
+  GradientDrawable d=new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,new int[]{top,bottom});
+  d.setCornerRadius(dp(radius));d.setStroke(dp(focus?2:1),focus?GOLD:selected?0xff745b3e:EDGE);return d;
+ }
  private void styleButton(Button b,boolean focus){
-  b.setBackground(card(focus?0xff392e23:SURFACE,
-    focus?GOLD:EDGE,12));
+  nativeButton(b);b.setBackground(glass(focus,false,12));
+ }
+ private void setTile(Button tile,String title,String detail){
+  if(tile==null)return;
+  String cleaned=detail==null?"Aguardando consulta":detail.replaceAll("\\s+"," ").trim();
+  if(cleaned.isEmpty())cleaned="Aguardando consulta";
+  if(cleaned.length()>86)cleaned=cleaned.substring(0,83)+"…";
+  String text=title+"\n"+cleaned;
+  if(text.contentEquals(tile.getText()))return;
+  android.text.SpannableString styled=new android.text.SpannableString(text);
+  styled.setSpan(new android.text.style.ForegroundColorSpan(GOLD),0,title.length(),33);
+  styled.setSpan(new android.text.style.RelativeSizeSpan(.76f),title.length()+1,text.length(),33);
+  styled.setSpan(new android.text.style.ForegroundColorSpan(MUTED),title.length()+1,text.length(),33);
+  tile.setText(styled);
+ }
+ private void iconFor(Button b,int index,boolean compact){
+  android.graphics.drawable.Drawable icon=new DashboardIcon(index);
+  int size=dp(compact?20:23);icon.setBounds(0,0,size,size);
+  if(compact)b.setCompoundDrawables(null,icon,null,null);
+  else b.setCompoundDrawables(icon,null,null,null);
+  b.setCompoundDrawablePadding(compact?0:dp(9));
+ }
+ private static final class DashboardIcon extends android.graphics.drawable.Drawable{
+  private final int index;private final android.graphics.Paint p=new android.graphics.Paint(3);
+  DashboardIcon(int index){this.index=index;}
+  private void line(android.graphics.Canvas c,float a,float b,float x,float y){c.drawLine(a,b,x,y,p);}
+  private void path(android.graphics.Canvas c,float... points){
+   android.graphics.Path path=new android.graphics.Path();path.moveTo(points[0],points[1]);
+   for(int i=2;i<points.length;i+=2)path.lineTo(points[i],points[i+1]);c.drawPath(path,p);
+  }
+  @Override public void draw(android.graphics.Canvas c){
+   android.graphics.Rect b=getBounds();int save=c.save();c.translate(b.left,b.top);c.scale(b.width()/24f,b.height()/24f);
+   p.setColor(GOLD);p.setStyle(android.graphics.Paint.Style.STROKE);p.setStrokeWidth(1.65f);
+   p.setStrokeCap(android.graphics.Paint.Cap.ROUND);p.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+   switch(index){
+    case 0:path(c,3,11,12,3,21,11,19,11,19,21,5,21,5,11,3,11);path(c,10,21,10,15,14,15,14,21);break;
+    case 1:path(c,12,2,21,6,20,14,17,19,12,22,7,19,4,14,3,6,12,2);line(c,12,7,12,13);c.drawCircle(12,17,.55f,p);break;
+    case 2:path(c,2,12,6,12,8,5,12,20,15,8,18,12,22,12);break;
+    case 3:c.drawCircle(8,7,3.5f,p);path(c,1,7,2,7);line(c,8,1,8,2);line(c,3,2,4,3);c.drawRoundRect(4,11,22,20,4,4,p);break;
+    case 4:path(c,3,3,3,21,22,21);path(c,6,16,11,11,15,14,21,6,21,11);line(c,16,6,21,6);break;
+    case 5:c.drawRoundRect(3,3,21,21,4,4,p);path(c,12,5,19,12,12,19,5,12,12,5);break;
+    case 6:path(c,3,9,7,9,12,5,12,19,7,15,3,15,3,9);c.drawArc(8,5,20,19,-62,124,false,p);c.drawArc(7,2,24,22,-62,124,false,p);break;
+    case 7:c.drawRoundRect(6,2,18,22,3,3,p);line(c,10,18,14,18);break;
+    case 8:path(c,9,3,15,3,15,9,21,19,20,21,4,21,3,19,9,9,9,3);line(c,6,15,18,15);break;
+    default:c.drawCircle(12,12,7,p);c.drawCircle(12,12,2.6f,p);for(int i=0;i<8;i++){c.save();c.rotate(i*45,12,12);line(c,12,2,12,5);c.restore();}break;
+   }c.restoreToCount(save);
+  }
+  @Override public void setAlpha(int alpha){p.setAlpha(alpha);}
+  @Override public void setColorFilter(android.graphics.ColorFilter f){p.setColorFilter(f);}
+  @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
  }
  private Button button(String s,View.OnClickListener listener){
   Button b=new Button(this);
@@ -673,7 +752,7 @@ public final class MainActivity extends Activity {
   b.setTextColor(INK);b.setAllCaps(false);
   b.setGravity(Gravity.CENTER_VERTICAL|Gravity.START);
   b.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
-  b.setMinHeight(dp(72));b.setPadding(dp(18),dp(11),dp(18),dp(11));
+  b.setMinHeight(dp(60));b.setPadding(dp(15),dp(9),dp(15),dp(9));
   b.setOnClickListener(listener);
   b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
   styleButton(b,false);
@@ -725,6 +804,11 @@ public final class MainActivity extends Activity {
    lastTargetEncoded=record;
    cachedTarget=Prefs.lastTarget(this);
   }
+  long civil=p.getLong("civilPhoneLastDisplayedAt",0);
+  setTile(overviewCards[0],CATEGORIES[1],civil>0?"Última exibição via celular: "+BrDates.dateTime(civil):"Histórico real · consultar CAP e celular");
+  setTile(overviewCards[1],CATEGORIES[2],cachedTarget!=null?RegionalReplayDetails.summary(cachedTarget):source);
+  setTile(overviewCards[2],CATEGORIES[3],weather);
+  setTile(overviewCards[3],CATEGORIES[4],brent);
   if(replayStatus!=null)setIfChanged(replayStatus,
     "Último replay regional salvo: "+RegionalReplayDetails.summary(cachedTarget)
     +" · aparece SOBRE o vídeo, após 10 s");
