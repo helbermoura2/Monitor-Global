@@ -41,14 +41,15 @@ final class WeatherMapNewsStrip extends View {
   text(c,detail,130,84,14,685,OledNewsChrome.regularFont());
   OledNewsChrome.brand(c,p,elapsed,animate);
   c.save();c.clipRect(18,95,780,125);
-  p.setTypeface(OledNewsChrome.tickerFont());p.setTextSize(14);p.setColor(Color.WHITE);p.setShader(null);p.setStyle(Paint.Style.FILL);
-  float width=p.measureText(ticker)+90,offset=BroadcastVisuals.tickerOffset(elapsed,width,animate);
-  c.drawText(ticker,18-offset,117,p);if(animate)c.drawText(ticker,18-offset+width,117,p);
+  p.reset();p.setAntiAlias(true);p.setTextAlign(Paint.Align.LEFT);p.setTextScaleX(1f);p.setTypeface(OledNewsChrome.tickerFont());p.setTextSize(14);p.setColor(Color.WHITE);p.setStyle(Paint.Style.FILL);
+  // One static line; no second copy, no inherited paint alignment from the logo.
+  String display=android.text.TextUtils.ellipsize(ticker,new android.text.TextPaint(p),752f,android.text.TextUtils.TruncateAt.END).toString();
+  c.drawText(display,18,117,p);
   c.restore();OledNewsChrome.brandFooter(c,p,elapsed,animate);c.restore();
   if(animate&&isShown())postInvalidateDelayed(120);
  }
  private void text(Canvas c,String value,float x,float y,float size,float width,Typeface face){
-  p.setTypeface(face);p.setTextSize(size);p.setTextScaleX(1);p.setColor(Color.WHITE);p.setShader(null);p.setStyle(Paint.Style.FILL);
+  p.setTextAlign(Paint.Align.LEFT);p.setTypeface(face);p.setTextSize(size);p.setTextScaleX(1);p.setColor(Color.WHITE);p.setShader(null);p.setStyle(Paint.Style.FILL);
   while(p.getTextSize()>10&&p.measureText(value)>width)p.setTextSize(p.getTextSize()-.5f);
   c.save();c.clipRect(x,31,x+width,94);c.drawText(value,x,y,p);c.restore();
  }
