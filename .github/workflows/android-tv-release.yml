@@ -34,6 +34,7 @@ jobs:
           cmdline-tools-version: '13114758'
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
           log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
       - name: Materialize protected signing input
         env:
           TV_RELEASE_KEYSTORE_B64: ${{ secrets.TV_RELEASE_KEYSTORE_B64 }}
