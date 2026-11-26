@@ -5,7 +5,7 @@ final class WeatherSatelliteSequence implements AutoCloseable {
  static final long AFTER_WEATHER=13000,DURATION=15000,WAIT_FOR_IMAGE=20000,ERROR_DURATION=8000,TOTAL=AFTER_WEATHER+WAIT_FOR_IMAGE+DURATION+500,PREPARE_TTL=60000;
  static final InfraredPlan.Scope RADAR_REGION=new InfraredPlan.Scope("SP/RJ",-50,-27,-40,-18);
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();default void onFrame(java.util.function.Consumer<WeatherSatelliteClient.Frame> receiver){}}
- private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
+ private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final Handler delivery=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
  static final long RADAR_BUDGET=24000,PARALLEL_BUDGET=28000;
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);WeatherSatelliteClient geography=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){
   private volatile boolean stopped;
@@ -54,8 +54,8 @@ final class WeatherSatelliteSequence implements AutoCloseable {
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed,java.util.function.Supplier<Loader> factory){context=c;this.allowed=allowed;this.factory=factory;banner=new Banner(c);}
  void prepare(){if(closed||pending)return;pending=true;flipExpected=false;int token=++generation;Prefs.get(context).edit().putString("satelliteStatus","Mapa: consultando radar e satélite do Sudeste").apply();
   main.postDelayed(()->{if(token==generation&&pending&&!armed)cancel();},PREPARE_TTL);
-  try{reader=factory.get();}catch(RuntimeException e){failed=true;return;}Loader operation=reader;operation.onFrame(value->main.post(()->acceptFrame(token,value)));if(worker==null)worker=Executors.newSingleThreadExecutor();
-  worker.execute(()->{WeatherSatelliteClient.Frame result=null;try{result=operation.load();}catch(Exception|OutOfMemoryError ignored){}WeatherSatelliteClient.Frame ready=result;main.post(()->{
+  try{reader=factory.get();}catch(RuntimeException e){failed=true;return;}Loader operation=reader;operation.onFrame(value->delivery.post(()->acceptFrame(token,value)));if(worker==null)worker=Executors.newSingleThreadExecutor();
+  worker.execute(()->{WeatherSatelliteClient.Frame result=null;try{result=operation.load();}catch(Exception|OutOfMemoryError ignored){}WeatherSatelliteClient.Frame ready=result;delivery.post(()->{
    if(closed||token!=generation||failed){if(ready!=null)ready.close();return;}
    if(reader==operation){operation.close();reader=null;}
    if(ready!=null)acceptFrame(token,ready);
