@@ -1,16 +1,18 @@
-pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+// Google-hosted Maven Central mirror serves the same upstream Maven artifacts.
+// Prefer it to prevent HTTP 429 on shared CI runners; retain standard repositories.
+pluginManagement {
+ repositories {
+  google()
+  maven { name = 'CentralMirror'; url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
+  mavenCentral()
+  gradlePluginPortal()
+ }
+}
 dependencyResolutionManagement {
  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
  repositories {
-  // The large host-only Robolectric binary was rate-limited by Maven Central.
-  // Resolve this exact module through Google's Maven Central mirror, only for native tests.
-  if (providers.gradleProperty('nativeMapChecks').isPresent()) {
-   exclusiveContent {
-    forRepository { maven { name = 'RobolectricNativeMirror'; url = uri('https://maven-central.storage-download.googleapis.com/maven2/') } }
-    filter { includeModule('org.robolectric', 'nativeruntime-dist-compat') }
-   }
-  }
   google()
+  maven { name = 'CentralMirror'; url = uri('https://maven-central.storage-download.googleapis.com/maven2/') }
   mavenCentral()
  }
 }
