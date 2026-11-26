@@ -6,23 +6,49 @@ final class WeatherSatelliteSequence implements AutoCloseable {
  static final InfraredPlan.Scope RADAR_REGION=new InfraredPlan.Scope("SP/RJ",-50,-27,-40,-18);
  interface Loader {WeatherSatelliteClient.Frame load()throws Exception;void close();}
  private final Context context;private final BooleanSupplier allowed;private final Banner banner;private final Handler main=new Handler(Looper.getMainLooper());private final java.util.function.Supplier<Loader> factory;private ExecutorService worker;private Loader reader;private WeatherSatelliteClient.Frame frame;private WeatherSatelliteCard card;private FrameLayout current;private int generation;private boolean closed,pending,armed,failed,rendered,flipExpected;private long showAt;
- WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){private volatile boolean stopped;public WeatherSatelliteClient.Frame load()throws Exception{
-   WeatherSatelliteClient.Frame primary=null,satellite=null;
-   try{long now=System.currentTimeMillis();RadarMapClient.Frame observed=radar.latestWithin(now,10000);
-    if(!stopped&&observed.at<=now&&now-observed.at<=60*60000L){
-     Bitmap image=RadarMapRender.render(c,client,RADAR_REGION,observed);
-     if(stopped){image.recycle();return null;}
-     primary=WeatherSatelliteClient.Frame.radar(image,observed,RADAR_REGION);
+ static final long RADAR_BUDGET=24000,PARALLEL_BUDGET=28000;
+ WeatherSatelliteSequence(Context c,BooleanSupplier allowed){this(c,allowed,()->{WeatherSatelliteClient client=new WeatherSatelliteClient(c);WeatherSatelliteClient geography=new WeatherSatelliteClient(c);RadarMapClient radar=new RadarMapClient();return new Loader(){
+  private volatile boolean stopped;
+  public WeatherSatelliteClient.Frame load()throws Exception{
+   final Object gate=new Object();final boolean[] accepting={true};
+   final WeatherSatelliteClient.Frame[] results=new WeatherSatelliteClient.Frame[2];
+   final CountDownLatch complete=new CountDownLatch(2);
+   ExecutorService tasks=Executors.newFixedThreadPool(2);
+   java.util.function.BiConsumer<Integer,WeatherSatelliteClient.Frame> finish=(index,result)->{
+    synchronized(gate){if(accepting[0]&&!stopped)results[index]=result;else if(result!=null)result.close();}
+    complete.countDown();
+   };
+   try{
+    tasks.execute(()->{WeatherSatelliteClient.Frame primary=null;
+     try{long now=System.currentTimeMillis();RadarMapClient.Frame observed=radar.latestWithin(now,RADAR_BUDGET);
+      if(!stopped&&observed.at<=now&&now-observed.at<=60*60000L){
+       Bitmap image=RadarMapRender.render(c,geography,RADAR_REGION,observed);
+       if(stopped)image.recycle();else primary=WeatherSatelliteClient.Frame.radar(image,observed,RADAR_REGION);
+      }
+     }catch(Exception|OutOfMemoryError error){if(!stopped)android.util.Log.w("ArgosRadar","Radar automático indisponível",error);}
+     finally{radar.close();geography.close();finish.accept(0,primary);}
+    });
+    tasks.execute(()->{WeatherSatelliteClient.Frame satellite=null;
+     try{if(!stopped){satellite=client.latest(RADAR_REGION,System.currentTimeMillis());
+      if(satellite!=null&&!stopped)try{satellite.previousObserved=client.previousForBroadcast(satellite,System.currentTimeMillis());}catch(Exception ignored){}
+     }}catch(Exception|OutOfMemoryError error){if(!stopped)android.util.Log.w("ArgosRadar","Infravermelho indisponível",error);}
+     finally{client.close();finish.accept(1,satellite);}
+    });
+    complete.await(PARALLEL_BUDGET,TimeUnit.MILLISECONDS);
+    synchronized(gate){
+     accepting[0]=false;
+     if(stopped)return null;
+     WeatherSatelliteClient.Frame primary=results[0],satellite=results[1];results[0]=null;results[1]=null;
+     if(primary==null)return satellite;
+     primary.alternate=satellite;return primary;
     }
-   }catch(Exception|OutOfMemoryError ignored){}finally{radar.close();}
-   if(!stopped)try{
-    satellite=client.latest(RADAR_REGION,System.currentTimeMillis());
-    if(satellite!=null&&!stopped)try{satellite.previousObserved=client.previousForBroadcast(satellite,System.currentTimeMillis());}catch(Exception ignored){}
-   }catch(Exception|OutOfMemoryError ignored){}
-   if(stopped){if(primary!=null)primary.close();if(satellite!=null)satellite.close();return null;}
-   if(primary==null)return satellite;
-   primary.alternate=satellite;return primary;
-  }public void close(){stopped=true;radar.close();client.close();}};});}
+   }finally{
+    synchronized(gate){accepting[0]=false;for(WeatherSatelliteClient.Frame result:results)if(result!=null)result.close();}
+    tasks.shutdownNow();radar.close();geography.close();client.close();
+   }
+  }
+  public void close(){stopped=true;radar.close();geography.close();client.close();}
+ };});}
  WeatherSatelliteSequence(Context c,BooleanSupplier allowed,java.util.function.Supplier<Loader> factory){context=c;this.allowed=allowed;this.factory=factory;banner=new Banner(c);}
  void prepare(){if(closed||pending)return;pending=true;flipExpected=false;int token=++generation;Prefs.get(context).edit().putString("satelliteStatus","Mapa: consultando radar e satélite do Sudeste").apply();
   main.postDelayed(()->{if(token==generation&&pending&&!armed)cancel();},PREPARE_TTL);
