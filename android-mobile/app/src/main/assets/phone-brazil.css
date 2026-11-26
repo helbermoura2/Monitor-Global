@@ -348,3 +348,19 @@ body.weekly-mode :is(.map-stage,#map-details-panel){display:none}
 .week-amount{grid-column:3/-1;grid-row:3;justify-self:end;background:#33291e;color:#f4d4a0}
 #week-days details p{margin:0;padding:0 12px 10px;color:#d3e8f4;font-size:13px}
 .week-credit,.week-credit a{font-size:12px;color:#a8cbdc}
+
+.week-rain-map,#region-rain-panel button,#region-rain-day{min-height:40px;padding:3px 10px;border:1px solid #375a70;border-radius:8px;background:#132a38;color:#e2f4ff}
+.week-rain-map{margin:0 12px 10px}
+#region-rain-panel[hidden]{display:none}
+.regional-rain-mode :is(.brazil-toolbar,.map-dock,.map-actions,#map-details-panel,.admin-boundary-controls){display:none!important}
+#region-rain-panel{position:absolute;z-index:8;bottom:8px;left:8px;right:8px;padding:9px 11px;border:1px solid #314d63;border-radius:12px;background:#0b1b28f5;color:#e8f5ff}
+.region-rain-heading,.region-rain-controls{display:flex;align-items:center;gap:8px}
+.region-rain-heading{justify-content:space-between}
+.region-rain-heading strong,.region-rain-heading small{display:block}
+#region-rain-panel p{margin:3px 0 6px;font-size:13px}
+#region-rain-panel small{font-size:11px;color:#b8d5e7}
+#region-rain-frame{min-width:0;flex:1;accent-color:#75d7ee}
+#region-rain-scale{display:flex;gap:4px;margin:5px 0 2px;text-align:center;font-size:10px}
+#region-rain-scale span{flex:1}
+#region-rain-scale i{display:block;height:5px;border-radius:2px}
+#week-days .week-comparison-result:empty{display:none}

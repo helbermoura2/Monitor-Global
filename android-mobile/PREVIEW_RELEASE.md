@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.70
+
+- A previsão semanal abre um mapa regional animado de chuva em blocos de três horas e permite comparar os acumulados de GFS e ICON.
+
 # Argos Orbis Celular · 0.1.69
 
 - A previsão semanal destaca a aba Previsão e separa mínima, máxima, chance de chuva e volume em cartões expansíveis.

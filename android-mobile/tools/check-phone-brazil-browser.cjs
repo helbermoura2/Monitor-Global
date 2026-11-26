@@ -56,6 +56,16 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/cemaden-alerts.json'))return route.fulfill({headers:cors,json:{
    version:1,source:'https://painelalertas.cemaden.gov.br/wsAlertas2',checkedAt:now,alerts:[{status:1,lat:-23.55,lng:-46.63,city:'São Paulo',uf:'SP',level:'Alto',event:'Risco hidrológico'}]
   }});
+  if(u.hostname==='api.open-meteo.com'&&u.searchParams.get('models')==='gfs_global'){
+   const times=Array.from({length:192},(_,i)=>new Date(start+i*3600000).toISOString().slice(0,16));
+   const lat=u.searchParams.get('latitude').split(',').map(Number),lon=u.searchParams.get('longitude').split(',').map(Number);
+   return route.fulfill({headers:cors,json:lat.map((latitude,i)=>({latitude,longitude:lon[i],timezone:'America/Sao_Paulo',
+    hourly:{time:times,precipitation:times.map((_,h)=>i===0?null:(h%8)+i/10)}}))});
+  }
+  if(u.hostname==='api.open-meteo.com'&&u.searchParams.get('models')==='gfs_global,icon_global'){
+   return route.fulfill({headers:cors,json:{timezone:'America/Sao_Paulo',daily:{time:forecast.daily.time,
+    precipitation_sum_gfs_global:Array(7).fill(80),precipitation_sum_icon_global:Array(7).fill(35)}}});
+  }
   if(u.hostname==='api.open-meteo.com'){forecastCalls++;return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify(forecast)});}
   if(u.hostname==='api.rainviewer.com'){metadataCalls++;if(mode==='hold'&&metadataCalls===1)await new Promise(r=>releaseFirst=r);try{return await route.fulfill({status:mode==='fail'?503:200,headers:cors,contentType:'application/json',body:JSON.stringify(mode==='empty'?{...metadata,radar:{past:[]}}:metadata)});}catch{return;}}
   if(u.hostname==='tilecache.rainviewer.com'){assert.match(u.pathname,/^\/v2\/radar\/[A-Za-z0-9_-]{1,64}\/256\/[0-7]\/\d{1,3}\/\d{1,3}\/2\/1_1\.png$/);tiles.push(u.pathname);return route.fulfill({headers:cors,contentType:'image/png',body:rain});}
@@ -80,8 +90,21 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  await firstDay.locator('summary').click();
  assert.notEqual(await firstDay.getAttribute('open'),null);
  assert.match(await page.locator('#week-days details').first().innerText(),/8,5 mm.*18 km\/h/s);
+ await firstDay.getByRole('button',{name:'Comparar modelos'}).click();
+ await expect(firstDay.locator('.week-comparison-result')).toContainText('35,0 a 80,0 mm');
+ await firstDay.getByRole('button',{name:'Ver chuva no mapa'}).click();
+ await page.waitForFunction(()=>window.__map.getSource('argos-regional-rain'));
+ const regionalDay=page.locator('#region-rain-day'),regionalFrame=page.locator('#region-rain-frame');
+ assert.equal(await regionalDay.locator('option').count(),7);
+ await regionalDay.selectOption(forecast.daily.time.at(-1));
+ await regionalFrame.evaluate(el=>{el.value='7';el.dispatchEvent(new Event('input'));});
+ await expect(page.locator('#region-rain-status')).toContainText('21:00–24:00 BRT');
+ await expect(page.locator('#region-rain-status')).toContainText('cobertura parcial');
+ await page.locator('#region-rain-play').click();
+ await expect(regionalFrame).toHaveValue('0');
+ await page.locator('#region-rain-back').click();
  await page.locator('#week-map').click();
- assert.deepEqual(await page.evaluate(()=>window.weeklyModes),[true,false]);
+ assert.deepEqual(await page.evaluate(()=>window.weeklyModes),[true,false,true,false]);
  await page.locator('#map-details').click();
  await page.locator('#map-return').click();
  assert.equal(await page.locator('.brazil-main').evaluate(el=>el.scrollTop),0);

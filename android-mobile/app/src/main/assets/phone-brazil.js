@@ -1,6 +1,7 @@
 /* Forecast only for the municipality selected by the user. No arbitrary spatial extrapolation. */
 (function(){'use strict';
 const M=window.PhoneBrazilModel,$=id=>document.getElementById(id);
+const regional=window.PhoneRainRegion.create(()=>ready?map:null,showWeekly);
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm na hora anterior'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'},humidity:{field:'relative_humidity_2m',label:'Umidade',unit:'%'},gusts:{field:'wind_gusts_10m',label:'Rajadas',unit:'km/h'},feels:{field:'apparent_temperature',label:'Sensação térmica',unit:'°C'}};
 const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v2';
 let pendingSevere=false,mapSize=null;
@@ -32,6 +33,40 @@ function stop(){if(playTimer){clearTimeout(playTimer);playbackIcon(false);}playT
 function round(n,decimals=0){return n.toLocaleString('pt-BR',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});}
 function value(field){return M.value(forecast,0,step,field);}
 let weekly=false,weekKey='';
+let comparison=null;
+async function compareWeekDay(day,output){
+ const target={...city},today=M.brHour(Date.now()).slice(0,10);
+ const key=target.id+'/'+today;
+ let cached=stored('argos-rain-compare');
+ if(cached?.key!==key||Date.now()-cached.at>3*M.HOUR){
+  if(comparison){output.textContent='Outra comparação está em andamento. Tente novamente em instantes.';return;}
+  const budget=stored('argos-rain-compare-budget');
+  const used=budget?.day===today?budget.used:0;
+  if(used>=4){output.textContent='Limite diário de comparações atingido.';return;}
+  store('argos-rain-compare-budget',{day:today,used:used+1});
+  output.textContent='Consultando GFS e ICON…';
+  const request=new AbortController();comparison=request;
+  const timeout=setTimeout(()=>request.abort(),11000);
+  try{
+   const response=await fetch(window.PhoneRainRegion.comparisonUrl(target),{signal:request.signal,credentials:'omit',redirect:'error'});
+   if(!response.ok||Number(response.headers.get('content-length'))>30000)throw Error();
+   const raw=await response.text();
+   if(raw.length>30000)throw Error();
+   const payload=JSON.parse(raw);
+   if(!window.PhoneRainRegion.compare(payload,day.date).length)throw Error();
+   cached={key,at:Date.now(),payload};store('argos-rain-compare',cached);
+  }catch{output.textContent='Não foi possível consultar os modelos agora.';return;}
+  finally{clearTimeout(timeout);if(comparison===request)comparison=null;}
+ }
+ if(!active||!weekly||target.id!==city.id)return;
+ const values=window.PhoneRainRegion.compare(cached.payload,day.date);
+ if(!values.length){output.textContent='Sem acumulados disponíveis para este dia.';return;}
+ const totals=values.map(item=>item.value);
+ const range=values.length>1?' · Faixa entre modelos: '+round(Math.min(...totals),1)+' a '+round(Math.max(...totals),1)+' mm':'';
+ output.textContent=values.map(item=>item.name+' '+round(item.value,1)+' mm').join(' · ')+range+
+  '. Previsões para o dia no ponto selecionado.';
+}
+
 function condition(code){
  if(code===0)return 'Céu limpo';
  if(code===1||code===2)return 'Parcialmente nublado';
@@ -72,7 +107,17 @@ function renderWeek(){
   const info=document.createElement('p');
   info.textContent='Vento máximo previsto: '+metric(day.wind_speed_10m_max,' km/h')+
    (day.peak?' · Maior chance de chuva às '+day.peak.at.slice(11,16)+' ('+day.peak.chance+'%).':'.');
-  title.append(icon,date,temps,chevron,weather,chance,amount);card.append(title,info);list.append(card);
+  const rainMap=document.createElement('button');
+  rainMap.className='week-rain-map';rainMap.type='button';rainMap.textContent='Ver chuva no mapa';
+  rainMap.addEventListener('click',()=>{
+   showForecast();
+   regional.open({...city},days.map(entry=>entry.date),day.date);
+  });
+  const comparisonButton=document.createElement('button'),comparisonResult=document.createElement('p');
+  comparisonButton.type='button';comparisonButton.className='week-rain-map';comparisonButton.textContent='Comparar modelos';
+  comparisonResult.setAttribute('role','status');comparisonResult.className='week-comparison-result';
+  comparisonButton.addEventListener('click',()=>compareWeekDay(day,comparisonResult));
+  title.append(icon,date,temps,chevron,weather,chance,amount);card.append(title,info,rainMap,comparisonButton,comparisonResult);list.append(card);
  }
  $('week-days').replaceChildren(list);
 }
@@ -226,7 +271,7 @@ function initMap(){
    ready=true;createMarker();
    try{satellite=window.BrazilSatellite.create({map,host:$('overlay-panel'),enabled:false});const satellitePanel=$('overlay-panel').querySelector('.brazil-satellite-control');satellitePanel.querySelector('details').open=true;satellitePanel.prepend(satellitePanel.querySelector('.br-satellite-status'));satelliteCheckbox()?.addEventListener('change',()=>{if(!severeOn&&satellite?.state.enabled&&radar?.enabled){radar.toggle(false);$('radar-toggle').setAttribute('aria-pressed','false');}syncOverlays();});}catch(e){note('Satélite indisponível nesta visualização.');}
    try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'),()=>{severe?.raise();severe?.analyze();});}catch(e){note('Radar indisponível nesta visualização.');}
-   try{boundaries=window.ArgosBoundaries.create({map,selectAnywhere:true,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!severe?.hasMarkerAt(point),presentPlace:content=>{if(content.dataset.citySelected==='true')return;showSelection(content);},onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
+   try{boundaries=window.ArgosBoundaries.create({map,selectAnywhere:true,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!regional.opened&&!severe?.hasMarkerAt(point),presentPlace:content=>{if(content.dataset.citySelected==='true')return;showSelection(content);},onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
      if(!local)return 'Amplie o mapa para identificar o município pelo limite do IBGE.';
      place.element.dataset.citySelected='true';
      selectCity(local,false);returnToMap();openCityCard();
@@ -237,6 +282,7 @@ function initMap(){
     return rain?{coords:[city.lon,city.lat],place:city.name,rain:rain.amount}:null;
    },showSelection);}catch(e){note('Camadas de tempo severo indisponíveis.');}
    syncOverlays();if(pendingSatellite)showSatellite();if(pendingSevere)showSevere();
+   if(regional.opened)regional.position();
    if(forecast)note('');
   });
   map.on('contextmenu',event=>{
@@ -298,9 +344,9 @@ async function load(force=false){
  }catch(e){if(active&&!closed&&ticket===requestId)note(forecast?'Sem atualização. Mantendo a previsão válida anterior.':'Previsão indisponível. Confira a conexão e tente novamente.');}
  finally{clearTimeout(timeout);if(controller===c){controller=null;loading=false;renderWeek();}}
 }
-function pause(){active=false;document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
-function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS||weekly&&!forecast.series[0].week.length)load(false);}
-function close(){if(closed)return;pause();closed=true;mapSize?.disconnect();boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();severe?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
+function pause(){active=false;comparison?.abort();regional.setActive(false);document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
+function resume(){if(closed)return;active=true;regional.setActive(true);document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS||weekly&&!forecast.series[0].week.length)load(false);}
+function close(){if(closed)return;pause();regional.close();closed=true;mapSize?.disconnect();boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();severe?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
 function advance(){if(!active||!forecast)return;step=(step+1)%25;showValues();playTimer=setTimeout(advance,1300);}
 $('forecast-now').addEventListener('click',()=>{stop();step=0;showValues();});
 $('frame').addEventListener('input',event=>{stop();step=Number(event.target.value);showValues();});
@@ -405,6 +451,7 @@ function setSevere(next){
  severe.toggle(severeOn);syncOverlays();
 }
 function showSevere(){
+ if(regional.opened)regional.close();
  setWeeklyMode(false);
  if(!ready||!severe||!radar){pendingSevere=true;return;}
  pendingSevere=false;if(!severeOn)setSevere(true);
@@ -413,8 +460,9 @@ $('severe-toggle').addEventListener('click',()=>{
  if(!severe||!radar){note('Aguarde o carregamento do mapa.');return;}
  setSevere(!severeOn);setLayerMenu(false);
 });
-function showSatellite(){setWeeklyMode(false);pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
+function showSatellite(){if(regional.opened)regional.close();setWeeklyMode(false);pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
 function showForecast(){
+ if(regional.opened)regional.close();
  setWeeklyMode(false);
  pendingSevere=false;pendingSatellite=false;
  if(severeOn)setSevere(false);

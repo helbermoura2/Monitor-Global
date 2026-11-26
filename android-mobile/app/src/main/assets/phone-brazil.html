@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com https://gibs.earthdata.nasa.gov https://tilecache.rainviewer.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com https://gibs.earthdata.nasa.gov https://api.rainviewer.com https://tilecache.rainviewer.com https://cdn.jsdelivr.net https://raw.githubusercontent.com; worker-src blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Explorar Brasil · Argos Orbis</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="phone-rain.css"><link rel="stylesheet" href="brazil-satellite.css"><link rel="stylesheet" href="phone-brazil.css"><link rel="stylesheet" href="phone-boundaries.css">
-<script defer src="vendor/maplibre-gl.js"></script><script defer src="brazil-satellite-model.js"></script><script defer src="brazil-satellite.js"></script><script defer src="phone-boundaries.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-storm-signals.js"></script><script defer src="phone-brazil-radar.js"></script><script defer src="phone-severe-weather.js"></script><script defer src="phone-brazil.js"></script>
+<script defer src="vendor/maplibre-gl.js"></script><script defer src="brazil-satellite-model.js"></script><script defer src="brazil-satellite.js"></script><script defer src="phone-boundaries.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-storm-signals.js"></script><script defer src="phone-brazil-radar.js"></script><script defer src="phone-severe-weather.js"></script><script defer src="phone-rain-region.js"></script><script defer src="phone-brazil.js"></script>
 </head><body>
 <main class="brazil-main">
  <section id="week-panel" aria-labelledby="week-title" hidden>
@@ -59,6 +59,18 @@
    <summary>Gráfico e possíveis efeitos</summary>
    <div id="map-city-chart"></div>
   </details>
+ </section>
+ <section id="region-rain-panel" aria-label="Chuva prevista na região" hidden>
+  <div class="region-rain-heading"><div><strong>Chuva prevista · GFS</strong><small id="region-rain-place"></small></div><button id="region-rain-back" type="button">7 dias</button></div>
+  <p id="region-rain-status" role="status"></p>
+  <div class="region-rain-controls">
+   <button id="region-rain-play" type="button" aria-label="Animar chuva prevista" disabled>▶</button>
+   <select id="region-rain-day" aria-label="Dia da previsão"></select>
+   <input id="region-rain-frame" type="range" min="0" max="7" step="1" value="0" aria-label="Intervalo de três horas" disabled>
+  </div>
+  <div id="region-rain-scale" aria-label="Legenda de acumulados"></div>
+  <small>mm por 3 h · Grade regional de 0,5° · NOAA GFS via Open-Meteo · Mapa © Esri e colaboradores</small>
+  <button id="region-rain-retry" type="button" hidden>Tentar novamente</button>
  </section>
  <div class="map-dock">
  <section class="brazil-controls" aria-label="Variáveis da previsão">
