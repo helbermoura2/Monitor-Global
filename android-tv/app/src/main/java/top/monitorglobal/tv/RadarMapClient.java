@@ -95,7 +95,7 @@ final class RadarMapClient implements AutoCloseable {
   long deadline=SystemClock.elapsedRealtime()+Math.max(1,Math.min(budget,50000));refresh(now,deadline);
   for(long at:catalog.descendingKeySet()){
    if(now-at>60*60000L||at>now)continue;
-   try{return frame(at,now,deadline);}catch(IOException e){if(closed)throw e;break;}
+   try{return frame(at,now,Math.min(deadline,SystemClock.elapsedRealtime()+12000));}catch(IOException e){if(closed||Thread.currentThread().isInterrupted())throw e;if(SystemClock.elapsedRealtime()>=deadline)break;android.util.Log.w("ArgosRadar","Quadro "+at+" indisponível; tentando observação anterior",e);}
   }
   throw new IOException("Radar recente indisponível");
  }
@@ -107,7 +107,7 @@ final class RadarMapClient implements AutoCloseable {
   List<RadarCappi> grids=new ArrayList<>();List<String> radars=new ArrayList<>();
   for(Item item:items){
    try{
-    RadarCappi grid=RadarCappi.decode(read(item.href,12*1024*1024,deadline));
+    RadarCappi grid=RadarCappi.decode(read(item.href,12*1024*1024,Math.min(deadline,SystemClock.elapsedRealtime()+8000)));
     if(closed)throw new IOException("Cancelado");
     grids.add(grid);radars.add(item.radar.equals("saoroque")?"São Roque":"Pico do Couto");
    }catch(IOException failure){if(closed)throw failure;}

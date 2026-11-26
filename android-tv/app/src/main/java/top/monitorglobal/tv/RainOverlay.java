@@ -22,7 +22,7 @@ final class RainOverlay {
  private int generation;
  RainOverlay(Context c){context=c;banner=new Banner(c);}
  boolean showing(){return current!=null;}
- void satelliteSource(java.util.function.Supplier<WeatherSatelliteClient.Frame> source){if(current instanceof ViewGroup){ViewGroup group=(ViewGroup)current;for(int i=0;i<group.getChildCount();i++)if(group.getChildAt(i) instanceof TvBroadcastInfoView)((TvBroadcastInfoView)group.getChildAt(i)).satelliteSource(source);}}
+ void satelliteSource(java.util.function.Supplier<WeatherSatelliteClient.Frame> source,java.util.function.BooleanSupplier loading){if(current instanceof ViewGroup){ViewGroup group=(ViewGroup)current;for(int i=0;i<group.getChildCount();i++)if(group.getChildAt(i) instanceof TvBroadcastInfoView)((TvBroadcastInfoView)group.getChildAt(i)).satelliteSource(source,loading);}}
  void refreshBriefing(){
   if(current instanceof ViewGroup){
    ViewGroup group=(ViewGroup)current;

@@ -84,6 +84,25 @@ public class HourlyWeatherTest {
   }finally{release.countDown();m.close();}
  }
 
+ @Test public void progressiveRadarIsVisibleBeforeInfraredCompletes()throws Exception{
+  Prefs.get(c).edit().putBoolean("weatherSatellite",true).commit();
+  CountDownLatch release=new CountDownLatch(1),sent=new CountDownLatch(1);
+  long now=org.robolectric.shadows.ShadowSystem.currentTimeMillis();
+  WeatherSatelliteClient.Frame radar=WeatherSatelliteClient.Frame.radar(Bitmap.createBitmap(32,32,Bitmap.Config.ARGB_8888),new RadarMapClient.Frame(now-60000,java.util.Collections.singletonList("São Roque"),java.util.Collections.emptyList()),WeatherSatelliteSequence.RADAR_REGION);
+  WeatherSatelliteClient.Frame ir=satelliteFrame();
+  WeatherSatelliteSequence sequence=new WeatherSatelliteSequence(c,()->true,()->new WeatherSatelliteSequence.Loader(){
+   java.util.function.Consumer<WeatherSatelliteClient.Frame> receiver;
+   public void onFrame(java.util.function.Consumer<WeatherSatelliteClient.Frame> consumer){receiver=consumer;}
+   public WeatherSatelliteClient.Frame load()throws Exception{receiver.accept(radar);sent.countDown();release.await(5,TimeUnit.SECONDS);receiver.accept(ir);return null;}
+   public void close(){release.countDown();}
+  });
+  try{sequence.prepare();assertTrue(sent.await(3,TimeUnit.SECONDS));
+   for(int i=0;i<200&&sequence.currentFrame()==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
+   assertSame(radar,sequence.currentFrame());assertTrue(sequence.loading());assertNull(radar.alternate);
+   release.countDown();for(int i=0;i<200&&radar.alternate==null;i++){Thread.sleep(5);Shadows.shadowOf(Looper.getMainLooper()).idle();}
+   assertSame(ir,radar.alternate);assertSame(radar,WeatherSatelliteSequence.displayFrame(radar,0,now));assertSame(ir,WeatherSatelliteSequence.displayFrame(radar,8000,now));
+  }finally{release.countDown();sequence.close();}
+ }
  JSONObject rainForecast(boolean raining,boolean soon)throws Exception{
   long now=org.robolectric.shadows.ShadowSystem.currentTimeMillis(),start=now/60000*60000;
   JSONObject forecast=new JSONObject().put("version","tv-rain-v1").put("area","liberdade").put("ok",true)

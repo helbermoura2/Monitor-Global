@@ -30,7 +30,10 @@ final class TvBroadcastInfoView extends View {
  private final WeatherSatelliteClient.Frame satellite;
  private java.util.function.Supplier<WeatherSatelliteClient.Frame> weatherSatellite;
  private final WeatherCardView.Icon[] weatherIcons=new WeatherCardView.Icon[4];
- void satelliteSource(java.util.function.Supplier<WeatherSatelliteClient.Frame> source){weatherSatellite=source;invalidate();}
+ private java.util.function.BooleanSupplier weatherMapLoading=()->false;
+ private WeatherSatelliteClient.Frame mapFrameRoot;private long mapFrameStart;
+ void satelliteSource(java.util.function.Supplier<WeatherSatelliteClient.Frame> source){satelliteSource(source,()->false);}
+ void satelliteSource(java.util.function.Supplier<WeatherSatelliteClient.Frame> source,java.util.function.BooleanSupplier loading){weatherSatellite=source;weatherMapLoading=loading;invalidate();}
  private final String satelliteStatus;
  private final boolean demo,mapBelow;
  final int mapSpace;
@@ -496,7 +499,9 @@ final class TvBroadcastInfoView extends View {
  private WeatherSatelliteClient.Frame currentFrame(){
   WeatherSatelliteClient.Frame frame=kind==WEATHER||kind==RAIN
       ?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
-  return WeatherSatelliteSequence.displayFrame(frame,Math.max(0,android.os.SystemClock.uptimeMillis()-started),System.currentTimeMillis());
+  long now=android.os.SystemClock.uptimeMillis();
+  if(mapFrameRoot!=frame){mapFrameRoot=frame;mapFrameStart=now;}
+  return WeatherSatelliteSequence.displayFrame(frame,Math.max(0,now-mapFrameStart),System.currentTimeMillis());
  }
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0||!(kind==WEATHER||kind==RAIN||kind==SATELLITE))return;
@@ -529,7 +534,7 @@ final class TvBroadcastInfoView extends View {
    }
    label(c,"IR · °C",8,218,9,Color.WHITE,data,40);
    label(c,displayed.source==WeatherSatelliteClient.Source.REALEARTH?"RealEarth / NOAA":"NASA GIBS / NOAA",8,232,10,0xffd3d7da,data,184);
-  }else label(c,"Dados indisponíveis",8,232,11,Color.WHITE,data,184);
+  }else label(c,weatherMapLoading.getAsBoolean()?"Consultando fontes…":"Dados indisponíveis",8,232,11,Color.WHITE,data,184);
   if(displayed!=null)label(c,InfraredPlan.timing(displayed.at,System.currentTimeMillis()),8,245,10,0xffd3d7da,brand,184);
   p.setColor(0xff45484d);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);c.drawRoundRect(0,0,200,250,5,5,p);p.setStyle(Paint.Style.FILL);
   c.restoreToCount(save);c.restore();
