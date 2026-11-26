@@ -122,7 +122,7 @@ public class TvBroadcastInfoViewTest {
   Bitmap b=render(replay,"civil-replay");try{assertEquals(126,b.getHeight());}
   finally{b.recycle();}
  }
- @Test public void satelliteAndSeismicMapShareOneStableVisualAnchor()throws Exception{
+ @Test public void portraitWeatherAndSeismicMapsShareRightEdge()throws Exception{
   assertEquals(615f,MapInset.FRAME_X,0);
   assertEquals(310f,MapInset.FRAME_WIDTH,0);
   assertEquals(176f,MapInset.FRAME_HEIGHT,0);
@@ -134,8 +134,13 @@ public class TvBroadcastInfoViewTest {
   TvBroadcastInfoView v=TvBroadcastInfoView.weather(c,null,weather,false);
   Bitmap full=render(v,"aligned-weather-inset");
   try{
-   assertTrue("Map starts at the shared x615 anchor",Color.alpha(full.getPixel(620,10))>160);
-   assertEquals("No map protrudes left of the shared anchor",0,Color.alpha(full.getPixel(600,10)));
+   // Weather is now physically 4:5, while seismic maps retain their original 310 × 176 shape.
+   int left=Math.round(OledNewsChrome.RIGHT-(v.mapSpace-4)*.8f);
+   assertTrue("Portrait map starts at its calculated left edge",Color.alpha(full.getPixel(left+6,10))>160);
+   assertEquals("No map protrudes left of the portrait frame",0,Color.alpha(full.getPixel(left-8,10)));
+   int first=-1,last=-1;for(int x=0;x<full.getWidth();x++)if(Color.alpha(full.getPixel(x,10))>160){if(first<0)first=x;last=x;}
+   assertTrue("Rendered portrait bounds",first>=left-1&&first<=left+3);
+   assertEquals("Rendered width follows 4:5 ratio",.8f,(last-first+1)/(float)(v.mapSpace-4),.035f);
    assertTrue("Map ends at the banner right edge",Color.alpha(full.getPixel(921,10))>160);
    assertEquals("No map may overflow the ticker right edge",0,Color.alpha(full.getPixel(935,10)));
   }finally{full.recycle();}

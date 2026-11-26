@@ -23,15 +23,16 @@ final class RadarMapRender {
   }
   Bitmap out=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
   try{
-   Canvas canvas=new Canvas(out);canvas.drawColor(0xff101d22);
+   Canvas canvas=new Canvas(out);canvas.drawColor(0xff101316);
    Path outline=geography.outline(scope);Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
-   p.setColor(0xff162a31);canvas.drawPath(outline,p);
+   p.setColor(0xff20262b);canvas.drawPath(outline,p);
    Bitmap overlay=Bitmap.createBitmap(pixels,w,h,Bitmap.Config.ARGB_8888);
    try{canvas.drawBitmap(overlay,0,0,null);}finally{overlay.recycle();}
    p.setStyle(Paint.Style.STROKE);p.setColor(0xffb6c4c8);p.setStrokeWidth(2);canvas.drawPath(outline,p);
+   if(scope==WeatherSatelliteSequence.RADAR_REGION)WeatherBroadcastCartography.states(geography.contextForMap(),canvas,scope);
    p.setStyle(Paint.Style.FILL);p.setTextSize(scope==InfraredPlan.SOUTHEAST?28:24);p.setTypeface(Typeface.DEFAULT_BOLD);p.setShadowLayer(3,0,1,Color.BLACK);
    geography.city(canvas,p,scope,-46.63,-23.55,"São Paulo");
-   if(scope==InfraredPlan.SOUTHEAST){geography.city(canvas,p,scope,-43.20,-22.90,"Rio de Janeiro");geography.city(canvas,p,scope,-43.94,-19.92,"Belo Horizonte");}
+   if(scope!=InfraredPlan.BRAZIL){geography.city(canvas,p,scope,-43.20,-22.90,"Rio de Janeiro");geography.city(canvas,p,scope,-43.94,-19.92,"Belo Horizonte");}
    return out;
   }catch(Exception|OutOfMemoryError e){out.recycle();throw e;}
  }

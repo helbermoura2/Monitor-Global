@@ -1,0 +1,46 @@
+name: TV weather visual correction
+on:
+  push:
+    branches: [fix/tv-weather-visual-layout]
+    paths:
+      - '.github/workflows/tv-weather-visual-fix.yml'
+      - 'android-tv/settings.gradle'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/TvBroadcastInfoViewTest.java'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherPortraitBroadcastTest.java'
+      - 'android-tv/app/src/nativeMapTest/java/top/monitorglobal/tv/WeatherViewerLayoutTest.java'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '13114758'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Fetch real radar catalog and CAPPI sample for automatic map
+        run: |
+          curl --fail --silent --show-error --retry 2 --max-time 30 --get 'https://data.inpe.br/bdc/stac/v1/search' --data-urlencode 'collections=br-weather-radar-cappi-1' --data-urlencode 'bbox=-47.8,-24.5,-45.5,-22.8' --data-urlencode 'datetime=2026-11-25T21:50:00Z/2026-11-25T22:20:00Z' --data-urlencode 'limit=60' -o /tmp/auto-catalog.json
+          curl --fail --silent --show-error --retry 2 --max-time 30 'https://data.inpe.br/bdc/data/br-weather-radar-cappi/decea/picocouto/cappi/cappi3km_nc/2026/11/cappi3km_202611252210.nc' -o /tmp/auto-radar.nc
+          echo 'cd0904eeb2ac2604595f65bfbc57ba1759bebdf360d5581d28be20be7d121416  /tmp/auto-radar.nc' | sha256sum -c -
+          echo 'ARGOS_AUTO_RADAR_CATALOG=/tmp/auto-catalog.json' >> "$GITHUB_ENV"
+          echo 'ARGOS_AUTO_RADAR_FILE=/tmp/auto-radar.nc' >> "$GITHUB_ENV"
+          echo 'ARGOS_REQUIRE_AUTO_RADAR=1' >> "$GITHUB_ENV"
+      - name: Validate map and AI dashboard layout, remote navigation and lifecycle
+        working-directory: android-tv
+        run: ./gradlew --no-daemon -PnativeMapChecks -Pandroid.useAndroidX=true :app:testDebugUnitTest --tests 'top.monitorglobal.tv.WeatherViewerLayoutTest' --tests 'top.monitorglobal.tv.RadarLegendTest' --tests 'top.monitorglobal.tv.WeatherMapNewsStripTest' --tests 'top.monitorglobal.tv.WeatherSatelliteTest' --tests 'top.monitorglobal.tv.WeatherAiInfoTest' --tests 'top.monitorglobal.tv.WeatherAiPresentationTest' --tests 'top.monitorglobal.tv.AutomaticWeatherRadarTest' --tests 'top.monitorglobal.tv.RadarTimelineTest' --tests 'top.monitorglobal.tv.WeatherPortraitBroadcastTest' --tests 'top.monitorglobal.tv.RainOverlayTest' --tests 'top.monitorglobal.tv.TvBroadcastInfoViewTest' --tests 'top.monitorglobal.tv.UnifiedBroadcastChromeTest'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: weather-layout-review
+          path: /tmp/argos-weather-layout-*.png
+          retention-days: 7

@@ -10,7 +10,30 @@ final class WeatherSatelliteCard extends LinearLayout {
  private final ImageView map,legend;
 
  WeatherSatelliteCard(Context c,WeatherSatelliteClient.Frame frame,boolean large){
-  super(c);setOrientation(VERTICAL);setBackground(TvCardStyle.panel(c,TvCardStyle.BODY));
+  super(c);
+  if(large){
+   // Full-screen mode: map gets all available height, independent of sidebar text.
+   setOrientation(HORIZONTAL);setBackgroundColor(android.graphics.Color.BLACK);
+   map=new ImageView(c);map.setScaleType(ImageView.ScaleType.FIT_CENTER);
+   map.setImageBitmap(frame.image);map.setContentDescription("Imagem infravermelha · "+frame.scope.name);
+   addView(map,new LayoutParams(0,-1,4));
+   LinearLayout side=new LinearLayout(c);side.setOrientation(VERTICAL);side.setBackgroundColor(0xff111316);
+   side.setPadding(dp(10),dp(8),dp(10),dp(8));
+   ScrollView scroll=new ScrollView(c);scroll.setFocusable(false);scroll.setFillViewport(false);scroll.addView(side,new ScrollView.LayoutParams(-1,-2));
+   addView(scroll,new LayoutParams(0,-1,1));
+   Typeface face=OledNewsChrome.regularFont();
+   label(side,"INFRAVERMELHO",13,0xffff6d7f,OledNewsChrome.titleFont(null));
+   label(side,"Temperatura de brilho (°C)",12,0xffe4e8ec,face);
+   legend=new ImageView(c);legend.setScaleType(ImageView.ScaleType.FIT_CENTER);legend.setContentDescription(frame.legendDescription());
+   if(frame.legend!=null){legend.setImageBitmap(frame.legend);side.addView(legend,new LayoutParams(-1,dp(38)));}
+   else label(side,"Escala da fonte indisponível",11,0xffb9c2c8,face);
+   label(side,"MOVIMENTO DAS NUVENS",12,0xffff6d7f,OledNewsChrome.titleFont(null));
+   label(side,frame.motion==null?"Sem estimativa confiável":frame.motion.description(),13,0xffe4e8ec,face);
+   if(frame.motion!=null)label(side,frame.motion.coherence(),11,0xffb9c2c8,face);
+   label(side,"Não indica trajetória nem intensidade da chuva.",11,0xffb9c2c8,face);
+   return;
+  }
+  setOrientation(VERTICAL);setBackground(TvCardStyle.panel(c,TvCardStyle.BODY));
   Typeface brand=TvCardStyle.brand(c);
   LinearLayout header=TvCardStyle.header(c);
   header.addView(TvCardStyle.label(c,"SATÉLITE  /  "+frame.scope.name.toUpperCase(java.util.Locale.ROOT),large?20:16,TvCardStyle.BODY,brand,2));

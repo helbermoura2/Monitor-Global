@@ -82,13 +82,33 @@ public class WeatherAiInfoTest {
  @Test public void remoteControlHasExplanationAndExplicitManualButtons(){
   WeatherAiInfoActivity a=Robolectric.buildActivity(WeatherAiInfoActivity.class).setup().get();
   View root=a.getWindow().getDecorView();
-  assertTrue(contains(root,"O que a IA realmente faz"));
-  assertTrue(contains(root,"Consultar análise de IA · tempo na Liberdade"));
-  assertTrue(contains(root,"Consultar análise de IA · chuva na Liberdade"));
+  assertTrue(contains(root,"ARGOS ORBIS TV"));
+  assertFalse(contains(root,"MONITOR GLOBAL TV"));
+  assertTrue(contains(root,"SOBRE A ANÁLISE"));
+  assertTrue(contains(root,"Tempo · Liberdade"));
+  assertTrue(contains(root,"Chuva · Liberdade"));
   assertTrue(contains(root,"Não é um chat"));
-  assertTrue(contains(root,"Voltar às configurações"));
+  assertTrue(contains(root,"Voltar"));
   assertTrue(contains(root,"Sem destaque recente válido"));
   assertNotNull(root.findFocus());
   a.finish();
  }
+ @Test @Config(sdk=35,qualifiers="w960dp-h540dp-land-mdpi")
+ public void compactTvButtonsRemainInsideScreen(){
+  org.robolectric.android.controller.ActivityController<WeatherAiInfoActivity> controller=Robolectric.buildActivity(WeatherAiInfoActivity.class).setup();
+  WeatherAiInfoActivity a=controller.get();
+  try{
+   ViewGroup content=a.findViewById(android.R.id.content);
+   int w=960,h=540;
+   content.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(h,View.MeasureSpec.EXACTLY));content.layout(0,0,w,h);
+   java.util.List<Button> buttons=new java.util.ArrayList<>();collect(content,buttons);
+   assertEquals(4,buttons.size());
+   for(Button b:buttons){
+    android.graphics.Rect r=new android.graphics.Rect();assertTrue(b.getGlobalVisibleRect(r));assertTrue(b.getText().toString(),r.height()>=b.getHeight()-1&&r.width()>=b.getWidth()-1);assertTrue(b.isFocusable());
+   }
+   assertEquals(buttons.get(1).getId(),buttons.get(0).getNextFocusRightId());
+   assertEquals(buttons.get(3).getId(),buttons.get(2).getNextFocusRightId());
+  }finally{controller.pause().stop().destroy();}
+ }
+ private void collect(View v,java.util.List<Button> out){if(v instanceof Button)out.add((Button)v);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)collect(((ViewGroup)v).getChildAt(i),out);}
 }

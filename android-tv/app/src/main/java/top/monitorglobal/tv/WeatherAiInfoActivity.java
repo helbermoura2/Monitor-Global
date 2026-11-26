@@ -24,7 +24,7 @@ import java.util.concurrent.Executors;
 
 /** Remote-control friendly, opt-in access to the TV's real meteorological AI. */
 public final class WeatherAiInfoActivity extends Activity {
- private static final int BG=0xff081724,WHITE=Color.WHITE,MUTED=0xffc0d2dc,CYAN=0xff38bdf8;
+ private static final int BG=Color.BLACK,WHITE=Color.WHITE,MUTED=0xffc0c4ca,CYAN=0xffff6d7f;
  private static final String ENDPOINT="https://black-sky-9ba0.terrestre.workers.dev/weather-briefing?kind=";
  private final Handler main=new Handler(Looper.getMainLooper());
  private final ExecutorService io=Executors.newSingleThreadExecutor();
@@ -38,46 +38,42 @@ public final class WeatherAiInfoActivity extends Activity {
  @Override public void onCreate(Bundle state){
   super.onCreate(state);
   getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,WindowManager.LayoutParams.FLAG_FULLSCREEN);
-  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);
-  LinearLayout column=new LinearLayout(this);column.setOrientation(LinearLayout.VERTICAL);
-  column.setPadding(dp(36),dp(20),dp(36),dp(36));scroll.addView(column);
-  setContentView(scroll);
-
-  // Same original Radar Scope geometry and 2.4 s rotating sweep as the
-  // website; no replacement of logo assets, and no animation outside UI.
+  LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
+  root.setPadding(dp(20),dp(10),dp(20),dp(10));setContentView(root);
   LinearLayout heading=new LinearLayout(this);heading.setGravity(android.view.Gravity.CENTER_VERTICAL);
-  RadarLogoView logo=new RadarLogoView(this);
-  heading.addView(logo,new LinearLayout.LayoutParams(dp(70),dp(70)));
+  RadarLogoView logo=new RadarLogoView(this);heading.addView(logo,new LinearLayout.LayoutParams(dp(58),dp(58)));
   LinearLayout brand=new LinearLayout(this);brand.setOrientation(LinearLayout.VERTICAL);
-  LinearLayout.LayoutParams headingMargin=new LinearLayout.LayoutParams(0,-2,1f);
-  brand.addView(titleText("MONITOR GLOBAL TV",31));
-  brand.addView(titleText("IA METEOROLÓGICA E ANÁLISE SÍSMICA",23));
-  headingMargin.leftMargin=dp(18);heading.addView(brand,headingMargin);
-  column.addView(heading);
-  LinearLayout info=panel(column,dp(14));
-  text(info,"O que a IA realmente faz",23,CYAN,true);
-  text(info,"Ela interpreta previsões verificadas para a Liberdade, em São Paulo. O modelo escolhe quais observações merecem destaque, sem criar números nem alertas por conta própria.",19,MUTED,false);
-  text(info,"Quando não existe algo útil para acrescentar, a IA não aparece no cartão. Isso não significa que o monitoramento de terremotos ou tsunami esteja desligado.",17,MUTED,false);
-  text(info,"Não é um chat. A seção sísmica fornece explicações aprofundadas dos registros oficiais, sem prever terremotos, tsunamis ou danos. Os avisos e replays seguem independentes da IA.",17,CYAN,false);
-  text(column,"CONSULTA MANUAL · SOMENTE SE VOCÊ PEDIR",20,CYAN,true);
-  text(column,"A consulta usa o serviço meteorológico atual e pode consumir parte da franquia compartilhada de IA. Não ativa novos alertas, não muda configurações e não acompanha sua localização.",16,MUTED,false);
-  LinearLayout actions=new LinearLayout(this);
-  actions.setOrientation(getResources().getConfiguration().screenWidthDp>=900?
-    LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);
-  column.addView(actions,new LinearLayout.LayoutParams(-1,-2));
-  hourly=button(actions,"Consultar análise de IA · tempo na Liberdade",v->query("hourly"));
-  rain=button(actions,"Consultar análise de IA · chuva na Liberdade",v->query("rain"));
-  seismic=button(actions,"Análise científica · último sismo registrado",v->query("seismic"));
-  button(actions,"Voltar às configurações",v->finish());
-  LinearLayout report=panel(column,dp(14));
-  text(report,"RESULTADO DA CONSULTA",20,CYAN,true);
-  result=text(report,"Selecione uma consulta acima para ver o que a IA tem a acrescentar.",19,WHITE,false);
-  LinearLayout cache=panel(column,dp(14));
-  text(cache,"ÚLTIMO DESTAQUE GUARDADO NESTA TV",18,CYAN,true);
-  cachedResult=text(cache,cached(),16,MUTED,false);
-  text(column,"Os alertas sísmicos e de tsunami continuam independentes da IA meteorológica.",16,MUTED,false);
+  LinearLayout.LayoutParams hm=new LinearLayout.LayoutParams(0,-2,1f);hm.leftMargin=dp(12);
+  brand.addView(titleText("ARGOS ORBIS TV",25));brand.addView(titleText("CENTRAL DE ANÁLISES · METEOROLOGIA E SISMOS",15));heading.addView(brand,hm);
+  root.addView(heading,new LinearLayout.LayoutParams(-1,-2));
+  View rule=new View(this);rule.setBackgroundColor(OledNewsChrome.RED_DARK);root.addView(rule,new LinearLayout.LayoutParams(-1,dp(2)));
+  LinearLayout actions=new LinearLayout(this);actions.setOrientation(LinearLayout.HORIZONTAL);root.addView(actions,new LinearLayout.LayoutParams(-1,-2));
+  hourly=button(actions,"Tempo · Liberdade",v->query("hourly"));
+  rain=button(actions,"Chuva · Liberdade",v->query("rain"));
+  seismic=button(actions,"Último sismo",v->query("seismic"));
+  Button back=button(actions,"Voltar",v->finish());
+  LinearLayout body=new LinearLayout(this);body.setOrientation(LinearLayout.HORIZONTAL);root.addView(body,new LinearLayout.LayoutParams(-1,0,1));
+  LinearLayout report=scrollPanel(body,2.15f);
+  text(report,"RESULTADO DA CONSULTA",18,CYAN,true);
+  result=text(report,"Selecione Tempo, Chuva ou Último sismo para consultar uma análise.",17,WHITE,false);
+  LinearLayout info=scrollPanel(body,1f);
+  text(info,"SOBRE A ANÁLISE",16,CYAN,true);
+  text(info,"Não é um chat. A IA interpreta dados meteorológicos e registros sísmicos publicados. Não cria alertas, não prevê terremotos ou tsunamis e não acompanha sua localização.",14,MUTED,false);
+  text(info,"ÚLTIMO DESTAQUE SALVO",15,CYAN,true);
+  cachedResult=text(info,cached(),14,WHITE,false);
+  text(info,"Consulta manual: pode consumir a franquia compartilhada de IA.",12,MUTED,false);
+  TextView footer=titleText("ARGOS ORBIS  ·  ALERTAS INDEPENDENTES DA IA",12);footer.setTextColor(MUTED);footer.setPadding(0,dp(6),0,0);root.addView(footer);
+  hourly.setNextFocusRightId(rain.getId());rain.setNextFocusLeftId(hourly.getId());rain.setNextFocusRightId(seismic.getId());seismic.setNextFocusLeftId(rain.getId());seismic.setNextFocusRightId(back.getId());back.setNextFocusLeftId(seismic.getId());
   hourly.requestFocus();
  }
+ private LinearLayout scrollPanel(LinearLayout body,float weight){
+  ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setFocusable(true);scroll.setId(View.generateViewId());
+  LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-1,weight);p.setMargins(dp(4),dp(3),dp(4),0);body.addView(scroll,p);
+  LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(12),dp(8),dp(12),dp(8));
+  GradientDrawable bg=new GradientDrawable();bg.setColor(0xff101113);bg.setCornerRadius(dp(7));bg.setStroke(dp(1),0xff36383f);card.setBackground(bg);
+  scroll.addView(card,new ScrollView.LayoutParams(-1,-2));return card;
+ }
+
  private String cached(){
   StringBuilder out=new StringBuilder();
   long now=System.currentTimeMillis();
@@ -193,8 +189,7 @@ public final class WeatherAiInfoActivity extends Activity {
  private TextView titleText(String value,int size){
   TextView t=new TextView(this);t.setText(value);t.setTextSize(size);
   t.setTextColor(WHITE);
-  try{t.setTypeface(Typeface.createFromAsset(getAssets(),"fonts/Rajdhani-Bold.ttf"));}
-  catch(RuntimeException ignored){t.setTypeface(null,Typeface.BOLD);}
+  t.setTypeface(OledNewsChrome.titleFont(null));
   return t;
  }
  private LinearLayout panel(LinearLayout parent,int marginTop){
@@ -209,25 +204,25 @@ public final class WeatherAiInfoActivity extends Activity {
  }
  private TextView text(LinearLayout host,String value,int size,int color,boolean bold){
   TextView view=new TextView(this);view.setText(value);view.setTextSize(size);
-  view.setTextColor(color);view.setPadding(0,dp(8),0,dp(8));
+  view.setTextColor(color);view.setPadding(0,dp(4),0,dp(4));
   if(bold)view.setTypeface(null,Typeface.BOLD);
   host.addView(view,new LinearLayout.LayoutParams(-1,-2));return view;
  }
  private Button button(LinearLayout host,String value,View.OnClickListener action){
-  Button b=new Button(this);b.setText(value);b.setTextSize(19);b.setTextColor(WHITE);
-  b.setAllCaps(false);b.setMinHeight(dp(74));b.setPadding(dp(17),dp(10),dp(17),dp(10));
+  Button b=new Button(this);b.setText(value);b.setTextSize(15);b.setId(View.generateViewId());b.setFocusable(true);b.setTypeface(OledNewsChrome.titleFont(null));b.setTextColor(WHITE);
+  b.setAllCaps(false);b.setMinHeight(0);b.setMinimumHeight(0);b.setMinWidth(0);b.setMinimumWidth(0);b.setSingleLine(true);b.setEllipsize(android.text.TextUtils.TruncateAt.END);b.setPadding(dp(6),0,dp(6),0);
   b.setOnClickListener(action);
   b.setOnFocusChangeListener((v,focused)->styleButton(b,focused));
   styleButton(b,false);
   boolean horizontal=host.getOrientation()==LinearLayout.HORIZONTAL;
   LinearLayout.LayoutParams p=horizontal?
-    new LinearLayout.LayoutParams(0,-2,1f):new LinearLayout.LayoutParams(-1,-2);
+    new LinearLayout.LayoutParams(0,dp(44),1f):new LinearLayout.LayoutParams(-1,dp(44));
   p.setMargins(dp(4),dp(6),dp(4),dp(6));host.addView(b,p);return b;
  }
  private void styleButton(Button b,boolean focused){
-  GradientDrawable bg=new GradientDrawable();bg.setColor(focused?0xff084656:0xff162f45);
-  bg.setCornerRadius(dp(12));bg.setStroke(dp(focused?3:1),
-    focused?0xff00f0f4:0xff42647a);b.setBackground(bg);
+  GradientDrawable bg=new GradientDrawable();bg.setColor(focused?0xff391219:0xff15171a);
+  bg.setCornerRadius(dp(6));bg.setStroke(dp(focused?3:1),
+    focused?0xffed1231:0xff51545a);b.setBackground(bg);
  }
  private int dp(int size){return Math.round(size*getResources().getDisplayMetrics().density);}
  @Override protected void onDestroy(){
