@@ -59,7 +59,7 @@ final class RainMonitor {
      Prefs.status(context,"Não foi possível exibir o aviso de chuva real na TV.");
      manualFinished.run();return;
     }
-    if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);
+    if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame,satellite::loading);
     Prefs.status(context,"Aviso de chuva real: "+summary.title+" · Liberdade.");
     manualUntil=SystemClock.elapsedRealtime()+RainOverlay.DURATION+800;
     main.postDelayed(()->{
@@ -97,9 +97,9 @@ final class RainMonitor {
   boolean shown=false;
   Runnable delivered=rainNotice&&displayRain!=null?rainDelivered(displayRain,now,manualWeather):null;
   if(!waiting&&allowed.getAsBoolean()&&!overlay.showing()){
-   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);}
-   else if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,null,satelliteEnabled()?()->{satellite.cancel();return false;}:null);if(shown){if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
-   else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame);}
+   if(rainNotice&&displayRain!=null&&!manualWeather){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame,satellite::loading);}
+   else if(wanted&&weather!=null&&!busy){shown=overlay.show(displayRain,selected==2,false,weather,false,null,satelliteEnabled()?()->{satellite.cancel();return false;}:null);if(shown){if(satelliteEnabled())overlay.satelliteSource(satellite::currentFrame,satellite::loading);if(due)Prefs.get(context).edit().putLong("weatherLastNotice",now).apply();finishManual(true);}}
+   else if(rainNotice&&displayRain!=null&&!(wanted&&weatherBusy)){shown=overlay.showRain(displayRain,selected==2,false,weather,false,delivered);if(shown&&satelliteEnabled())overlay.satelliteSource(satellite::currentFrame,satellite::loading);}
   }
   if(!waiting&&manualWeather&&!weatherBusy&&weatherData!=null&&weather==null&&SystemClock.elapsedRealtime()<nextWeatherRead){Prefs.status(context,"Previsão horária indisponível para a Liberdade. Tente novamente depois.");finishManual(false);}
  }
