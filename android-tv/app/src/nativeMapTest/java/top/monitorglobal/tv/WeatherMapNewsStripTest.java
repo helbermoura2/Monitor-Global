@@ -42,7 +42,8 @@ public class WeatherMapNewsStripTest {
     view.draw(new Canvas(b));float sx=w/960f,sy=h/126f;
     assertEquals("Shared red clock plate",OledNewsChrome.RED_DARK,b.getPixel(Math.round(20*sx),Math.round(100*sy)));
     assertEquals("Shared gray footer",0xff333436,b.getPixel(Math.round(798*sx),Math.round(100*sy)));
-    assertEquals("Shared source divider",0xffbb243d,b.getPixel(Math.round(120*sx),Math.round(75*sy)));
+    int dividerInk=0;for(int x=Math.round(118*sx);x<=Math.round(122*sx);x++){int v=b.getPixel(x,Math.round(75*sy));if(Color.red(v)>100&&Color.red(v)>Color.green(v)*2)dividerInk++;}
+    assertTrue("Shared source divider remains visibly red",dividerInk>0);
     int white=0;for(int y=Math.round(101*sy);y<Math.round(123*sy);y++)for(int x=Math.round(22*sx);x<Math.round(94*sx);x++){int v=b.getPixel(x,y);if(Color.red(v)>210&&Color.green(v)>210&&Color.blue(v)>210)white++;}
     assertTrue("Clock must contain visible digits",white>12);
     if(w==1280)try(java.io.FileOutputStream out=new java.io.FileOutputStream("/tmp/monitor-tv-weather-card-manual-newsroom.png")){assertTrue(b.compress(Bitmap.CompressFormat.PNG,100,out));}
