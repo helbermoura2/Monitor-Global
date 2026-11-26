@@ -2,7 +2,7 @@
 (function(){'use strict';
 const M=window.PhoneBrazilModel,$=id=>document.getElementById(id);
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm na hora anterior'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'},humidity:{field:'relative_humidity_2m',label:'Umidade',unit:'%'},gusts:{field:'wind_gusts_10m',label:'Rajadas',unit:'km/h'},feels:{field:'apparent_temperature',label:'Sensação térmica',unit:'°C'}};
-const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v1';
+const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v2';
 let pendingSevere=false,mapSize=null;
 let city={name:'São Paulo',uf:'SP',id:'3550308',lat:-23.555,lon:-46.635},cities=[],map=null,markers=[],satellite=null,radar=null,boundaries=null,severe=null,severeOn=false,pendingSatellite=false,ready=false,active=true,closed=false,loading=false,controller=null,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,requestId=0;
 function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';$('time-label').textContent='Aguardando dados';}updateCityCard();renderWeek();}
@@ -47,6 +47,7 @@ function renderWeek(){
  if(!weekly)return;
  $('week-place').textContent=city.name+' · '+city.uf;
  const days=forecast?.series[0]?.week||[];
+ $('week-retry').hidden=days.length>0||loading;
  $('week-status').textContent=days.length?'':$('brazil-status').textContent||(forecast?'Previsão de 7 dias indisponível nesta consulta.':'Consultando a previsão…');
  const key=city.id+'/'+lastSuccess+'/'+days[0]?.date;
  if(key===weekKey)return;
@@ -73,11 +74,13 @@ function showWeekly(){
  document.body.classList.add('weekly-mode');
  $('week-panel').hidden=false;
  document.querySelector('.brazil-main').scrollTop=0;
+ load(false);
  renderWeek();
  $('week-title').focus({preventScroll:true});
 }
 $('map-week').addEventListener('click',showWeekly);
 $('week-map').addEventListener('click',showForecast);
+$('week-retry').addEventListener('click',()=>load(true));
 function showValues(){
  renderWeek();
  if(!forecast)return;
@@ -265,7 +268,7 @@ async function loadCities(){
 }
 async function load(force=false){
  if(!active||closed||loading)return;
- const now=Date.now();if(forecast&&!force&&now-lastSuccess<CACHE_MS){showValues();return;}
+ const now=Date.now();if(forecast&&!force&&now-lastSuccess<CACHE_MS&&(!weekly||forecast.series[0].week.length===7)){showValues();return;}
  const day=M.brHour(now).slice(0,10),previous=stored(BUDGET_KEY),used=previous?.day===day&&Number.isSafeInteger(previous.used)?previous.used:0;
  if(used>=MAX_DAILY){note('Limite diário gratuito atingido. Nova consulta amanhã.');return;}
  const persisted=stored(ATTEMPT_KEY),attempts=persisted?.day===day&&persisted?.cities&&typeof persisted.cities==='object'?persisted.cities:{},lastSaved=Number(attempts[key()])||0;
@@ -281,10 +284,10 @@ async function load(force=false){
   forecast=result;lastSuccess=Date.now();remember(payload);step=0;$('frame').disabled=false;$('play').disabled=false;
   createMarker();showValues();note('');
  }catch(e){if(active&&!closed&&ticket===requestId)note(forecast?'Sem atualização. Mantendo a previsão válida anterior.':'Previsão indisponível. Confira a conexão e tente novamente.');}
- finally{clearTimeout(timeout);if(controller===c)controller=null;loading=false;}
+ finally{clearTimeout(timeout);if(controller===c){controller=null;loading=false;renderWeek();}}
 }
 function pause(){active=false;document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
-function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS)load(false);}
+function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS||weekly&&!forecast.series[0].week.length)load(false);}
 function close(){if(closed)return;pause();closed=true;mapSize?.disconnect();boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();severe?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
 function advance(){if(!active||!forecast)return;step=(step+1)%25;showValues();playTimer=setTimeout(advance,1300);}
 $('forecast-now').addEventListener('click',()=>{stop();step=0;showValues();});

@@ -28,6 +28,15 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  forecast.daily={time:hours.filter((_,i)=>i%24===0).map(value=>value.slice(0,10)),
   temperature_2m_min:Array(7).fill(18),temperature_2m_max:Array(7).fill(28),weather_code:Array(7).fill(61),
   precipitation_sum:Array(7).fill(8.5),precipitation_probability_max:Array(7).fill(55),wind_speed_10m_max:Array(7).fill(18)};
+ const legacy={...forecast,hourly:Object.fromEntries(Object.entries(forecast.hourly).map(([key,values])=>[key,values.slice(0,72)]))};
+ delete legacy.daily;
+ let forecastCalls=0;
+ await page.addInitScript(({legacy,day,now})=>{
+  if(location.hostname!=='appassets.androidplatform.net')return;
+  localStorage.setItem('mg-brazil-city-v2',JSON.stringify({entries:{3550308:{at:now-1000,payload:legacy}}}));
+  localStorage.setItem('mg-brazil-last-attempt-v1',JSON.stringify({day,cities:{3550308:now-1000}}));
+  localStorage.setItem('mg-brazil-budget-v1',JSON.stringify({day,used:1}));
+ },{legacy,day,now});
  page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{window.__radarOffset=0;const NativeDate=Date;window.Date=class extends NativeDate {static now(){return NativeDate.now()+window.__radarOffset;}};let library;Object.defineProperty(window,'maplibregl',{configurable:true,get:()=>library,set:value=>{library=value;const Original=value.Map;value.Map=class extends Original{constructor(o){super(o);window.__map=this;}};}});});
  await page.route('**/*',async route=>{const u=new URL(route.request().url()),cors={'Access-Control-Allow-Origin':'*'};
   if(u.origin===origin&&u.pathname==='/favicon.ico')return route.fulfill({status:204});
@@ -47,7 +56,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   if(u.hostname==='raw.githubusercontent.com'&&u.pathname.endsWith('/cemaden-alerts.json'))return route.fulfill({headers:cors,json:{
    version:1,source:'https://painelalertas.cemaden.gov.br/wsAlertas2',checkedAt:now,alerts:[{status:1,lat:-23.55,lng:-46.63,city:'São Paulo',uf:'SP',level:'Alto',event:'Risco hidrológico'}]
   }});
-  if(u.hostname==='api.open-meteo.com')return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify(forecast)});
+  if(u.hostname==='api.open-meteo.com'){forecastCalls++;return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify(forecast)});}
   if(u.hostname==='api.rainviewer.com'){metadataCalls++;if(mode==='hold'&&metadataCalls===1)await new Promise(r=>releaseFirst=r);try{return await route.fulfill({status:mode==='fail'?503:200,headers:cors,contentType:'application/json',body:JSON.stringify(mode==='empty'?{...metadata,radar:{past:[]}}:metadata)});}catch{return;}}
   if(u.hostname==='tilecache.rainviewer.com'){assert.match(u.pathname,/^\/v2\/radar\/[A-Za-z0-9_-]{1,64}\/256\/[0-7]\/\d{1,3}\/\d{1,3}\/2\/1_1\.png$/);tiles.push(u.pathname);return route.fulfill({headers:cors,contentType:'image/png',body:rain});}
   unexpected.push(u.hostname+u.pathname);return route.abort();
@@ -57,8 +66,11 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.ok(mapHeight>=page.viewportSize().height*.95,'map fills the first viewport');
  await page.locator('#map-details').click();
  assert.ok(await page.locator('#map-return').evaluate(el=>el===document.activeElement));
+ assert.equal(forecastCalls,0,'Map 24 h can still use a compatible three-day cache');
  await page.locator('#map-week').click();
  await expect(page.locator('#week-days details')).toHaveCount(7);
+ assert.equal(forecastCalls,1,'Weekly view refreshes legacy cache even if it was just populated');
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('mg-brazil-budget-v1')).used),2);
  await page.locator('#week-days summary').first().click();
  assert.match(await page.locator('#week-days details').first().innerText(),/8,5 mm.*18 km\/h/s);
  await page.locator('#week-map').click();

@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.68
+
+- A previsão semanal atualiza o cache anterior de três dias ao abrir o painel.
+
 # Argos Orbis Celular · 0.1.67
 
 - Clima mostra a previsão para os próximos sete dias no município selecionado no mapa.
