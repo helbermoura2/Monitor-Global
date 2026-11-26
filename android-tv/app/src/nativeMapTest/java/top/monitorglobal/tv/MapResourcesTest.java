@@ -38,7 +38,7 @@ public class MapResourcesTest {
  @Test public void satelliteDrawsAndClosingReleasesQueueAndCallbacks() throws Exception {
   MapInset inset=new MapInset(context,()->{});Alert a=quake(1800000000000L);Map<Alert,Object> ready=ready(inset);inset.prepare(a);
   await(()->{try{return ready.containsKey(a)&&value(ready.get(a),"image")!=null;}catch(Exception e){return false;}});
-  Bitmap frame=Bitmap.createBitmap(620,352,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(frame);canvas.scale(2,2);inset.draw(canvas,a,Typeface.DEFAULT,Color.CYAN);int color=frame.getPixel(80,180);assertTrue(Math.abs(Color.red(color)-0x15)<=8);assertTrue(Math.abs(Color.green(color)-0x38)<=4);assertTrue(Math.abs(Color.blue(color)-0x4b)<=8);frame.recycle();
+  Bitmap frame=Bitmap.createBitmap(400,500,Bitmap.Config.ARGB_8888);Canvas canvas=new Canvas(frame);canvas.scale(2,2);inset.draw(canvas,a,Typeface.DEFAULT,Color.CYAN);int color=frame.getPixel(80,180);assertTrue(Math.abs(Color.red(color)-0x15)<=8);assertTrue(Math.abs(Color.green(color)-0x38)<=4);assertTrue(Math.abs(Color.blue(color)-0x4b)<=8);frame.recycle();
   inset.close();ExecutorService executor=(ExecutorService)value(inset,"worker");await(executor::isTerminated);Shadows.shadowOf(Looper.getMainLooper()).idle();assertTrue(ready.isEmpty());assertEquals(0,open.get());
  }
  @Test public void failedImageRetainsOfflineGeography() throws Exception {
@@ -52,12 +52,12 @@ public class MapResourcesTest {
   Alert quake=quake(1800000000000L);NewsBannerView view=new NewsBannerView(context,quake,true,false);int space=(Integer)value(view,"mapSpace");assertTrue(space>0);view.layout(0,0,960,126+space);view.onAttachedToWindow();MapInset inset=(MapInset)value(view,"mapInset");Map<Alert,Object> ready=ready(inset);
   try{await(()->ready.size()==2&&ready.values().stream().allMatch(d->unchecked(d,"image")!=null));long start=android.os.SystemClock.uptimeMillis();view.startPresentation(start,true);
    for(int page=0;page<2;page++){long target=start+(page==0?1000:9000),advance=target-android.os.SystemClock.uptimeMillis();if(advance>0)org.robolectric.shadows.ShadowSystemClock.advanceBy(java.time.Duration.ofMillis(advance));Bitmap actual=Bitmap.createBitmap(960,126+space,Bitmap.Config.ARGB_8888),expected=Bitmap.createBitmap(960,126+space,Bitmap.Config.ARGB_8888);
-    try{view.onDraw(new Canvas(actual));Canvas c=new Canvas(expected);c.scale(1,space/180f);c.translate(MapInset.FRAME_X,0);inset.draw(c,page==0?quake:quake.companion,(Typeface)value(view,"brand"),(Integer)value(view,"accent"));int height=space*176/180;int[] a=new int[310*height],b=new int[a.length];actual.getPixels(a,0,310,(int)MapInset.FRAME_X,0,310,height);expected.getPixels(b,0,310,(int)MapInset.FRAME_X,0,310,height);// Map contents remain pixel-identical inside the panel. The outer
+    try{view.onDraw(new Canvas(actual));Canvas c=new Canvas(expected);int placement=MapInset.begin(c,1,1,space,126,false,1,true);inset.draw(c,page==0?quake:quake.companion,(Typeface)value(view,"brand"),(Integer)value(view,"accent"));c.restoreToCount(placement);int height=space-4,width=(int)(height*.8f),left=(int)(OledNewsChrome.RIGHT-height*.8f);int[] a=new int[width*height],b=new int[a.length];actual.getPixels(a,0,width,left,0,width,height);expected.getPixels(b,0,width,left,0,width,height);// Map contents remain pixel-identical inside the panel. The outer
     // 8px rounded-corner ring may blend differently over a transparent
     // background in Skia's composited scene; panel bounds are checked in
     // TvBroadcastInfoViewTest against the shared x615..925 anchor.
-    for(int y=8;y<height-8;y++)for(int x=8;x<310-8;x++){
-     int i=y*310+x;
+    for(int y=8;y<height-8;y++)for(int x=8;x<width-8;x++){
+     int i=y*width+x;
      int actualPixel=a[i],expectedPixel=b[i];
      assertTrue("page "+page+" map pixel "+i+" alpha differs",
       Math.abs(Color.alpha(expectedPixel)-Color.alpha(actualPixel))<=2);
@@ -77,7 +77,7 @@ public class MapResourcesTest {
    MapInset inset=new MapInset(context,()->{});Map<Alert,Object> ready=ready(inset);List<Alert> alerts=new ArrayList<>();
    try{for(int j=0;j<5;j++){Alert a=quake(1800000000000L+j);alerts.add(a);inset.prepare(a);}await(()->{try{return ready.size()==5&&ready.values().stream().allMatch(d->unchecked(d,"image")!=null);}catch(Exception e){return false;}});
     long bytes=0;for(Object d:ready.values()){bytes+=((Bitmap)value(d,"image")).getAllocationByteCount();images++;}maximum=Math.max(maximum,bytes);assertTrue(bytes<=5L*620*300*2);
-    Bitmap frame=Bitmap.createBitmap(620,352,Bitmap.Config.ARGB_8888);try{for(Alert a:alerts){Canvas canvas=new Canvas(frame);canvas.scale(2,2);inset.draw(canvas,a,Typeface.DEFAULT,Color.CYAN);}}finally{frame.recycle();}
+    Bitmap frame=Bitmap.createBitmap(400,500,Bitmap.Config.ARGB_8888);try{for(Alert a:alerts){Canvas canvas=new Canvas(frame);canvas.scale(2,2);inset.draw(canvas,a,Typeface.DEFAULT,Color.CYAN);}}finally{frame.recycle();}
    }finally{inset.close();}
    await(()->((ExecutorService)unchecked(inset,"worker")).isTerminated());Shadows.shadowOf(Looper.getMainLooper()).idle();assertTrue(ready.isEmpty());assertEquals(0,open.get());inset.prepare(alerts.get(0));assertTrue(ready.isEmpty());
   }

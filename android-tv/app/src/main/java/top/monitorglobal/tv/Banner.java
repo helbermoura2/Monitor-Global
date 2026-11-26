@@ -5,7 +5,7 @@ final class Banner {
  private static final long EXIT_MS=250;
  private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private View current;private CivilScreenEffect civilScreen;private android.animation.ValueAnimator wipe;private Runnable exitDeadline,onFinished;private TvEffectsController activeEffects;private boolean slotAnimated;private View awaiting;private ViewTreeObserver.OnPreDrawListener starter;private final Runnable dismiss=this::dismiss,clearCivilScreen=this::stopCivilScreen;
  Banner(Context c){context=c;}
- static int insetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(180,available);}
+ static int insetDp(Context c){return MapInset.insetDp(c);}
  private int dp(int n){return Math.round(n*context.getResources().getDisplayMetrics().density);}
  boolean show(Alert a,boolean demo,boolean replay){
   long duration=BannerTimeline.durationMillis(a,Prefs.get(context).getInt("seconds",20));

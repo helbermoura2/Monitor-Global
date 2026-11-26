@@ -494,8 +494,8 @@ final class TvBroadcastInfoView extends View {
   label(c,frame==null?(satellite==null?satelliteStatus:"Imagem indisponível"):InfraredPlan.timing(frame.at,System.currentTimeMillis())+
     " · IMAGEM INFRAVERMELHA · NÃO É RADAR DE CHUVA",142,88,16,0xffb8d2df,data,705);
  }
- static int weatherInsetDp(Context c){android.util.DisplayMetrics m=c.getResources().getDisplayMetrics();int available=(int)(m.heightPixels/m.density)-126-64;return available<80?0:Math.min(230,available);}
- static float portraitWidth(float physicalHeight,float xScale){return physicalHeight*0.8f/xScale;}
+ static int weatherInsetDp(Context c){return MapInset.insetDp(c);}
+ static float portraitWidth(float physicalHeight,float xScale){return MapInset.portraitWidth(physicalHeight,xScale);}
  private WeatherSatelliteClient.Frame currentFrame(){
   WeatherSatelliteClient.Frame frame=kind==WEATHER||kind==RAIN
       ?(weatherSatellite==null?null:weatherSatellite.get()):satellite;
@@ -506,11 +506,7 @@ final class TvBroadcastInfoView extends View {
  private void drawMap(Canvas c,WeatherSatelliteClient.Frame displayed,long now){
   if(mapSpace<=0||mapReveal<=0||!(kind==WEATHER||kind==RAIN||kind==SATELLITE))return;
   float sx=getWidth()/960f,sy=getHeight()/(126f+mapSpace);if(sx<=0||sy<=0)return;
-  float height=mapSpace-4f,width=portraitWidth(height*sy,sx);
-  if(width<=0)return;
-  float slide=(1-mapReveal)*(effects.full()?24:14);
-  c.save();c.translate(OledNewsChrome.RIGHT-width,mapBelow?126+4-slide:slide);c.scale(width/200f,height/250f);
-  c.clipRect(0,0,200,250);
+  int placement=MapInset.begin(c,sx,sy,mapSpace,126f,mapBelow,mapReveal,effects.full());
   int save=mapReveal<1?c.saveLayerAlpha(0,0,200,250,Math.round(255*mapReveal)):c.save();
   rounded(c,0,0,200,250,Color.BLACK,5);
   boolean radar=displayed!=null&&displayed.isRadar();
@@ -537,7 +533,7 @@ final class TvBroadcastInfoView extends View {
   }else label(c,weatherMapLoading.getAsBoolean()?"Consultando fontes…":"Dados indisponíveis",8,232,11,Color.WHITE,data,184);
   if(displayed!=null)label(c,InfraredPlan.timing(displayed.at,System.currentTimeMillis()),8,245,10,0xffd3d7da,brand,184);
   p.setColor(0xff45484d);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1);c.drawRoundRect(0,0,200,250,5,5,p);p.setStyle(Paint.Style.FILL);
-  c.restoreToCount(save);c.restore();
+  c.restoreToCount(save);c.restoreToCount(placement);
  }
  @Override protected void onDraw(Canvas canvas){
   super.onDraw(canvas);if(started==0)return;long drawStarted=SystemClock.elapsedRealtimeNanos();

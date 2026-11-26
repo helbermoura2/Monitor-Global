@@ -25,10 +25,11 @@ final class SatelliteImage {
  }
  private Bitmap export(String layer,MapFrame f,boolean transparent,long deadline){
   String bbox=f.west+","+f.south+","+f.east+","+f.north;
+  RectF area=MapInset.mapArea(f);int width=Math.max(1,Math.round(area.width()*2)),height=Math.max(1,Math.round(area.height()*2));
   String url=ROOT+layer+"/MapServer/export?bbox="+bbox
-    +"&bboxSR=4326&imageSR=4326&size=620,300&dpi=144&format="+(transparent?"png32":"png")
+    +"&bboxSR=4326&imageSR=4326&size="+width+","+height+"&dpi=144&format="+(transparent?"png32":"png")
     +"&transparent="+transparent+"&f=image";
-  return download(url,deadline,620,300,1500000);
+  return download(url,deadline,width,height,1500000);
  }
  private Bitmap download(String url,long deadline,int width,int height,int limit){
   if(closed||Thread.currentThread().isInterrupted())return null;
@@ -51,8 +52,9 @@ final class SatelliteImage {
  }
  private Bitmap tiles(MapFrame f,long deadline){
   List<SatellitePlan.Tile> tiles=SatellitePlan.tiles(f);if(tiles.isEmpty()||closed)return null;
-  Bitmap result=Bitmap.createBitmap(620,300,Bitmap.Config.RGB_565);Canvas canvas=new Canvas(result);
-  canvas.scale(2,2);Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
+  RectF area=MapInset.mapArea(f);int width=Math.max(1,Math.round(area.width()*2)),height=Math.max(1,Math.round(area.height()*2));
+  Bitmap result=Bitmap.createBitmap(width,height,Bitmap.Config.RGB_565);Canvas canvas=new Canvas(result);
+  canvas.scale(width/310f,height/150f);Paint paint=new Paint(Paint.FILTER_BITMAP_FLAG);
   for(SatellitePlan.Tile tile:tiles){Bitmap b=fetch("World_Imagery",tile,deadline);if(b==null){result.recycle();return null;}project(canvas,b,tile,f,paint);b.recycle();}
   for(SatellitePlan.Tile tile:tiles){Bitmap b=fetch(REFERENCE,tile,deadline);if(b==null)break;project(canvas,b,tile,f,paint);b.recycle();}
   if(closed){result.recycle();return null;}return result;
