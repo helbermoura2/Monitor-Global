@@ -179,11 +179,10 @@ final class BrazilNationalBannerView extends View {
  void mapReveal(float reveal){if(mapReveal!=reveal){mapReveal=reveal;invalidate();}}
  private void drawDetailMap(Canvas c){
   if(mapSpace<=0||detailMap==null||mapReveal<=0)return;
-  c.save();c.translate(0,mapBelow?HEIGHT:0);c.scale(1,mapSpace/MapInset.VIEWPORT_HEIGHT);c.clipRect(0,0,WIDTH,MapInset.VIEWPORT_HEIGHT);
-  float slide=(1-mapReveal)*(effects.full()?34:19);
-  c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide));
+  int placement=MapInset.begin(c,getWidth()/WIDTH,getHeight()/(HEIGHT+mapSpace),mapSpace,HEIGHT,mapBelow,mapReveal,effects.full());
+  int layer=mapReveal<1?c.saveLayerAlpha(0,0,MapInset.FRAME_WIDTH,MapInset.FRAME_HEIGHT,Math.round(255*mapReveal)):c.save();
   detailMap.draw(c,alert,bold,0xff38bdf8);
-  c.restore();
+  c.restoreToCount(layer);c.restoreToCount(placement);
  }
  private void drawBody(Canvas c,long elapsed){
   float mapRight=backup?271:224;

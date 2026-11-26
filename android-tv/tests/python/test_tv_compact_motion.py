@@ -32,16 +32,14 @@ class BroadcastLowerThirdTest(unittest.TestCase):
         self.assertIn("weatherSatellite.get()", card)
         self.assertNotIn("new MapInset(", card)
         self.assertIn("INFRAVERMELHO · SE", card)
-        # Meteorology uses a physically vertical 4:5 frame, with the same right
-        # edge as the unchanged horizontal seismic maps. Native graphics tests
-        # verify the actual rendered pixel bounds and absence of overflow.
-        self.assertIn("c.translate(OledNewsChrome.RIGHT-width,", card)
-        self.assertIn("physicalHeight*0.8f/xScale", card)
-        self.assertIn("height=mapSpace-4f,width=portraitWidth(height*sy,sx)", card)
+        # Every event uses the same portrait placement and physical ratio.
+        inset = source("MapInset.java")
+        self.assertIn("FRAME_WIDTH=200f, FRAME_HEIGHT=250f", inset)
+        self.assertIn("physicalHeight*.8f/xScale", inset)
+        self.assertIn("c.translate(OledNewsChrome.RIGHT-width,", inset)
+        for view in ("NewsBannerView.java", "BrazilNationalBannerView.java", "TvBroadcastInfoView.java"):
+            self.assertIn("MapInset.begin(", source(view))
         self.assertIn("RADAR · SP/RJ", card)
-        self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", source("NewsBannerView.java"))
-        self.assertIn("FRAME_X=OledNewsChrome.RIGHT-FRAME_WIDTH", source("MapInset.java"))
-        self.assertIn("c.translate(MapInset.FRAME_X,MapInset.slideY(mapBelow,slide))", source("BrazilNationalBannerView.java"))
         self.assertNotIn("WEATHER||kind==RAIN?615:649", card)
         self.assertIn('getBoolean("weatherSatellite",true)?0:weatherInsetDp(c)', card)
         self.assertIn("themeTop", display)

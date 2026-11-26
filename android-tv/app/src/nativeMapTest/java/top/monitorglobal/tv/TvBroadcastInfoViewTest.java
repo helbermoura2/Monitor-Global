@@ -123,18 +123,17 @@ public class TvBroadcastInfoViewTest {
   finally{b.recycle();}
  }
  @Test public void portraitWeatherAndSeismicMapsShareRightEdge()throws Exception{
-  assertEquals(615f,MapInset.FRAME_X,0);
-  assertEquals(310f,MapInset.FRAME_WIDTH,0);
-  assertEquals(176f,MapInset.FRAME_HEIGHT,0);
-  assertEquals("Every event map must finish at the banner right edge",
-   OledNewsChrome.RIGHT,MapInset.FRAME_X+MapInset.FRAME_WIDTH,0);
+  assertEquals(200f,MapInset.FRAME_WIDTH,0);
+  assertEquals(250f,MapInset.FRAME_HEIGHT,0);
+  assertEquals(.8f,MapInset.FRAME_WIDTH/MapInset.FRAME_HEIGHT,0);
+  assertEquals(Banner.insetDp(c),TvBroadcastInfoView.weatherInsetDp(c));
   WeatherForecast.Summary weather=new WeatherForecast.Summary(
     "22°C","Nublado","12 km/h","74%","Modelo horário",System.currentTimeMillis()+600000,false,
     "22°C","22°C","74%","12 km/h","17 km/h","Cloudy");
   TvBroadcastInfoView v=TvBroadcastInfoView.weather(c,null,weather,false);
   Bitmap full=render(v,"aligned-weather-inset");
   try{
-   // Weather is now physically 4:5, while seismic maps retain their original 310 × 176 shape.
+   // All event maps share the same physical 4:5 placement.
    int left=Math.round(OledNewsChrome.RIGHT-(v.mapSpace-4)*.8f);
    assertTrue("Portrait map starts at its calculated left edge",Color.alpha(full.getPixel(left+6,10))>160);
    assertEquals("No map protrudes left of the portrait frame",0,Color.alpha(full.getPixel(left-8,10)));
