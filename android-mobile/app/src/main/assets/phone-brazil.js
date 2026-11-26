@@ -271,7 +271,7 @@ function initMap(){
    ready=true;createMarker();
    try{satellite=window.BrazilSatellite.create({map,host:$('overlay-panel'),enabled:false});const satellitePanel=$('overlay-panel').querySelector('.brazil-satellite-control');satellitePanel.querySelector('details').open=true;satellitePanel.prepend(satellitePanel.querySelector('.br-satellite-status'));satelliteCheckbox()?.addEventListener('change',()=>{if(!severeOn&&satellite?.state.enabled&&radar?.enabled){radar.toggle(false);$('radar-toggle').setAttribute('aria-pressed','false');}syncOverlays();});}catch(e){note('Satélite indisponível nesta visualização.');}
    try{radar=window.PhoneBrazilRadar.create(map,$('overlay-panel'),()=>{severe?.raise();severe?.analyze();});}catch(e){note('Radar indisponível nesta visualização.');}
-   try{boundaries=window.ArgosBoundaries.create({map,selectAnywhere:true,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!regional.opened&&!severe?.hasMarkerAt(point),presentPlace:content=>{if(content.dataset.citySelected==='true')return;showSelection(content);},onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
+   try{boundaries=window.ArgosBoundaries.create({map,selectAnywhere:true,host:document.querySelector('.brazil-map-panel'),shouldOpen:point=>!severe?.hasMarkerAt(point)&&!regional.opened,presentPlace:content=>{if(content.dataset.citySelected==='true')return;showSelection(content);},onPlace:place=>{const local=cities.find(item=>item.id===place.municipalityId);
      if(!local)return 'Amplie o mapa para identificar o município pelo limite do IBGE.';
      place.element.dataset.citySelected='true';
      selectCity(local,false);returnToMap();openCityCard();
