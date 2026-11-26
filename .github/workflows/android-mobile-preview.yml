@@ -87,7 +87,6 @@ jobs:
         run: |
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/debug/app-debug.apk
           python android-mobile/tools/check-preview-apk.py "$ANDROID_HOME/build-tools/35.0.0/aapt" android-mobile/app/build/outputs/apk/stable/app-stable.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-mobile/app/build/outputs/apk/stable/app-stable.apk | grep -F "versionName='0.1.66'"
           python - <<'PY'
           import os,re,subprocess,pathlib
           aapt=pathlib.Path(os.environ['ANDROID_HOME'])/'build-tools/35.0.0/aapt'
@@ -98,6 +97,9 @@ jobs:
               return match.group(1),int(match.group(2)),match.group(3)
           debug=package('android-mobile/app/build/outputs/apk/debug/app-debug.apk')
           stable=package('android-mobile/app/build/outputs/apk/stable/app-stable.apk')
+          declared=re.search(r"versionName '([^']+)'",pathlib.Path('android-mobile/app/build.gradle').read_text())
+          if not declared or stable[2] != declared.group(1):
+              raise SystemExit(f'Stable APK version does not match app/build.gradle: {stable[2]}')
           if debug[0] != stable[0] or stable[1] <= debug[1]:
               raise SystemExit(f'Stable APK must keep the same package and have a higher versionCode: debug={debug}, stable={stable}')
           if debug[2].endswith('-teste') is False or stable[2].endswith('-teste'):
