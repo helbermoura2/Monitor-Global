@@ -33,7 +33,7 @@ public class PhoneActivity extends Activity {
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
- private boolean active,destroyed,refreshing,forecastRequested,weeklyRequested,focusMappedEvent,detailLoading,dailyExpanded,mapFiltersExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
+ private boolean active,destroyed,refreshing,forecastRequested,weeklyRequested,weeklyVisible,focusMappedEvent,detailLoading,dailyExpanded,mapFiltersExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
  private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);if(tab.equals("notices")&&selected==null)refreshCivilAlerts(false);main.postDelayed(this,60000);}};
 
  protected PhoneRepository createRepository(){return new PhoneRepository();}
@@ -205,15 +205,26 @@ public class PhoneActivity extends Activity {
   String[] ids={"weather","rain","brazil"},labels={"Previsão","Chuva agora","Mapa 24 h"};
   for(int i=0;i<ids.length;i++){
    String target=ids[i];Button b=button(labels[i],()->{
-    if(tab.equals(target))return;
+    if(tab.equals(target)&&!(target.equals("brazil")&&weeklyVisible))return;
     if(target.equals("weather"))go("weather");else openLayer(target);
    });
    b.setTag(target.equals("weather")?"open-weather":target.equals("rain")?"open-rain":"open-brazil");
-   b.setSelected(target.equals(current));b.setTextColor(target.equals(current)?CYAN:MUTED);b.setBackground(ripple(target.equals(current)?0xff164455:BODY));b.setTextSize(13);
+   styleClimateButton(b,target.equals(current));b.setTextSize(13);
    b.setPadding(dp(4),dp(6),dp(4),dp(6));
    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-2,1);lp.setMarginEnd(dp(i<2?4:0));row.addView(b,lp);
   }
   LinearLayout.LayoutParams rowLayout=new LinearLayout.LayoutParams(-1,-2);rowLayout.bottomMargin=dp(8);box.addView(row,rowLayout);
+ }
+ private void styleClimateButton(Button button,boolean selected){
+  button.setSelected(selected);button.setTextColor(selected?CYAN:MUTED);
+  button.setBackground(ripple(selected?0xff164455:BODY));
+ }
+ private void showWeeklySelection(boolean visible){
+  if(!tab.equals("brazil")||selected!=null)return;
+  weeklyVisible=visible;
+  Button forecast=content.findViewWithTag("open-weather"),mapButton=content.findViewWithTag("open-brazil");
+  if(forecast!=null)styleClimateButton(forecast,visible);
+  if(mapButton!=null)styleClimateButton(mapButton,!visible);
  }
  private void requestDetails(boolean daily){requestDetails(daily,false);}
  private void requestDetails(boolean daily,boolean force){
@@ -847,7 +858,7 @@ public class PhoneActivity extends Activity {
   for(int i=0;i<PhonePush.CATEGORIES.length;i++){final String category=PhonePush.CATEGORIES[i];android.widget.Switch toggle=new android.widget.Switch(this);toggle.setText(names[i]);toggle.setTextSize(16);toggle.setTextColor(TEXT);toggle.setTypeface(Typeface.DEFAULT);toggle.setPadding(0,dp(8),0,dp(8));toggle.setMinimumHeight(dp(52));toggle.setChecked(PhonePush.categoryEnabled(this,category));toggle.setTag("push-category-"+category);toggle.setOnCheckedChangeListener((v,on)->PhonePush.setCategory(this,category,on,()->{if(!destroyed)render();}));body.addView(toggle,new LinearLayout.LayoutParams(-1,-2));}
   footer(card,"Chuva e previsão: Liberdade, São Paulo. Os horários e a entrega dependem dos serviços e permissões do aparelho.");
  }
- private void openLayer(String target){forecastRequested=target.equals("brazil");tab=target;selected=null;render();}
+ private void openLayer(String target){weeklyVisible=weeklyRequested&&target.equals("brazil");forecastRequested=target.equals("brazil");tab=target;selected=null;render();}
  private Button backButton(String label,Runnable action){Button b=button(label,action);b.setTextSize(14);return b;}
  private void mapPage(){
   LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));box.addView(backButton("‹ "+(mappedEvent==null?"Sismos":"Detalhes do evento"),this::closeSeismicMap));Button filterButton=button("Filtrar eventos · "+(mapFilter.equals("all")?"Todos":mapFilter.equals("earthquake")?"Sismos":"Tsunamis")+(mapFiltersExpanded?"  ▴":"  ▾"),()->{mapFiltersExpanded=!mapFiltersExpanded;render();});filterButton.setTag("map-show-filters");filterButton.setTextSize(14);filterButton.setMinHeight(dp(36));filterButton.setMinimumHeight(dp(36));box.addView(filterButton,new LinearLayout.LayoutParams(-1,-2));LinearLayout filters=new LinearLayout(this);filters.setPadding(dp(8),0,dp(8),dp(3));if(mapFiltersExpanded)box.addView(filters,new LinearLayout.LayoutParams(-1,-2));String[] names={"Todos","Sismos","Tsunami"},ids={"all","earthquake","tsunami"};for(int i=0;i<ids.length;i++){final String id=ids[i];Button b=button(names[i],()->{mapFilter=id;render();});b.setSelected(mapFilter.equals(id));b.setTextColor(mapFilter.equals(id)?CYAN:MUTED);b.setMinHeight(dp(38));b.setMinimumHeight(dp(38));b.setPadding(dp(4),dp(2),dp(4),dp(2));b.setTextSize(14);filters.addView(b,new LinearLayout.LayoutParams(0,-2,1));}
@@ -859,8 +870,8 @@ public class PhoneActivity extends Activity {
   if(rainMap==null)rainMap=new PhoneMapView(this,null,true);if(rainMap.getParent()!=null)((ViewGroup)rainMap.getParent()).removeView(rainMap);box.addView(rainMap,new LinearLayout.LayoutParams(-1,0,1));if(active)rainMap.resume();else rainMap.pause();
  }
  private void brazilPage(){
-  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,"brazil");
-  if(brazilMap==null)brazilMap=new PhoneMapView(this,null,false,true);if(brazilMap.getParent()!=null)((ViewGroup)brazilMap.getParent()).removeView(brazilMap);box.addView(brazilMap,new LinearLayout.LayoutParams(-1,0,1));if(active)brazilMap.resume();else brazilMap.pause();if(severeRequested){severeRequested=false;forecastRequested=false;brazilMap.showSevere();}else if(weeklyRequested){weeklyRequested=false;forecastRequested=false;brazilMap.showWeekly();}else if(forecastRequested){forecastRequested=false;brazilMap.showForecast();}
+  LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);content.addView(box,new FrameLayout.LayoutParams(-1,-1));layerButtons(box,weeklyVisible?"weather":"brazil");
+  if(brazilMap==null){brazilMap=new PhoneMapView(this,null,false,true);brazilMap.setWeeklyListener(this::showWeeklySelection);}if(brazilMap.getParent()!=null)((ViewGroup)brazilMap.getParent()).removeView(brazilMap);box.addView(brazilMap,new LinearLayout.LayoutParams(-1,0,1));if(active)brazilMap.resume();else brazilMap.pause();if(severeRequested){severeRequested=false;forecastRequested=false;showWeeklySelection(false);brazilMap.showSevere();}else if(weeklyRequested){weeklyRequested=false;forecastRequested=false;brazilMap.showWeekly();}else if(forecastRequested){forecastRequested=false;brazilMap.showForecast();}
  }
  private void showMapEvent(Alert a){
   if(!tab.equals("map")){mappedEvent=a.copy();mapReturnTab=returnTab;}

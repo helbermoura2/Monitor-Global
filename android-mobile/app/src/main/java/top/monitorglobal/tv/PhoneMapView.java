@@ -145,6 +145,8 @@ final class PhoneMapView extends FrameLayout {
  private void sendFocus(){if(!rainPage&&!brazilPage&&ready&&active&&web!=null&&!pendingFocus.isEmpty()){String value=pendingFocus;pendingFocus="";script("window.MonitorMap&&window.MonitorMap.focus(JSON.parse("+quote(value)+"))");}}
  private static String quote(String value){return JSONObject.quote(value).replace("\u2028","\\u2028").replace("\u2029","\\u2029");}
  private String pendingWeatherMode;
+ private java.util.function.Consumer<Boolean> weeklyListener;
+ void setWeeklyListener(java.util.function.Consumer<Boolean> listener){weeklyListener=listener;}
  void showWeekly(){requestWeatherMode("showWeekly");}
  void showForecast(){requestWeatherMode("showForecast");}
  void showSevere(){requestWeatherMode("showSevere");}
@@ -157,6 +159,10 @@ final class PhoneMapView extends FrameLayout {
  private void disposeWeb(){WebView old=web;web=null;if(old!=null){removeView(old);old.removeJavascriptInterface("MonitorMapBridge");old.stopLoading();old.destroy();}}
  private void unavailable(){if(closed)return;ready=false;disposeWeb();removeAllViews();LinearLayout panel=new LinearLayout(getContext());panel.setOrientation(LinearLayout.VERTICAL);panel.setGravity(Gravity.CENTER);int pad=Math.round(20*getResources().getDisplayMetrics().density);panel.setPadding(pad,pad,pad,pad);TextView message=new TextView(getContext());message.setText(brazilPage?"Mapa meteorológico indisponível. Volte para Tempo para tentar novamente.":rainPage?"Mapa de chuva indisponível. Volte para Tempo para consultar a previsão.":"Mapa indisponível no momento. Os dados dos eventos continuam acessíveis na lista.");message.setTextColor(Color.WHITE);message.setTextSize(17);message.setGravity(Gravity.CENTER);panel.addView(message,new LinearLayout.LayoutParams(-1,-2));Button retry=new Button(getContext());retry.setText("Recarregar mapa");retry.setAllCaps(false);retry.setOnClickListener(v->open());panel.addView(retry,new LinearLayout.LayoutParams(-2,-2));TextView credit=new TextView(getContext());credit.setText("Imagens: Esri e colaboradores");credit.setTextColor(0xffbfd1df);credit.setTextSize(12);credit.setGravity(Gravity.CENTER);panel.addView(credit,new LinearLayout.LayoutParams(-1,-2));addView(panel,new LayoutParams(-1,-1));}
  private final class Bridge {
+  @JavascriptInterface public void weeklyVisible(boolean visible){
+   if(!brazilPage)return;
+   main.post(()->{if(!closed&&active&&weeklyListener!=null)weeklyListener.accept(visible);});
+  }
   @JavascriptInterface public void selectEvent(String id){if(id==null||id.length()>1400)return;main.post(()->{if(closed||!active)return;Alert event=events.get(id);if(event!=null&&listener!=null)listener.onEventSelected(event.copy());});}
  }
 }

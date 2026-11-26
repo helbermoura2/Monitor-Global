@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.69
+
+- A previsão semanal destaca a aba Previsão e separa mínima, máxima, chance de chuva e volume em cartões expansíveis.
+
 # Argos Orbis Celular · 0.1.68
 
 - A previsão semanal atualiza o cache anterior de três dias ao abrir o painel.

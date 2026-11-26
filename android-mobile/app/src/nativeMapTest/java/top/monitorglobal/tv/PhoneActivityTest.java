@@ -227,6 +227,15 @@ public class PhoneActivityTest {
   root().findViewWithTag("open-brazil").performClick();layout();assertTrue(root().findViewWithTag("tab-weather").isSelected());assertNotNull(root().findViewWithTag("open-weather"));
   activity.onBackPressed();layout();assertNotNull(root().findViewWithTag("open-rain"));assertNotNull(root().findViewWithTag("open-brazil"));
  }
+ @Test public void weeklyForecastHighlightsForecastAndLetsTheUserReturnToTheMap(){
+  root().findViewWithTag("tab-weather").performClick();layout();
+  root().findViewWithTag("open-weekly-forecast").performClick();layout();
+  assertTrue(root().findViewWithTag("open-weather").isSelected());
+  assertFalse(root().findViewWithTag("open-brazil").isSelected());
+  root().findViewWithTag("open-brazil").performClick();layout();
+  assertTrue(root().findViewWithTag("open-brazil").isSelected());
+  assertFalse(root().findViewWithTag("open-weather").isSelected());
+ }
  @Test public void verifiedOnlineBriefingAppearsOnPhoneWithoutChangingEventNavigation()throws Exception{
   PhoneRepository.Snapshot fixture=data();long now=System.currentTimeMillis(),generated=now-60000,reference=now-120000;WeatherForecast.Summary w=new WeatherForecast.Summary("18°C","Nublado","9 km/h","92%","Modelo horário",now+600000,false,"18°C","19°C","92%","9 km/h","19 km/h","Cloudy",generated,reference);
   org.json.JSONObject ai=new org.json.JSONObject().put("version","weather-briefing-v1").put("status","ready").put("area","liberdade").put("kind","hourly").put("model",WeatherBriefing.MODEL).put("generatedAt",now).put("expiresAt",now+600000).put("dataAt",generated).put("referenceAt",reference).put("text","Na Liberdade, a previsão horária é de 18 °C. O modelo horário indica céu nublado.");activity.getSharedPreferences("weather-ai",0).edit().putString("hourly",ai.toString()).commit();activity.applySnapshot(new PhoneRepository.Snapshot(fixture.events,w,fixture.rain,now,fixture.feedStatus,fixture.weatherStatus,fixture.rainStatus,false,true,true));root().findViewWithTag("tab-weather").performClick();layout();assertTrue(texts(root()).contains("RESUMO COM IA"));assertTrue(texts(root()).contains("previsão horária é de 18 °C"));export("weather-ai");root().findViewWithTag("tab-notices").performClick();assertTrue(texts(root()).contains("Central de Alertas"));

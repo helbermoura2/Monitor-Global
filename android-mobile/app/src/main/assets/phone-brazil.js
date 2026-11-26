@@ -57,22 +57,34 @@ function renderWeek(){
  const metric=(value,unit,decimals=0)=>value===null?'—':round(value,decimals)+unit;
  for(const day of days){
   const card=document.createElement('details'),title=document.createElement('summary');
-  const date=document.createElement('strong'),temps=document.createElement('span'),weather=document.createElement('span');
+  const date=document.createElement('strong'),temps=document.createElement('span');
+  const weather=document.createElement('span'),icon=document.createElement('span'),chevron=document.createElement('span');
+  const chance=document.createElement('span'),amount=document.createElement('span');
+  const code=day.weather_code;
+  icon.className='week-icon';icon.setAttribute('aria-hidden','true');
+  icon.textContent=code===null?'·':code===0?'☀':code<=2?'⛅':code<=48?'☁':code>=95?'⛈':/neve/.test(condition(code))?'❄':'🌧';
   date.textContent=dayFormat.format(new Date(day.date+'T00:00Z'));
-  temps.textContent=metric(day.temperature_2m_min,'°')+' / '+metric(day.temperature_2m_max,'°');
-  weather.textContent=condition(day.weather_code)+' · '+metric(day.precipitation_probability_max,'%')+' de chance · '+metric(day.precipitation_sum,' mm',1);
+  temps.className='week-temperatures';temps.textContent='Mín. '+metric(day.temperature_2m_min,'°')+' · Máx. '+metric(day.temperature_2m_max,'°');
+  weather.className='week-condition';weather.textContent=condition(code);
+  chance.className='week-chance';chance.textContent=metric(day.precipitation_probability_max,'%')+' de chance';
+  amount.className='week-amount';amount.textContent=metric(day.precipitation_sum,' mm',1)+' previstos';
+  chevron.className='week-chevron';chevron.setAttribute('aria-hidden','true');
   const info=document.createElement('p');
   info.textContent='Vento máximo previsto: '+metric(day.wind_speed_10m_max,' km/h')+
    (day.peak?' · Maior chance de chuva às '+day.peak.at.slice(11,16)+' ('+day.peak.chance+'%).':'.');
-  title.append(date,temps,weather);card.append(title,info);list.append(card);
+  title.append(icon,date,temps,chevron,weather,chance,amount);card.append(title,info);list.append(card);
  }
  $('week-days').replaceChildren(list);
 }
+function setWeeklyMode(visible){
+ if(weekly===visible)return;
+ weekly=visible;
+ document.body.classList.toggle('weekly-mode',visible);
+ $('week-panel').hidden=!visible;
+ window.MonitorMapBridge?.weeklyVisible?.(visible);
+}
 function showWeekly(){
- showForecast();
- weekly=true;
- document.body.classList.add('weekly-mode');
- $('week-panel').hidden=false;
+ if(!weekly){showForecast();setWeeklyMode(true);}
  document.querySelector('.brazil-main').scrollTop=0;
  load(false);
  renderWeek();
@@ -393,6 +405,7 @@ function setSevere(next){
  severe.toggle(severeOn);syncOverlays();
 }
 function showSevere(){
+ setWeeklyMode(false);
  if(!ready||!severe||!radar){pendingSevere=true;return;}
  pendingSevere=false;if(!severeOn)setSevere(true);
 }
@@ -400,9 +413,9 @@ $('severe-toggle').addEventListener('click',()=>{
  if(!severe||!radar){note('Aguarde o carregamento do mapa.');return;}
  setSevere(!severeOn);setLayerMenu(false);
 });
-function showSatellite(){pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
+function showSatellite(){setWeeklyMode(false);pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
 function showForecast(){
- weekly=false;document.body.classList.remove('weekly-mode');$('week-panel').hidden=true;
+ setWeeklyMode(false);
  pendingSevere=false;pendingSatellite=false;
  if(severeOn)setSevere(false);
  if(radar?.enabled)radar.toggle(false);
