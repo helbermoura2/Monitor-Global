@@ -29,6 +29,27 @@ public class WeatherMapNewsStripTest {
   view.radar(f,"SUDESTE",now+40*60000L);assertTrue(view.getContentDescription().toString().contains("DEFASADO"));
   view.satellite(null,"BRASIL",now);assertTrue(view.getContentDescription().toString().contains("SEM DADO"));assertTrue(view.getContentDescription().toString().contains("não mede intensidade da chuva"));
  }
+ @Test public void manualStripUsesUndistortedOfficialGeometryAndClock()throws Exception{
+  Context c=RuntimeEnvironment.getApplication();WeatherMapNewsStrip view=new WeatherMapNewsStrip(c);
+  long now=System.currentTimeMillis();
+  view.radar(new RadarMapClient.Frame(now-15*60000L,Collections.singletonList("São Roque"),Collections.emptyList()),"SP/RJ",now);
+  for(int w:new int[]{912,1280,1920}){
+   view.measure(View.MeasureSpec.makeMeasureSpec(w,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(500,View.MeasureSpec.AT_MOST));
+   int h=view.getMeasuredHeight();assertEquals(Math.round(w*126f/960f),h);
+   view.layout(0,0,w,h);
+   Bitmap b=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
+   try{
+    view.draw(new Canvas(b));float sx=w/960f,sy=h/126f;
+    assertEquals("Shared red clock plate",OledNewsChrome.RED_DARK,b.getPixel(Math.round(20*sx),Math.round(100*sy)));
+    assertEquals("Shared gray footer",0xff333436,b.getPixel(Math.round(798*sx),Math.round(100*sy)));
+    int dividerInk=0;for(int x=Math.round(118*sx);x<=Math.round(122*sx);x++){int v=b.getPixel(x,Math.round(75*sy));if(Color.red(v)>100&&Color.red(v)>Color.green(v)*2)dividerInk++;}
+    assertTrue("Shared source divider remains visibly red",dividerInk>0);
+    int white=0;for(int y=Math.round(101*sy);y<Math.round(123*sy);y++)for(int x=Math.round(22*sx);x<Math.round(94*sx);x++){int v=b.getPixel(x,y);if(Color.red(v)>210&&Color.green(v)>210&&Color.blue(v)>210)white++;}
+    assertTrue("Clock must contain visible digits",white>12);
+    if(w==1280)try(java.io.FileOutputStream out=new java.io.FileOutputStream("/tmp/monitor-tv-weather-card-manual-newsroom.png")){assertTrue(b.compress(Bitmap.CompressFormat.PNG,100,out));}
+   }finally{b.recycle();}
+  }
+ }
  @Test public void effectsNeverInferRainFromRadarOrUnavailableData(){
   long now=1800000000000L;
   assertFalse(RainVisualPolicy.decorativeAllowed(null,false,now));

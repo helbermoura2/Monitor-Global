@@ -287,14 +287,17 @@ final class TvBroadcastInfoView extends View {
   return " · "+motion+" · DESLOCAMENTO VISUAL DAS NUVENS; NÃO É PREVISÃO DE CHUVA · "+
     frame.credit()+" · "+InfraredPlan.timing(frame.at,System.currentTimeMillis());
  }
+ static void drawClockPlate(Canvas c,Paint p,String clock){
+  p.setShader(null);p.setStyle(Paint.Style.FILL);p.setColor(OledNewsChrome.RED_DARK);
+  c.drawRect(OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_TOP,106,BroadcastVisuals.FOOTER_TOP+BroadcastVisuals.FOOTER_HEIGHT,p);
+  p.setTypeface(OledNewsChrome.clockFont());p.setTextAlign(Paint.Align.LEFT);p.setTextScaleX(1f);p.setTextSize(18f);p.setColor(Color.WHITE);
+  c.drawText(clock,58-p.measureText(clock)/2f,118,p);
+ }
  private void drawIdentity(Canvas c,long elapsed,WeatherSatelliteClient.Frame frame){
   // Same one-at-a-time site/Telegram fade used by seismic and daily summary banners.
   long now=System.currentTimeMillis(),minute=now/60000;
   if(minute!=clockMinute){clockMinute=minute;clockText=NewsBannerView.formatClock(now);}
-  fill(c,OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_TOP,106-OledNewsChrome.LEFT,BroadcastVisuals.FOOTER_HEIGHT,OledNewsChrome.RED_DARK);
-  Typeface clockFace=OledNewsChrome.clockFont();
-  p.setTypeface(clockFace);p.setTextSize(18f);
-  label(c,clockText,58-p.measureText(clockText)/2f,118,18,Color.WHITE,clockFace,90);
+  drawClockPlate(c,p,clockText);
   OledNewsChrome.brandFooter(c,p,elapsed,motionEnabled());
   float tickerLeft=112f,tickerRight=identityLeft(elapsed)-8f;
   c.save();c.clipRect(tickerLeft,BroadcastVisuals.FOOTER_TOP+1,tickerRight,124);
