@@ -12,12 +12,14 @@ const PLACES=[
 const FIELDS=['temperature_2m','wind_speed_10m','wind_direction_10m','precipitation','pressure_msl'];
 const EXTRAS=['relative_humidity_2m','apparent_temperature','wind_gusts_10m'];
 const LIMITS={temperature_2m:[-50,60],wind_speed_10m:[0,300],wind_direction_10m:[0,360],precipitation:[0,500],pressure_msl:[850,1100],relative_humidity_2m:[0,100],apparent_temperature:[-80,75],wind_gusts_10m:[0,350]};
+const DAILY={weather_code:[0,99],temperature_2m_min:[-50,60],temperature_2m_max:[-50,60],precipitation_probability_max:[0,100],precipitation_sum:[0,3000],wind_speed_10m_max:[0,300]};
 const HOUR=3600000;
 function brHour(now){
  return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date(Math.floor(now/HOUR)*HOUR)).replace(' ','T');
 }
 function url(places=PLACES){
- const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:[...FIELDS,...EXTRAS].join(','),timezone:'America/Sao_Paulo',forecast_days:'3',wind_speed_unit:'kmh'});
+ const params=new URLSearchParams({latitude:places.map(p=>p.lat).join(','),longitude:places.map(p=>p.lon).join(','),hourly:[...FIELDS,...EXTRAS,...(places.length===1?['precipitation_probability']:[])].join(','),timezone:'America/Sao_Paulo',forecast_days:places.length===1?'7':'3',wind_speed_unit:'kmh'});
+ if(places.length===1)params.set('daily',Object.keys(DAILY).join(','));
  return 'https://api.open-meteo.com/v1/forecast?'+params.toString();
 }
 function parse(payload,now=Date.now(),places=PLACES){
@@ -28,7 +30,7 @@ function parse(payload,now=Date.now(),places=PLACES){
  for(let i=0;i<payload.length;i++){
   const entry=payload[i],hourly=entry&&entry.hourly;
   if(!hourly||entry.timezone!=='America/Sao_Paulo'||!Number.isFinite(entry.latitude)||!Number.isFinite(entry.longitude)||Math.abs(entry.latitude-places[i].lat)>0.3||Math.abs(entry.longitude-places[i].lon)>0.3)return null;
-  if(!Array.isArray(hourly.time)||hourly.time.length<48||hourly.time.length>96||hourly.time.some(t=>typeof t!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:00$/.test(t)))return null;
+  if(!Array.isArray(hourly.time)||hourly.time.length<48||hourly.time.length>(places.length===1?168:96)||hourly.time.some(t=>typeof t!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:00$/.test(t)))return null;
   if(times===null){
    times=hourly.time;
    const stamps=times.map(time=>Date.parse(time+'Z'));
@@ -48,9 +50,34 @@ function parse(payload,now=Date.now(),places=PLACES){
    const values=hourly[field],bounds=LIMITS[field];
    forecast[field]=Array.isArray(values)&&values.length===times.length&&values.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=bounds[0]&&n<=bounds[1])?values:null;
   }
+  forecast.week=week(entry.daily,hourly,now);
   series.push(forecast);
  }
  return {series,times,first,at:now,places:places.map(p=>({name:String(p.name),lat:p.lat,lon:p.lon}))};
+}
+function week(daily,hourly,now){
+ if(!Array.isArray(daily?.time)||daily.time.length!==7)return [];
+ const current=brHour(now),today=Date.parse(current.slice(0,10)+'T00:00Z');
+ const rows=[];
+ for(let i=0;i<7;i++){
+  const date=daily.time[i],expected=new Date(today+i*24*HOUR).toISOString().slice(0,10);
+  if(date!==expected)return [];
+  const row={date};
+  for(const [field,[min,max]] of Object.entries(DAILY)){
+   const n=daily[field]?.[i];
+   row[field]=Number.isFinite(n)&&n>=min&&n<=max?n:null;
+  }
+  if(row.temperature_2m_min!==null&&row.temperature_2m_max!==null&&row.temperature_2m_min>row.temperature_2m_max)return [];
+  let peak=null;
+  for(let h=0;h<hourly.time.length;h++){
+   const at=hourly.time[h],chance=hourly.precipitation_probability?.[h];
+   if(at.slice(0,10)!==date||at<current||!Number.isFinite(chance)||chance<=0||chance>100)continue;
+   if(!peak||chance>peak.chance)peak={at,chance};
+  }
+  row.peak=peak;
+  rows.push(row);
+ }
+ return rows;
 }
 function value(data,placeIndex,step,field){
  if(!data||![...FIELDS,...EXTRAS].includes(field)||!Number.isInteger(placeIndex)||placeIndex<0||placeIndex>=data.places.length||!Number.isInteger(step)||step<0||step>24)return null;

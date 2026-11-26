@@ -5,7 +5,7 @@ const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'
 const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v1';
 let pendingSevere=false,mapSize=null;
 let city={name:'São Paulo',uf:'SP',id:'3550308',lat:-23.555,lon:-46.635},cities=[],map=null,markers=[],satellite=null,radar=null,boundaries=null,severe=null,severeOn=false,pendingSatellite=false,ready=false,active=true,closed=false,loading=false,controller=null,playTimer=0,forecast=null,lastAttempt=0,lastSuccess=0,layer='temperature',step=0,requestId=0;
-function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';$('time-label').textContent='Aguardando dados';}updateCityCard();}
+function note(message){const box=$('brazil-status');box.textContent=message;box.hidden=!message;box.dataset.kind=/aguarde|limite|indispon|falha|tente|recente/i.test(message)?'warning':'info';if(message&&!forecast&&/aguarde|limite|indispon|falha|tente|recente/i.test(message)){$('headline').textContent='Previsão não disponível no momento';$('time-label').textContent='Aguardando dados';}updateCityCard();renderWeek();}
 function stored(key){try{return JSON.parse(localStorage.getItem(key));}catch(e){return null;}}
 function store(key,value){try{localStorage.setItem(key,JSON.stringify(value));}catch(e){/* Cache is optional; network remains bounded per session. */}}
 function key(){return city.id;}
@@ -31,7 +31,55 @@ function playbackIcon(playing){
 function stop(){if(playTimer){clearTimeout(playTimer);playbackIcon(false);}playTimer=0;}
 function round(n,decimals=0){return n.toLocaleString('pt-BR',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});}
 function value(field){return M.value(forecast,0,step,field);}
+let weekly=false,weekKey='';
+function condition(code){
+ if(code===0)return 'Céu limpo';
+ if(code===1||code===2)return 'Parcialmente nublado';
+ if(code===3)return 'Nublado';
+ if(code===45||code===48)return 'Nevoeiro';
+ if(code>=95)return 'Possíveis trovoadas';
+ if((code>=71&&code<=77)||code===85||code===86)return 'Possibilidade de neve';
+ if(code>=51&&code<=67)return code<60?'Garoa':'Chuva';
+ if(code>=80&&code<=82)return 'Pancadas de chuva';
+ return 'Condição indisponível';
+}
+function renderWeek(){
+ if(!weekly)return;
+ $('week-place').textContent=city.name+' · '+city.uf;
+ const days=forecast?.series[0]?.week||[];
+ $('week-status').textContent=days.length?'':$('brazil-status').textContent||(forecast?'Previsão de 7 dias indisponível nesta consulta.':'Consultando a previsão…');
+ const key=city.id+'/'+lastSuccess+'/'+days[0]?.date;
+ if(key===weekKey)return;
+ weekKey=key;
+ const list=document.createDocumentFragment();
+ const dayFormat=new Intl.DateTimeFormat('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',timeZone:'UTC'});
+ const metric=(value,unit,decimals=0)=>value===null?'—':round(value,decimals)+unit;
+ for(const day of days){
+  const card=document.createElement('details'),title=document.createElement('summary');
+  const date=document.createElement('strong'),temps=document.createElement('span'),weather=document.createElement('span');
+  date.textContent=dayFormat.format(new Date(day.date+'T00:00Z'));
+  temps.textContent=metric(day.temperature_2m_min,'°')+' / '+metric(day.temperature_2m_max,'°');
+  weather.textContent=condition(day.weather_code)+' · '+metric(day.precipitation_probability_max,'%')+' de chance · '+metric(day.precipitation_sum,' mm',1);
+  const info=document.createElement('p');
+  info.textContent='Vento máximo previsto: '+metric(day.wind_speed_10m_max,' km/h')+
+   (day.peak?' · Maior chance de chuva às '+day.peak.at.slice(11,16)+' ('+day.peak.chance+'%).':'.');
+  title.append(date,temps,weather);card.append(title,info);list.append(card);
+ }
+ $('week-days').replaceChildren(list);
+}
+function showWeekly(){
+ showForecast();
+ weekly=true;
+ document.body.classList.add('weekly-mode');
+ $('week-panel').hidden=false;
+ document.querySelector('.brazil-main').scrollTop=0;
+ renderWeek();
+ $('week-title').focus({preventScroll:true});
+}
+$('map-week').addEventListener('click',showWeekly);
+$('week-map').addEventListener('click',showForecast);
 function showValues(){
+ renderWeek();
  if(!forecast)return;
  const at=forecast.times[forecast.first+step],v=value(LAYERS[layer].field);
  $('time-label').textContent=at.substring(8,10)+'/'+at.substring(5,7)+' · '+at.substring(11,16)+' BRT';
@@ -351,6 +399,7 @@ $('severe-toggle').addEventListener('click',()=>{
 });
 function showSatellite(){pendingSatellite=true;if(!ready||!satellite)return;pendingSatellite=false;if(radar?.enabled)radar.toggle(false);if(!satellite.state.enabled)satelliteCheckbox()?.click();syncOverlays();}
 function showForecast(){
+ weekly=false;document.body.classList.remove('weekly-mode');$('week-panel').hidden=true;
  pendingSevere=false;pendingSatellite=false;
  if(severeOn)setSevere(false);
  if(radar?.enabled)radar.toggle(false);
@@ -359,7 +408,7 @@ function showForecast(){
  stop();step=0;showValues();syncOverlays();
  document.querySelector('.brazil-main').scrollTop=0;
 }
-window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast};window.addEventListener('pagehide',close);
+window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast,showWeekly};window.addEventListener('pagehide',close);
 initMap();restore();load(false);loadCities();
 })();
 

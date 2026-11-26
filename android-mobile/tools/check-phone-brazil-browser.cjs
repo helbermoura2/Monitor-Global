@@ -23,7 +23,11 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  const launch={headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--use-angle=swiftshader','--enable-unsafe-swiftshader']};if(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH)launch.executablePath=process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;else launch.channel='chrome';browser=await chromium.launch(launch);
  const page=await browser.newPage({viewport:{width:390,height:760},deviceScaleFactor:1});let mode='hold',metadataCalls=0,releaseFirst;const errors=[],tiles=[],unexpected=[],base=png(false),rain=png(true),now=Date.now(),stamp=Math.floor(now/600000)*600;
  const metadata={version:'2.0',host:'https://tilecache.rainviewer.com',radar:{past:[{time:stamp-600,path:'/v2/radar/9a4fd3f6a0e5'},{time:stamp,path:'/v2/radar/ead16661a2c1'}]}};
- const day=new Date(now-3*3600000).toISOString().slice(0,10),start=Date.parse(day+'T00:00:00Z'),hours=Array.from({length:72},(_,i)=>new Date(start+i*3600000).toISOString().slice(0,16));const forecast={latitude:-23.555,longitude:-46.635,timezone:'America/Sao_Paulo',hourly:{time:hours,temperature_2m:hours.map(()=>22),wind_speed_10m:hours.map(()=>9),wind_direction_10m:hours.map(()=>90),precipitation:hours.map(()=>.1),pressure_msl:hours.map(()=>1013)}};
+ const day=new Date(now-3*3600000).toISOString().slice(0,10),start=Date.parse(day+'T00:00:00Z'),hours=Array.from({length:168},(_,i)=>new Date(start+i*3600000).toISOString().slice(0,16));const forecast={latitude:-23.555,longitude:-46.635,timezone:'America/Sao_Paulo',hourly:{time:hours,temperature_2m:hours.map(()=>22),wind_speed_10m:hours.map(()=>9),wind_direction_10m:hours.map(()=>90),precipitation:hours.map(()=>.1),pressure_msl:hours.map(()=>1013)}};
+ forecast.hourly.precipitation_probability=hours.map(()=>55);
+ forecast.daily={time:hours.filter((_,i)=>i%24===0).map(value=>value.slice(0,10)),
+  temperature_2m_min:Array(7).fill(18),temperature_2m_max:Array(7).fill(28),weather_code:Array(7).fill(61),
+  precipitation_sum:Array(7).fill(8.5),precipitation_probability_max:Array(7).fill(55),wind_speed_10m_max:Array(7).fill(18)};
  page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{window.__radarOffset=0;const NativeDate=Date;window.Date=class extends NativeDate {static now(){return NativeDate.now()+window.__radarOffset;}};let library;Object.defineProperty(window,'maplibregl',{configurable:true,get:()=>library,set:value=>{library=value;const Original=value.Map;value.Map=class extends Original{constructor(o){super(o);window.__map=this;}};}});});
  await page.route('**/*',async route=>{const u=new URL(route.request().url()),cors={'Access-Control-Allow-Origin':'*'};
   if(u.origin===origin&&u.pathname==='/favicon.ico')return route.fulfill({status:204});
@@ -53,6 +57,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.ok(mapHeight>=page.viewportSize().height*.95,'map fills the first viewport');
  await page.locator('#map-details').click();
  assert.ok(await page.locator('#map-return').evaluate(el=>el===document.activeElement));
+ await page.locator('#map-week').click();
+ await expect(page.locator('#week-days details')).toHaveCount(7);
+ await page.locator('#week-days summary').first().click();
+ assert.match(await page.locator('#week-days details').first().innerText(),/8,5 mm.*18 km\/h/s);
+ await page.locator('#week-map').click();
+ await page.locator('#map-details').click();
  await page.locator('#map-return').click();
  assert.equal(await page.locator('.brazil-main').evaluate(el=>el.scrollTop),0);
  await page.screenshot({path:path.join(output,'full-weather-map-fixture.png')});

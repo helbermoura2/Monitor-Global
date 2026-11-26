@@ -326,3 +326,17 @@ body.map-expanded .map-stage .maplibregl-ctrl-top-right{top:0}
 body.is-paused .argos-tap-marker{animation-play-state:paused}
 @media(prefers-reduced-motion:reduce){.argos-tap-marker{animation:none!important}}
 @media(prefers-reduced-motion:no-preference){#map-city-card{animation:argos-card-in .16s ease-out}@keyframes argos-card-in{from{opacity:0}to{opacity:1}}}
+
+body.weekly-mode :is(.map-stage,#map-details-panel){display:none}
+#week-panel[hidden]{display:none}
+#week-panel{width:min(100%,610px);margin:0 auto;padding:10px 6px;color:#edf7ff}
+.week-heading{display:flex;gap:8px;justify-content:space-between;align-items:center}
+.week-heading h1{margin:0;font-size:24px}
+.week-heading button{min-height:42px;border:1px solid #416475;border-radius:9px;background:#132c3b;color:#eff8ff;padding:0 11px}
+#week-place{color:#9fdae9;font-weight:600}
+#week-days{display:grid;gap:6px}
+#week-days details{border:1px solid #284658;background:#101f2a;border-radius:10px}
+#week-days summary{display:grid;grid-template-columns:1fr auto;gap:4px;padding:10px 12px;cursor:pointer}
+#week-days summary span:last-child{grid-column:1/-1;color:#bdd5e3;font-size:13px}
+#week-days details p{margin:0;padding:0 12px 10px;color:#d3e8f4;font-size:13px}
+.week-credit,.week-credit a{font-size:12px;color:#a8cbdc}

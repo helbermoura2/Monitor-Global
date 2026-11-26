@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.67
+
+- Clima mostra a previsão para os próximos sete dias no município selecionado no mapa.
+
 # Argos Orbis Celular · 0.1.64 de teste
 
 - Notificações opcionais da previsão de hoje e amanhã para a Liberdade, com horários de referência às 11h30 e 23h45 BRT.

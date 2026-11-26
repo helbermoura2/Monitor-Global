@@ -32,6 +32,24 @@ test('validated forecast provides hourly values without interpolating missing gr
  assert.equal(M.value(result,13,25,'wind_speed_10m'),null);
  assert.equal(M.value(result,13,0,'unknown'),null);
 });
+test('weekly forecast uses daily totals and only future hours for the next rain peak',()=>{
+ const place=M.PLACES[13],payload=valid()[13],size=168;
+ const times=Array.from({length:size},(_,i)=>new Date(Date.parse('2026-11-08T00:00:00Z')+i*3600000).toISOString().slice(0,16));
+ for(const field of M.FIELDS)payload.hourly[field]=Array(size).fill(payload.hourly[field][0]);
+ payload.hourly.time=times;
+ payload.hourly.precipitation_probability=times.map((_,i)=>i===3?100:i===17?80:25);
+ payload.daily={time:times.filter((_,i)=>i%24===0).map(v=>v.slice(0,10)),weather_code:Array(7).fill(61),
+  temperature_2m_min:Array(7).fill(18),temperature_2m_max:Array(7).fill(27),
+  precipitation_probability_max:Array(7).fill(80),precipitation_sum:Array(7).fill(8.5),wind_speed_10m_max:Array(7).fill(14)};
+ const result=M.parse(payload,now,[place]),week=result.series[0].week;
+ assert.equal(new URL(M.url([place])).searchParams.get('forecast_days'),'7');
+ assert.equal(week.length,7);
+ assert.equal(week[0].precipitation_sum,8.5);
+ assert.equal(week[0].peak.at,'2026-11-08T17:00');
+ assert.equal(M.value(result,0,24,'temperature_2m'),24);
+ payload.daily.time[1]=payload.daily.time[0];
+ assert.equal(M.parse(payload,now,[place]).series[0].week.length,0);
+});
 test('24-hour accumulation only uses whole future intervals and the end-of-hour amount',()=>{
  const rows=valid();
  rows[0].hourly.precipitation.fill(0);
