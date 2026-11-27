@@ -42,6 +42,13 @@ assert "android.permission.REQUEST_INSTALL_PACKAGES" in permissions
 with zipfile.ZipFile(apk) as packaged:
     manifest = packaged.read("AndroidManifest.xml")
     assert manifest, "Packaged AndroidManifest missing"
+    dex = b"".join(packaged.read(name) for name in packaged.namelist() if name.endswith(".dex"))
+    for component in ("AlertProbeDiagnostics", "AlertProbeDiagnostics$WindowCapture", "AlertProbeDiagnostics$NoticeCapture"):
+        fqcn = "top.monitorglobal.tv." + component
+        assert fqcn.encode("utf-16le") in manifest or fqcn.encode() in manifest, fqcn
+        assert ("L" + fqcn.replace(".", "/") + ";").encode() in dex, fqcn
+    assert b"Ltop/monitorglobal/tv/PhoneCivilRelay;" not in dex, "Local capture must not bundle TV forwarding"
+
 with tempfile.TemporaryDirectory(prefix="monitor-phone-assets-") as temporary:
     assets = pathlib.Path(temporary)
     with zipfile.ZipFile(apk) as packaged:

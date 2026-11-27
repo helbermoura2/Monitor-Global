@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.74
+
+- Ativação opcional da captura local de alertas severos e extremos da Defesa Civil em Mais → Informações técnicas → Captura local · Defesa Civil.
+
 # Argos Orbis Celular · 0.1.73
 
 - A previsão semanal inclui o ECMWF IFS na comparação dos acumulados diários de chuva.
