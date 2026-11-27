@@ -37,15 +37,15 @@ let weekly=false,weekKey='';
 let comparison=null;
 async function compareWeekDay(day,output){
  const target={...city},today=M.brHour(Date.now()).slice(0,10);
- const key=target.id+'/'+today;
+ const key='v2/'+target.id+'/'+today;
  let cached=stored('argos-rain-compare');
- if(cached?.key!==key||Date.now()-cached.at>3*M.HOUR){
+ if(cached?.key!==key||!Number.isFinite(cached.at)||Date.now()-cached.at>3*M.HOUR){
   if(comparison){output.textContent='Outra comparação está em andamento. Tente novamente em instantes.';return;}
   const budget=stored('argos-rain-compare-budget');
   const used=budget?.day===today?budget.used:0;
   if(used>=4){output.textContent='Limite diário de comparações atingido.';return;}
   store('argos-rain-compare-budget',{day:today,used:used+1});
-  output.textContent='Consultando GFS e ICON…';
+  output.textContent='Consultando a seleção automática, GFS e ICON…';
   const request=new AbortController();comparison=request;
   const timeout=setTimeout(()=>request.abort(),11000);
   try{
@@ -54,18 +54,30 @@ async function compareWeekDay(day,output){
    const raw=await response.text();
    if(raw.length>30000)throw Error();
    const payload=JSON.parse(raw);
-   if(!window.PhoneRainRegion.compare(payload,day.date).length)throw Error();
+   if(!window.PhoneRainRegion.compare(payload,day.date,target).length)throw Error();
    cached={key,at:Date.now(),payload};store('argos-rain-compare',cached);
   }catch{output.textContent='Não foi possível consultar os modelos agora.';return;}
   finally{clearTimeout(timeout);if(comparison===request)comparison=null;}
  }
  if(!active||!weekly||target.id!==city.id)return;
- const values=window.PhoneRainRegion.compare(cached.payload,day.date);
+ const values=window.PhoneRainRegion.compare(cached.payload,day.date,target);
  if(!values.length){output.textContent='Sem acumulados disponíveis para este dia.';return;}
  const totals=values.map(item=>item.value);
- const range=values.length>1?' · Faixa entre modelos: '+round(Math.min(...totals),1)+' a '+round(Math.max(...totals),1)+' mm':'';
- output.textContent=values.map(item=>item.name+' '+round(item.value,1)+' mm').join(' · ')+range+
-  '. Previsões para o dia no ponto selecionado.';
+ const low=Math.min(...totals),high=Math.max(...totals);
+ const primary=values.find(item=>item.id==='best_match');
+ const lines=values.map(item=>item.name+': '+round(item.value,1)+' mm');
+ if(values.length>1)lines.push('Faixa consultada: '+round(low,1)+' a '+round(high,1)+' mm.');
+ if(values.length===3&&high-low>=10&&high>=2*low){
+  lines.push('Grande divergência no acumulado previsto.');
+  if(primary?.value===high&&values.filter(item=>item.value<high).length===2)
+   lines.push('A previsão principal indica o maior volume. GFS e ICON projetam volumes menores.');
+ }
+ if(values.length<3)lines.push('Consulta parcial: alguns acumulados estão indisponíveis.');
+ if(primary&&Number.isFinite(day.precipitation_sum)&&Math.abs(primary.value-day.precipitation_sum)>=.05)
+  lines.push('Consulta anterior do cartão: '+round(day.precipitation_sum,1)+' mm na previsão principal.');
+ const timestamp=new Date(cached.at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ lines.push('Mesmo ponto e dia · consulta Open-Meteo em '+timestamp+' BRT.');
+ output.textContent=lines.join('\n');
 }
 
 function condition(code){
@@ -103,7 +115,7 @@ function renderWeek(){
   temps.className='week-temperatures';temps.textContent='Mín. '+metric(day.temperature_2m_min,'°')+' · Máx. '+metric(day.temperature_2m_max,'°');
   weather.className='week-condition';weather.textContent=condition(code);
   chance.className='week-chance';chance.textContent=metric(day.precipitation_probability_max,'%')+' de chance';
-  amount.className='week-amount';amount.textContent=metric(day.precipitation_sum,' mm',1)+' previstos';
+  amount.className='week-amount';amount.textContent=metric(day.precipitation_sum,' mm',1)+' previstos';amount.setAttribute('aria-label','Previsão principal da seleção automática Open-Meteo: '+amount.textContent);
   chevron.className='week-chevron';chevron.setAttribute('aria-hidden','true');
   const info=document.createElement('p');
   info.textContent='Vento máximo previsto: '+metric(day.wind_speed_10m_max,' km/h')+

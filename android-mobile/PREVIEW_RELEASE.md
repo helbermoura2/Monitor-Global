@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.72
+
+- A comparação de chuva consulta a seleção automática, GFS e ICON juntos, e indica divergências e a hora da consulta.
+
 # Argos Orbis Celular · 0.1.71
 
 - O mapa de chuva semanal mostra manchas em uma grade de 0,25°, quadros de uma hora e o volume previsto no ponto marcado.

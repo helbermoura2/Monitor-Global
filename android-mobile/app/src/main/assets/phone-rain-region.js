@@ -196,20 +196,21 @@ function create(getMap,onBack,setMarker){
   else if(selected){draw();if(!data)load();}
  }};
 }
-const comparisonModels=[['GFS','gfs_global'],['ICON','icon_global']];
+const comparisonModels=[['Principal · seleção automática','best_match'],['GFS','gfs_global'],['ICON','icon_global']];
 function comparisonUrl(city){
  return 'https://api.open-meteo.com/v1/forecast?'+new URLSearchParams({
   latitude:city.lat,longitude:city.lon,timezone:'America/Sao_Paulo',forecast_days:'7',
   daily:'precipitation_sum',models:comparisonModels.map(([,id])=>id).join(',')
  });
 }
-function compare(data,day){
+function compare(data,day,city){
  const dates=data?.daily?.time;
  const index=Array.isArray(dates)?dates.indexOf(day):-1;
- if(data?.timezone!=='America/Sao_Paulo'||index<0)return [];
+ if(data?.timezone!=='America/Sao_Paulo'||index<0||!Number.isFinite(data.latitude)||!Number.isFinite(data.longitude)||
+    Math.abs(data.latitude-city.lat)>.3||Math.abs(data.longitude-city.lon)>.3)return [];
  return comparisonModels.flatMap(([name,id])=>{
   const value=data.daily['precipitation_sum_'+id]?.[index];
-  return Number.isFinite(value)&&value>=0&&value<=3000?[{name,value}]:[];
+  return Number.isFinite(value)&&value>=0&&value<=3000?[{name,id,value}]:[];
  });
 }
 const api={grid,url,parse,frame,sample,create,comparisonUrl,compare};
