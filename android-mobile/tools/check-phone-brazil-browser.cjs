@@ -97,9 +97,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  const regionalDay=page.locator('#region-rain-day'),regionalFrame=page.locator('#region-rain-frame');
  assert.equal(await regionalDay.locator('option').count(),7);
  await regionalDay.selectOption(forecast.daily.time.at(-1));
- await regionalFrame.evaluate(el=>{el.value='7';el.dispatchEvent(new Event('input'));});
- await expect(page.locator('#region-rain-status')).toContainText('21:00–24:00 BRT');
+ await regionalFrame.evaluate(el=>{el.value='23';el.dispatchEvent(new Event('input'));});
+ await expect(page.locator('#region-rain-status')).toContainText('23:00–24:00 BRT');
  await expect(page.locator('#region-rain-status')).toContainText('cobertura parcial');
+ assert.equal(await page.evaluate(()=>window.__map.getStyle().sources['argos-regional-rain'].type),'image');
+ assert.match(await page.locator('.region-rain-marker .value').innerText(),/mm$/);
+ assert.equal(await regionalFrame.getAttribute('max'),'23');
  await page.locator('#region-rain-play').click();
  await expect(regionalFrame).toHaveValue('0');
  await page.locator('#region-rain-back').click();

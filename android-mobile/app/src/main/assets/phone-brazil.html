@@ -66,10 +66,10 @@
   <div class="region-rain-controls">
    <button id="region-rain-play" type="button" aria-label="Animar chuva prevista" disabled>▶</button>
    <select id="region-rain-day" aria-label="Dia da previsão"></select>
-   <input id="region-rain-frame" type="range" min="0" max="7" step="1" value="0" aria-label="Intervalo de três horas" disabled>
+   <input id="region-rain-frame" type="range" min="0" max="23" step="1" value="0" aria-label="Intervalo de uma hora" disabled>
   </div>
   <div id="region-rain-scale" aria-label="Legenda de acumulados"></div>
-  <small>mm por 3 h · Grade regional de 0,5° · NOAA GFS via Open-Meteo · Mapa © Esri e colaboradores</small>
+  <small>mm por hora · Grade de 0,25° com transição de cores interpolada · NOAA GFS via Open-Meteo · Mapa © Esri e colaboradores</small>
   <button id="region-rain-retry" type="button" hidden>Tentar novamente</button>
  </section>
  <div class="map-dock">

@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.71
+
+- O mapa de chuva semanal mostra manchas em uma grade de 0,25°, quadros de uma hora e o volume previsto no ponto marcado.
+
 # Argos Orbis Celular · 0.1.70
 
 - A previsão semanal abre um mapa regional animado de chuva em blocos de três horas e permite comparar os acumulados de GFS e ICON.

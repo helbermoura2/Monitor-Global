@@ -1,7 +1,8 @@
 /* Forecast only for the municipality selected by the user. No arbitrary spatial extrapolation. */
 (function(){'use strict';
 const M=window.PhoneBrazilModel,$=id=>document.getElementById(id);
-const regional=window.PhoneRainRegion.create(()=>ready?map:null,showWeekly);
+const regional=window.PhoneRainRegion.create(()=>ready?map:null,showWeekly,setRegionalMarker);
+let regionalAmount=null;
 const LAYERS={temperature:{field:'temperature_2m',label:'Temperatura',unit:'°C'},wind:{field:'wind_speed_10m',label:'Vento a 10 m',unit:'km/h'},rain:{field:'precipitation',label:'Precipitação prevista',unit:'mm na hora anterior'},pressure:{field:'pressure_msl',label:'Pressão ao nível do mar',unit:'hPa'},humidity:{field:'relative_humidity_2m',label:'Umidade',unit:'%'},gusts:{field:'wind_gusts_10m',label:'Rajadas',unit:'km/h'},feels:{field:'apparent_temperature',label:'Sensação térmica',unit:'°C'}};
 const CACHE_MS=3*3600000,MIN_RETRY=10*60000,MAX_DAILY=8,CACHE_KEY='mg-brazil-city-v2',BUDGET_KEY='mg-brazil-budget-v1',ATTEMPT_KEY='mg-brazil-last-attempt-v2';
 let pendingSevere=false,mapSize=null;
@@ -138,13 +139,25 @@ function showWeekly(){
 $('map-week').addEventListener('click',showWeekly);
 $('week-map').addEventListener('click',showForecast);
 $('week-retry').addEventListener('click',()=>load(true));
+function setRegionalMarker(amount){
+ regionalAmount=amount;
+ for(const marker of markers){
+  const element=marker.getElement();
+  element.classList.toggle('region-rain-marker',amount!==null);
+  if(amount===null)continue;
+  element.dataset.layer='rain';element.dataset.observed='false';
+  element.querySelector('.value').textContent=amount;
+  element.setAttribute('aria-label',city.name+' · Chuva prevista no intervalo: '+amount);
+ }
+}
 function showValues(){
  renderWeek();
  if(!forecast)return;
  const at=forecast.times[forecast.first+step],v=value(LAYERS[layer].field);
  $('time-label').textContent=at.substring(8,10)+'/'+at.substring(5,7)+' · '+at.substring(11,16)+' BRT';
  $('frame').value=String(step);$('layer-label').textContent=LAYERS[layer].label;
- for(const marker of markers){
+ if(regionalAmount!==null)setRegionalMarker(regionalAmount);
+ for(const marker of regionalAmount===null?markers:[]){
   const element=marker.getElement();element.dataset.layer=layer;element.dataset.selected='true';element.dataset.observed=String(!!radar?.enabled||!!satellite?.state.enabled);
   element.querySelector('.value').textContent=Number.isFinite(v)?round(v,layer==='rain'?1:0)+(layer==='temperature'?'°':''):'—';
   const direction=value('wind_direction_10m');element.querySelector('.arrow').style.rotate=Number.isFinite(direction)?((direction+180)%360)+'deg':'0deg';
@@ -258,8 +271,9 @@ function createMarker(){
  const el=document.createElement('button'),arrow=document.createElement('span'),val=document.createElement('span'),name=document.createElement('span');
  el.type='button';el.className='brazil-dot';arrow.className='arrow';arrow.textContent='↑';arrow.setAttribute('aria-hidden','true');val.className='value';val.textContent='—';name.className='name';name.textContent=city.name;
  el.append(arrow,val,name);el.setAttribute('aria-label','Previsão de '+city.name+', '+city.uf);
- el.addEventListener('click',event=>{event.stopPropagation();openCityCard();});
+ el.addEventListener('click',event=>{event.stopPropagation();if(!regional.opened)openCityCard();});
  markers.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([city.lon,city.lat]).addTo(map));
+ if(regionalAmount!==null)setRegionalMarker(regionalAmount);
  showValues();
 }
 function initMap(){

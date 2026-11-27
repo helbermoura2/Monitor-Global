@@ -364,3 +364,6 @@ body.weekly-mode :is(.map-stage,#map-details-panel){display:none}
 #region-rain-scale span{flex:1}
 #region-rain-scale i{display:block;height:5px;border-radius:2px}
 #week-days .week-comparison-result:empty{display:none}
+
+.region-rain-marker .arrow{display:none!important}
+.region-rain-marker .value{max-width:none}
