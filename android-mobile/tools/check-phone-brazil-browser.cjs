@@ -37,6 +37,9 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   localStorage.setItem('mg-brazil-last-attempt-v1',JSON.stringify({day,cities:{3550308:now-1000}}));
   localStorage.setItem('mg-brazil-budget-v1',JSON.stringify({day,used:1}));
  },{legacy,day,now});
+ page.on('console',message=>{
+  if(message.type()==='error'&&message.text().includes('data:image/png;base64,'))errors.push('Regional rain raster was blocked');
+ });
  page.on('pageerror',e=>errors.push(e.message));await page.addInitScript(()=>{window.__radarOffset=0;const NativeDate=Date;window.Date=class extends NativeDate {static now(){return NativeDate.now()+window.__radarOffset;}};let library;Object.defineProperty(window,'maplibregl',{configurable:true,get:()=>library,set:value=>{library=value;const Original=value.Map;value.Map=class extends Original{constructor(o){super(o);window.__map=this;}};}});});
  await page.route('**/*',async route=>{const u=new URL(route.request().url()),cors={'Access-Control-Allow-Origin':'*'};
   if(u.origin===origin&&u.pathname==='/favicon.ico')return route.fulfill({status:204});
@@ -93,7 +96,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  await firstDay.getByRole('button',{name:'Comparar modelos'}).click();
  await expect(firstDay.locator('.week-comparison-result')).toContainText('35,0 a 80,0 mm');
  await firstDay.getByRole('button',{name:'Ver chuva no mapa'}).click();
- await page.waitForFunction(()=>window.__map.getSource('argos-regional-rain'));
+ await page.waitForFunction(()=>{const source=window.__map.getSource('argos-regional-rain');return source?.image&&window.__map.isSourceLoaded('argos-regional-rain');});
  const regionalDay=page.locator('#region-rain-day'),regionalFrame=page.locator('#region-rain-frame');
  assert.equal(await regionalDay.locator('option').count(),7);
  await regionalDay.selectOption(forecast.daily.time.at(-1));
