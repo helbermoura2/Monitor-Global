@@ -196,7 +196,7 @@ function create(getMap,onBack,setMarker){
   else if(selected){draw();if(!data)load();}
  }};
 }
-const comparisonModels=[['Principal · seleção automática','best_match'],['GFS','gfs_global'],['ICON','icon_global']];
+const comparisonModels=[['Principal · seleção automática','best_match'],['GFS','gfs_global'],['ICON','icon_global'],['ECMWF','ecmwf_ifs025']];
 function comparisonUrl(city){
  return 'https://api.open-meteo.com/v1/forecast?'+new URLSearchParams({
   latitude:city.lat,longitude:city.lon,timezone:'America/Sao_Paulo',forecast_days:'7',
@@ -213,6 +213,6 @@ function compare(data,day,city){
   return Number.isFinite(value)&&value>=0&&value<=3000?[{name,id,value}]:[];
  });
 }
-const api={grid,url,parse,frame,sample,create,comparisonUrl,compare};
+const api={grid,url,parse,frame,sample,create,comparisonUrl,compare,comparisonModelCount:comparisonModels.length};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.PhoneRainRegion=api;
 })(typeof window==='undefined'?globalThis:window);

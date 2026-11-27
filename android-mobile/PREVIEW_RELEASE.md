@@ -1,3 +1,7 @@
+# Argos Orbis Celular · 0.1.73
+
+- A previsão semanal inclui o ECMWF IFS na comparação dos acumulados diários de chuva.
+
 # Argos Orbis Celular · 0.1.72
 
 - A comparação de chuva consulta a seleção automática, GFS e ICON juntos, e indica divergências e a hora da consulta.

@@ -65,9 +65,9 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
    return route.fulfill({headers:cors,json:lat.map((latitude,i)=>({latitude,longitude:lon[i],timezone:'America/Sao_Paulo',
     hourly:{time:times,precipitation:times.map((_,h)=>i===0?null:(h%8)+i/10)}}))});
   }
-  if(u.hostname==='api.open-meteo.com'&&u.searchParams.get('models')==='best_match,gfs_global,icon_global'){
+  if(u.hostname==='api.open-meteo.com'&&u.searchParams.get('models')==='best_match,gfs_global,icon_global,ecmwf_ifs025'){
    return route.fulfill({headers:cors,json:{latitude:-23.555,longitude:-46.635,timezone:'America/Sao_Paulo',daily:{time:forecast.daily.time,
-    precipitation_sum_best_match:Array(7).fill(81.6),precipitation_sum_gfs_global:Array(7).fill(3.9),precipitation_sum_icon_global:Array(7).fill(9.4)}}});
+    precipitation_sum_best_match:Array(7).fill(81.6),precipitation_sum_gfs_global:Array(7).fill(3.9),precipitation_sum_icon_global:Array(7).fill(9.4),precipitation_sum_ecmwf_ifs025:Array(7).fill(72.2)}}});
   }
   if(u.hostname==='api.open-meteo.com'){forecastCalls++;return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify(forecast)});}
   if(u.hostname==='api.rainviewer.com'){metadataCalls++;if(mode==='hold'&&metadataCalls===1)await new Promise(r=>releaseFirst=r);try{return await route.fulfill({status:mode==='fail'?503:200,headers:cors,contentType:'application/json',body:JSON.stringify(mode==='empty'?{...metadata,radar:{past:[]}}:metadata)});}catch{return;}}
@@ -94,6 +94,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.notEqual(await firstDay.getAttribute('open'),null);
  assert.match(await page.locator('#week-days details').first().innerText(),/8,5 mm.*18 km\/h/s);
  await firstDay.getByRole('button',{name:'Comparar modelos'}).click();
+ await expect(firstDay.locator('.week-comparison-result')).toContainText('ECMWF: 72,2 mm');
  await expect(firstDay.locator('.week-comparison-result')).toContainText('3,9 a 81,6 mm');
  await expect(firstDay.locator('.week-comparison-result')).toContainText('Grande divergência');
  await expect(firstDay.locator('.week-comparison-result')).toContainText('Consulta anterior do cartão: 8,5 mm');

@@ -37,7 +37,7 @@ let weekly=false,weekKey='';
 let comparison=null;
 async function compareWeekDay(day,output){
  const target={...city},today=M.brHour(Date.now()).slice(0,10);
- const key='v2/'+target.id+'/'+today;
+ const key='v3/'+target.id+'/'+today;
  let cached=stored('argos-rain-compare');
  if(cached?.key!==key||!Number.isFinite(cached.at)||Date.now()-cached.at>3*M.HOUR){
   if(comparison){output.textContent='Outra comparação está em andamento. Tente novamente em instantes.';return;}
@@ -45,7 +45,7 @@ async function compareWeekDay(day,output){
   const used=budget?.day===today?budget.used:0;
   if(used>=4){output.textContent='Limite diário de comparações atingido.';return;}
   store('argos-rain-compare-budget',{day:today,used:used+1});
-  output.textContent='Consultando a seleção automática, GFS e ICON…';
+  output.textContent='Consultando a previsão principal, GFS, ICON e ECMWF…';
   const request=new AbortController();comparison=request;
   const timeout=setTimeout(()=>request.abort(),11000);
   try{
@@ -67,12 +67,9 @@ async function compareWeekDay(day,output){
  const primary=values.find(item=>item.id==='best_match');
  const lines=values.map(item=>item.name+': '+round(item.value,1)+' mm');
  if(values.length>1)lines.push('Faixa consultada: '+round(low,1)+' a '+round(high,1)+' mm.');
- if(values.length===3&&high-low>=10&&high>=2*low){
-  lines.push('Grande divergência no acumulado previsto.');
-  if(primary?.value===high&&values.filter(item=>item.value<high).length===2)
-   lines.push('A previsão principal indica o maior volume. GFS e ICON projetam volumes menores.');
- }
- if(values.length<3)lines.push('Consulta parcial: alguns acumulados estão indisponíveis.');
+ if(values.length>1&&high-low>=10&&high>=2*low)lines.push('Grande divergência no acumulado previsto.');
+ if(values.length<window.PhoneRainRegion.comparisonModelCount)lines.push('Consulta parcial: alguns acumulados estão indisponíveis.');
+ if(primary&&values.some(item=>item.id==='ecmwf_ifs025'))lines.push('A seleção automática do Open-Meteo pode usar o ECMWF.');
  if(primary&&Number.isFinite(day.precipitation_sum)&&Math.abs(primary.value-day.precipitation_sum)>=.05)
   lines.push('Consulta anterior do cartão: '+round(day.precipitation_sum,1)+' mm na previsão principal.');
  const timestamp=new Date(cached.at).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
