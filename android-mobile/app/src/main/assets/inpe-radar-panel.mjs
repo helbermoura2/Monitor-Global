@@ -1,7 +1,8 @@
 import {discover} from './inpe-radar-catalog.mjs';
 import {regionBounds,describeRadar} from './inpe-radar-panel-model.mjs';
-import {availableLevels,selectCappi,fetchCappi,MAX_AGE} from './inpe-radar-layer-model.mjs';
+import {availableLevels,selectCappi,fetchCappi,officialCappiUrl,MAX_AGE} from './inpe-radar-layer-model.mjs';
 import {DBZ_PALETTE} from './inpe-radar-grid.mjs';
+import {selectTrackingPair,track,observedFeatures} from './phone-storm-tracker.mjs';
 const $=id=>document.getElementById(id);
 const panel=$('inpe-catalog'),status=$('inpe-catalog-status'),results=$('inpe-catalog-results'),search=$('inpe-catalog-search');
 let controller=null,serial=0,lastAttempt=0,cache=new Map(),day='',used=0,worker=null,abortDecode=null,savedFile=null,expiry=0,renderCount=0;
@@ -49,6 +50,44 @@ async function showFrame(frame,altitude){
  }catch(e){if(ticket===serial){removeLayer();status.textContent='INPE: '+String(e.message||e).slice(0,160)+'. RainViewer continua disponível.';}}
  finally{clearTimeout(timer);if(controller===c){controller=null;search.disabled=false;}}
 }
+async function showMotion(frames){
+ const pair=selectTrackingPair(frames);
+ if(!pair){status.textContent='Storm Tracker: dois quadros comparáveis recentes não disponíveis.';return;}
+ const previousUrl=officialCappiUrl(pair.previous.products[pair.product]?.href,pair.product),currentUrl=officialCappiUrl(pair.current.products[pair.product]?.href,pair.product);
+ if(!previousUrl||!currentUrl||previousUrl===currentUrl){status.textContent='Storm Tracker: arquivos comparáveis indisponíveis.';return;}
+ cancel();removeLayer();const ticket=++serial,c=new AbortController();controller=c;search.disabled=true;
+ status.textContent='Storm Tracker: analisando dois quadros observados a 3 km…';
+ let timer;
+ try{
+  const planes=[];
+  for(const [frame,href] of [[pair.previous,previousUrl],[pair.current,currentUrl]]){
+   if(ticket!==serial||c.signal.aborted||panel.hidden)return;
+   if(savedFile?.href!==href){
+    if(renderCount>=12)throw Error('Limite de 12 downloads nesta sessão');
+    renderCount++;timer=setTimeout(()=>c.abort(),20000);
+    const bytes=await fetchCappi(href,c.signal);clearTimeout(timer);
+    if(ticket!==serial||c.signal.aborted)return;
+    savedFile={href,bytes};
+   }
+   const decoded=await decode(savedFile.bytes.slice(0),{product:pair.product,altitude:3000},ticket);
+   if(ticket!==serial||c.signal.aborted||panel.hidden)return;
+   planes.push({...decoded,time:frame.time,radar:frame.radar,owner:frame.owner,product:pair.product,altitude:3000});
+  }
+  const result=track(planes[0],planes[1]);
+  if(result.status!=='ok')throw Error('Quadros sem grade ou horários comparáveis');
+  const features=observedFeatures(result),current=planes[1];
+  if(Date.now()-pair.previous.time>MAX_AGE)throw Error('Observações expiradas');
+  if(!(current.rgba instanceof Uint8ClampedArray)||current.rgba.length!==1000000)throw Error('Grade inválida');
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=500;
+  canvas.getContext('2d').putImageData(new ImageData(current.rgba,500,500),0,0);
+  const count=features.features.filter(f=>f.geometry.type==='Point').length;
+  const label='Storm Tracker · '+pair.current.radar+' · '+clock(pair.previous.time)+' → '+clock(pair.current.time)+' · '+count+' deslocamento(s) estimado(s) entre quadros · '+result.unmatched+' núcleo(s) sem associação · não é previsão';
+  if(!window.MonitorMap?.showInpe?.(canvas.toDataURL('image/png'),current.coordinates,label,features))throw Error('Mapa indisponível');
+  status.textContent=label;
+  expiry=setTimeout(()=>{removeLayer();status.textContent='Observações expiradas. Consulte novamente.';},Math.max(0,pair.previous.time+MAX_AGE-Date.now()));
+ }catch(e){if(ticket===serial){removeLayer();status.textContent='Storm Tracker: '+String(e.message||e).slice(0,160)+'. RainViewer continua disponível.';}}
+ finally{clearTimeout(timer);if(controller===c){controller=null;search.disabled=false;}}
+}
 function display(data){
  clear();
  for(const radar of data.radars){
@@ -65,6 +104,7 @@ function display(data){
    times.addEventListener('change',update);update();
    button.addEventListener('click',()=>showFrame(frames[Number(times.value)],Number(levels.value)));
    item.append(row('p','Horário e altitude observados'),times,levels,button);
+   const motion=row('button','Storm Tracker · deslocamento observado');motion.type='button';motion.disabled=!selectTrackingPair(radar.frames);motion.addEventListener('click',()=>showMotion(radar.frames));item.append(motion,row('small','Comparação de dois quadros a 3 km. Direção e velocidade estimadas; sem projeção futura ou alerta oficial.'));
   }else item.append(row('small','Sem grade NetCDF utilizável nesta consulta; a miniatura não será sobreposta sem georreferenciamento verificado.'));
   results.append(item);
  }

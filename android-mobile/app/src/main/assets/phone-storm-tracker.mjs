@@ -78,3 +78,30 @@ export function extrapolate(track,horizonMinutes){
  const km=track.speedKmh*horizonMinutes/60;
  return {center:destination(track.current,km,track.bearingDeg),minutes:horizonMinutes,validAt:track.observedAt+horizonMinutes*60000,method:'linear_extrapolation_unvalidated',uncertainty:'not_calibrated'};
 }
+
+export function selectTrackingPair(frames,now=Date.now()){
+ if(!Array.isArray(frames)||frames.length>6||!finite(now))return null;
+ const sorted=frames.filter(f=>f&&finite(f.time)&&f.time<=now&&now-f.time<=MAX_AGE).sort((a,b)=>b.time-a.time);
+ // Do not skip a newer frame to pretend that an older sequence is current.
+ const current=sorted[0];if(!current)return null;
+ for(const previous of sorted.slice(1)){
+  const interval=current.time-previous.time;
+  if(previous.radar!==current.radar||previous.owner!==current.owner||interval<MIN_INTERVAL||interval>MAX_INTERVAL)continue;
+  for(const product of ['cappi3km','cappi15l'])if(previous.products?.[product]&&current.products?.[product])return {previous,current,product};
+ }
+ return null;
+}
+export function observedFeatures(result){
+ if(result?.status!=='ok'||!Array.isArray(result.tracks)||result.tracks.length>MAX_OBJECTS)return {type:'FeatureCollection',features:[]};
+ const features=[];
+ for(const t of result.tracks){
+  const valid=p=>Array.isArray(p)&&p.length===2&&p.every(finite)&&p[0]>=-180&&p[0]<=180&&p[1]>=-85&&p[1]<=85;
+  if(!valid(t.previous)||!valid(t.current)||!finite(t.speedKmh)||t.speedKmh<0||t.speedKmh>MAX_SPEED||!finite(t.peakDbz)||t.peakDbz<THRESHOLD||!finite(t.observedAt))continue;
+  const heading=finite(t.bearingDeg)&&t.bearingDeg>=0&&t.bearingDeg<360?t.bearingDeg:null;
+  const direction=heading===null?'Indefinida':['N','NE','L','SE','S','SO','O','NO'][Math.round(heading/45)%8];
+  const properties={speed:Math.round(t.speedKmh),direction,peakDbz:Math.round(t.peakDbz),label:Math.round(t.speedKmh)+' km/h · '+direction,observedAt:t.observedAt};
+  if(heading!==null)features.push({type:'Feature',geometry:{type:'LineString',coordinates:[t.previous,t.current]},properties});
+  features.push({type:'Feature',geometry:{type:'Point',coordinates:t.current},properties});
+ }
+ return {type:'FeatureCollection',features};
+}

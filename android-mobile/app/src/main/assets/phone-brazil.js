@@ -360,12 +360,14 @@ function showForecast(){
  document.querySelector('.brazil-main').scrollTop=0;
 }
 function clearInpe(){
+ for(const id of ['br-inpe-motion-label','br-inpe-motion-point','br-inpe-motion-line'])if(map?.getLayer(id))map.removeLayer(id);
+ if(map?.getSource('br-inpe-motion'))map.removeSource('br-inpe-motion');
  if(map?.getLayer('br-inpe-cappi-layer'))map.removeLayer('br-inpe-cappi-layer');
  if(map?.getSource('br-inpe-cappi'))map.removeSource('br-inpe-cappi');
  inpeOn=false;$('inpe-map-readout').hidden=true;if(ready)syncOverlays();
 }
 function dismissInpe(){window.dispatchEvent(new Event('argos-inpe-dismiss'));clearInpe();}
-function showInpe(url,coordinates,label){
+function showInpe(url,coordinates,label,motion=null){
  if(!ready||!active||closed||!map||typeof url!=='string'||!url.startsWith('data:image/png;base64,')||url.length>8*1024*1024||!Array.isArray(coordinates)||coordinates.length!==4||!coordinates.every(p=>Array.isArray(p)&&p.length===2&&p.every(Number.isFinite)))return false;
  if(severeOn)setSevere(false);
  if(radar?.enabled)radar.toggle(false);
@@ -374,6 +376,12 @@ function showInpe(url,coordinates,label){
  try{
   map.addSource('br-inpe-cappi',{type:'image',url,coordinates});
   map.addLayer({id:'br-inpe-cappi-layer',type:'raster',source:'br-inpe-cappi',paint:{'raster-opacity':.86,'raster-fade-duration':0,'raster-resampling':'nearest'}});
+  if(motion?.type==='FeatureCollection'&&Array.isArray(motion.features)&&motion.features.length<=160&&motion.features.length){
+   map.addSource('br-inpe-motion',{type:'geojson',data:motion,attribution:'Deslocamento estimado entre observações CAPPI INPE'});
+   map.addLayer({id:'br-inpe-motion-line',type:'line',source:'br-inpe-motion',filter:['==',['geometry-type'],'LineString'],paint:{'line-color':'#ffffff','line-width':3,'line-opacity':.95}});
+   map.addLayer({id:'br-inpe-motion-point',type:'circle',source:'br-inpe-motion',filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':6,'circle-color':'#ff9b32','circle-stroke-color':'#ffffff','circle-stroke-width':2}});
+   map.addLayer({id:'br-inpe-motion-label',type:'symbol',source:'br-inpe-motion',filter:['==',['geometry-type'],'Point'],layout:{'text-field':['get','label'],'text-size':12,'text-offset':[0,1.2],'text-anchor':'top','text-allow-overlap':false},paint:{'text-color':'#ffffff','text-halo-color':'#101010','text-halo-width':2}});
+  }
   inpeOn=true;$('inpe-map-label').textContent=label;$('inpe-map-readout').hidden=false;
   if(document.body.classList.contains('map-expanded'))setExpanded(false);
   syncOverlays();returnToMap();return true;

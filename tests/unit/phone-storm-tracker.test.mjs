@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {identify,track,extrapolate,distance} from '../../android-mobile/app/src/main/assets/phone-storm-tracker.mjs';
+import {identify,track,extrapolate,distance,selectTrackingPair,observedFeatures} from '../../android-mobile/app/src/main/assets/phone-storm-tracker.mjs';
 const now=Date.parse('2026-11-28T14:00:00Z'),N=64;
 function frame(time,boxes,{radar='radar-a',owner='inpe',altitude=3000,product='cappi3km',reverse=false,missing=[]}={}){
  const lon=Array.from({length:N},(_,i)=>-47+i*.01),lat=Array.from({length:N},(_,i)=>-24+(reverse?N-1-i:i)*.01),values=new Array(N*N).fill(10);
@@ -41,4 +41,20 @@ test('tiny or absent echoes and excessively fast displacements do not create tra
 test('stationary core has no asserted direction',()=>{
  const a=frame(now-10*60000,[[20,20,4,4]]),b=frame(now,[[20,20,4,4]]);
  const t=track(a,b,now).tracks[0];assert.equal(t.speedKmh,0);assert.equal(t.bearingDeg,null);assert.equal(extrapolate(t,15),null);
+});
+
+test('select only the newest compatible two-frame radar pair',()=>{
+ const product={cappi3km:{href:'a'}},a={...frame(now-10*60000,[]),products:product},b={...frame(now,[]),products:product};
+ assert.equal(selectTrackingPair([a,b],now).current.time,now);
+ assert.equal(selectTrackingPair([a,{...b,radar:'other'}],now),null);
+ assert.equal(selectTrackingPair([a,{...b,products:{}}],now),null);
+ assert.equal(selectTrackingPair([{...a,time:now-100*60000},b],now),null);
+});
+test('observed map geometry contains past-to-present line and present point only',()=>{
+ const result=track(frame(now-10*60000,[[15,20,4,4]]),frame(now,[[20,20,4,4]]),now);
+ const geo=observedFeatures(result);assert.equal(geo.features.length,2);
+ assert.deepEqual(geo.features[0].geometry.coordinates,[result.tracks[0].previous,result.tracks[0].current]);
+ assert.deepEqual(geo.features[1].geometry.coordinates,result.tracks[0].current);
+ assert.match(geo.features[1].properties.label,/km\/h · L/);
+ assert.equal(observedFeatures({status:'incompatible',tracks:result.tracks}).features.length,0);
 });
