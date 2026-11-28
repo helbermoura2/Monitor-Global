@@ -178,6 +178,35 @@ def validate_water_vapor(item):
                     if np.ma.is_masked(flag) or int(flag) not in (0,1):raise ValueError('Unusable quality flag: '+region)
                     samples.append({'region':region,'row':iy,'column':ix,'celsius':round(c,2),'dqf':int(flag)})
                 emit(kind='water_vapor',band=band,time=iso(stamp),bytes=len(raw),cors=h.get('Access-Control-Allow-Origin'),samples=samples,status='sample_valid')
+                # Independent reference: vectorized PROJ conversion and bounded rectangular read.
+                # All 90,000 raster positions are compared against the mobile JS decoder.
+                size=300
+                if str(getattr(xvar,'units',''))!='rad' or str(getattr(yvar,'units',''))!='rad':raise ValueError('Unexpected reference axes')
+                top=np.log(np.tan(np.pi/4+np.deg2rad(6)/2));bottom=np.log(np.tan(np.pi/4+np.deg2rad(-35)/2))
+                lons=-75+(np.arange(size)+.5)/size*47
+                lats=np.rad2deg(2*np.arctan(np.exp(top-(np.arange(size)+.5)/size*(top-bottom)))-np.pi/2)
+                glon,glat=np.meshgrid(lons,lats)
+                gx,gy=transformer.transform(glon,glat);gx/=height;gy/=height
+                def nearest_vector(axis,values):
+                    asc=axis[0]<axis[-1];ordered=axis if asc else axis[::-1]
+                    indices=np.searchsorted(ordered,values).clip(1,len(axis)-1)
+                    lower=indices-1
+                    idx=np.where(np.abs(values-ordered[lower])<=np.abs(values-ordered[indices]),lower,indices)
+                    return idx if asc else len(axis)-1-idx
+                ix=nearest_vector(x,gx);iy=nearest_vector(y,gy)
+                inside=np.isfinite(gx)&np.isfinite(gy)&(gx>=x.min())&(gx<=x.max())&(gy>=y.min())&(gy<=y.max())
+                ix=np.where(inside,ix,-1);iy=np.where(inside,iy,-1)
+                left=int(ix[inside].min());right=int(ix[inside].max());top_row=int(iy[inside].min());bottom_row=int(iy[inside].max())
+                if (right-left+1)*(bottom_row-top_row+1)>9000000:raise ValueError('Reference crop exceeds budget')
+                data=v[top_row:bottom_row+1,left:right+1]
+                flags=quality[top_row:bottom_row+1,left:right+1]
+                iy_safe=np.where(inside,iy-top_row,0);ix_safe=np.where(inside,ix-left,0)
+                values=np.ma.filled(data[iy_safe,ix_safe],np.nan).astype(float)-273.15
+                fq=np.ma.filled(flags[iy_safe,ix_safe],255)
+                valid=inside&np.isfinite(values)&(values>=-120)&(values<=80)&np.isin(fq,[0,1])
+                from pathlib import Path
+                Path('/tmp/argos-goes-'+band+'.nc').write_bytes(raw)
+                Path('/tmp/argos-goes-'+band+'.json').write_text(json.dumps({'size':size,'rows':iy.ravel().tolist(),'columns':ix.ravel().tolist(),'values':[float(z) if ok else None for z,ok in zip(values.ravel(),valid.ravel())],'quality':np.where(valid,fq,255).ravel().tolist()},allow_nan=False))
                 passed.append('Band'+band[1:])
         except Exception as e:emit(kind='water_vapor',band=band,status='unavailable',reason=str(e)[:800])
     return passed

@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico satélite GOES
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['tools/probe-mobile-goes.py','.github/workflows/mobile-goes-diagnostic.yml']
+    paths: ['tools/probe-mobile-goes.py','tools/goes-water-vapor-reader.mjs','tools/check-goes-water-vapor.mjs','android-mobile/app/src/main/assets/phone-goes-grid.mjs','.github/workflows/mobile-goes-diagnostic.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -12,9 +12,16 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Preparar verificação científica de imagens
         run: |
           python3 -m venv /tmp/argos-goes
           /tmp/argos-goes/bin/pip install --quiet pillow netCDF4 numpy pyproj
       - name: Verificar catálogo, horários, imagens e CORS GOES
         run: /tmp/argos-goes/bin/python tools/probe-mobile-goes.py
+      - name: Comparar recorte GOES com referência científica
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund h5wasm@0.10.3
+          node tools/check-goes-water-vapor.mjs
