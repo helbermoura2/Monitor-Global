@@ -2,14 +2,14 @@ name: Meteo Center — diagnóstico INPE
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs']
+    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,8 +29,23 @@ jobs:
         run: |
           python3 -m venv /tmp/argos-radar
           /tmp/argos-radar/bin/pip install --quiet netCDF4 numpy pillow
+      - name: Buscar produtos NetCDF nas cinco regiões
+        id: national
+        continue-on-error: true
+        run: node tools/probe-inpe-national.mjs
       - name: Conferir geometria real e níveis de altitude
-        run: /tmp/argos-radar/bin/python tools/probe-inpe-netcdf.py /tmp/argos-inpe-sample.json
+        run: |
+          missing=0
+          for product in cappi3km cappi15l; do
+            sample="/tmp/argos-inpe-$product.json"
+            if [ ! -s "$sample" ]; then
+              echo "::warning::Produto $product não encontrado nas amostras consultadas; validação pendente."
+              missing=1
+              continue
+            fi
+            /tmp/argos-radar/bin/python tools/probe-inpe-netcdf.py "$sample"
+          done
+          test "$missing" = 0
       - name: Exigir confirmação das duas consultas
         if: always()
         env:

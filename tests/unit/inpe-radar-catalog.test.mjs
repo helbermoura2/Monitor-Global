@@ -16,3 +16,5 @@ test('empty catalog is not dry weather; errors and size bounds fail explicitly',
  await assert.rejects(discover(bounds,{fetcher:async()=>new Response('bad',{status:503}),now}),/503/);
  await assert.rejects(discover(bounds,{fetcher:async()=>new Response('x'.repeat(MAX_BYTES+1)),now}),/too large/);
 });
+
+test('official product query and alternate NetCDF MIME are supported without accepting arbitrary assets',()=>{const u=new URL(searchUrl(bounds,now,90,'cappi15l'));assert.deepEqual(JSON.parse(u.searchParams.get('query')),{assets_available:{contains:'cappi15l'}});assert.throws(()=>searchUrl(bounds,now,90,'other'));const result=normalize(fc([item({assets:{cappi15l:{type:'application/x-netcdf',href:'https://data.inpe.br/sample.nc'},cappi3km:{type:'application/octet-stream',href:'https://data.inpe.br/sample.exe'}}})]),bounds,now);assert.ok(result.radars[0].frames[0].products.cappi15l);assert.equal(result.radars[0].frames[0].products.cappi3km,null);});

@@ -1,6 +1,5 @@
 // Manual diagnostic. Reports real metadata and PNG header, never marks stale data as current.
 import {discover,ATTRIBUTION} from '../android-mobile/app/src/main/assets/inpe-radar-catalog.mjs';
-import {writeFileSync} from 'node:fs';
 const bounds=[-48,-25,-45,-22];
 const archive=process.argv.includes('--archive');
 const now=archive?Date.parse('2026-11-19T16:00:00Z'):Date.now();
@@ -19,10 +18,5 @@ try{
  if(filled!==33||!head.subarray(0,8).every((v,i)=>v===[137,80,78,71,13,10,26,10][i])||String.fromCharCode(...head.subarray(12,16))!=='IHDR')throw Error('Invalid PNG header');
  const view=new DataView(head.buffer),width=view.getUint32(16),height=view.getUint32(20);
  if(width!==500||height!==500)throw Error('PNG dimensions differ from INPE specification: '+width+'x'+height);
- if(!archive){
-  const sample=[...frames].reverse().find(f=>f.products.thumbnail&&f.products.cappi3km)||[...frames].reverse().find(f=>f.products.cappi15l);
-  if(sample)writeFileSync('/tmp/argos-inpe-sample.json',JSON.stringify(sample));
-  else console.log('No NetCDF asset in the recent query; geometry still pending.');
- }
  console.log(JSON.stringify({png:'verified header and byte budget',id:f.id,width,height,bytes,colorType:head[25],georeferencing:'pending pixel alignment verification',mode:archive?'historical reference only':'recent'}));
 }catch(e){console.error('INPE diagnostic:',e.message);process.exitCode=1;}

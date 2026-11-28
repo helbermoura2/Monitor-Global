@@ -9,18 +9,19 @@ const finite=v=>typeof v==='number'&&Number.isFinite(v);
 export function validBounds(b){return Array.isArray(b)&&b.length===4&&b.every(finite)&&b[0]>=-180&&b[2]<=180&&b[1]>=-85&&b[3]<=85&&b[0]<b[2]&&b[1]<b[3];}
 const intersects=(a,b)=>a[0]<=b[2]&&a[2]>=b[0]&&a[1]<=b[3]&&a[3]>=b[1];
 const clean=v=>typeof v==='string'&&v.length<=160?v.trim():'';
-export function searchUrl(bounds,now=Date.now(),minutes=90){
+export function searchUrl(bounds,now=Date.now(),minutes=90,product=null){
  if(!validBounds(bounds)||bounds[2]-bounds[0]>10||bounds[3]-bounds[1]>10||!finite(now)||!Number.isInteger(minutes)||minutes<15||minutes>180)throw Error('Invalid bounded radar query');
  const u=new URL(ENDPOINT);
  u.searchParams.set('collections',COLLECTION);u.searchParams.set('bbox',bounds.join(','));
  u.searchParams.set('datetime',new Date(now-minutes*60000).toISOString()+'/'+new Date(now).toISOString());
+ if(product!==null){if(!['cappi3km','cappi15l'].includes(product))throw Error('Unknown CAPPI product');u.searchParams.set('query',JSON.stringify({assets_available:{contains:product}}));}
  u.searchParams.set('limit','100');return u.href;
 }
 function asset(item,key){
  const a=item.assets?.[key];if(!a||typeof a.href!=='string'||a.href.length>2048)return null;
  try{const u=new URL(a.href);if(u.protocol!=='https:'||u.username||u.password||u.port||!(u.hostname==='inpe.br'||u.hostname.endsWith('.inpe.br')))return null;
  const type=key==='thumbnail'?'image/png':'application/netcdf';
- if(a.type!==type)return null;
+ if(key==='thumbnail' ? a.type!==type : !(['application/netcdf','application/x-netcdf','application/x-hdf5','application/octet-stream'].includes(a.type)&&/\.(?:nc|nc4|cdf)$/i.test(u.pathname)))return null;
  return {href:u.href,type};
  }catch{return null;}
 }
@@ -41,8 +42,8 @@ export function normalize(data,bounds,now=Date.now()){
  const radars=[...groups.values()].map(frames=>{frames.sort((a,b)=>b.time-a.time);return {radar:frames[0].radar,owner:frames[0].owner,frames:frames.slice(0,6).reverse()};}).sort((a,b)=>b.frames.at(-1).time-a.frames.at(-1).time||a.radar.localeCompare(b.radar));
  return {radars:radars.slice(0,12),rejected,stale,partial:(data.links||[]).some(l=>l.rel==='next')||radars.length>12,at:now};
 }
-export async function discover(bounds,{fetcher=fetch,now=Date.now(),signal}={}){
- const response=await fetcher(searchUrl(bounds,now),{signal:signal||AbortSignal.timeout(15000),credentials:'omit',redirect:'error',headers:{Accept:'application/geo+json, application/json'}});
+export async function discover(bounds,{fetcher=fetch,now=Date.now(),signal,product=null}={}){
+ const response=await fetcher(searchUrl(bounds,now,90,product),{signal:signal||AbortSignal.timeout(15000),credentials:'omit',redirect:'error',headers:{Accept:'application/geo+json, application/json'}});
  if(!response.ok)throw Error('INPE STAC HTTP '+response.status);
  if(Number(response.headers.get('content-length')||0)>MAX_BYTES)throw Error('STAC response too large');
  const reader=response.body.getReader();let size=0,parts=[];
