@@ -5,7 +5,7 @@
   const panel=document.createElement('section');panel.className='brazil-satellite-control';panel.setAttribute('aria-label','Produtos de satélite do Brasil');panel.innerHTML='<details><summary><input type="checkbox" checked aria-label="Exibir satélite no Brasil"><span>Satélite · Brasil</span><span class="br-satellite-expand">⌄</span></summary><div class="br-satellite-options"><label>Produto GOES-19 <select data-action="product" aria-label="Produto GOES-19"></select></label><div class="br-satellite-buttons"><button type="button" data-action="play">▶ Animar</button><button type="button" data-action="latest">Último quadro</button><button type="button" data-action="brasil">Brasil</button></div><label class="br-satellite-range">Histórico <input type="range" data-action="frame" min="0" max="0" value="0" aria-label="Quadro do satélite"></label><label class="br-satellite-range">Opacidade <input type="range" data-action="opacity" min="25" max="100" value="88" aria-label="Opacidade do satélite"></label><img class="br-satellite-legend" src="https://gibs.earthdata.nasa.gov/legends/Clean_Longwave_Infrared_Window_Band_H.png" alt="Escala de temperatura de brilho infravermelha em graus Celsius"><small data-product-description>Temperatura de brilho · °C. Não mede intensidade da chuva.</small></div></details><p class="br-satellite-status" role="status">Consultando horários da fonte…</p><a href="https://www.earthdata.nasa.gov/data/projects/gibs" target="_blank" rel="noopener">GOES-East · NASA GIBS / NOAA</a>';
   host.appendChild(panel);const checkbox=panel.querySelector('input[type=checkbox]'),status=panel.querySelector('.br-satellite-status'),slider=panel.querySelector('[data-action=frame]'),play=panel.querySelector('[data-action=play]');
   const controlChip=manualControl?document.getElementById('chip-satellite'):null;let controlOpen=false;
-  let productKey='ir',productEpoch=0,coverage=0;const selector=panel.querySelector('[data-action=product]'),legend=panel.querySelector('.br-satellite-legend'),description=panel.querySelector('[data-product-description]');
+  let productKey='ir',productEpoch=0,coverage=0,legendFailed=false;const selector=panel.querySelector('[data-action=product]'),legend=panel.querySelector('.br-satellite-legend'),description=panel.querySelector('[data-product-description]');
   for(const [key,p] of Object.entries(M.PRODUCTS)){const option=document.createElement('option');option.value=key;option.textContent=p.label;selector.append(option);}
   let live=enabled,active=true,dead=false,border=null,times=[],selected=0,dataAt=0,expectedSamples=0,playing=false,stepping=false,busy=false,serial=0,controller=null,poll=null,animation=null,restoreTimer=null,lastQuery=0,opacity=.88,cache=new Map(),cacheBytes=0;
   checkbox.checked=enabled;
@@ -52,12 +52,12 @@
   selector.addEventListener('change',()=>{
    const next=selector.value;if(next===productKey||!Object.hasOwn(M.PRODUCTS,next))return;
    productEpoch++;pause();playing=false;play.textContent='▶ Animar';removeLayer();cache.clear();cacheBytes=0;times=[];dataAt=0;selected=0;coverage=0;lastQuery=0;slider.value='0';slider.max='0';productKey=next;panel.dataset.ready='false';
-   legend.hidden=next!=='ir';description.textContent=M.product(next).description;note('Consultando '+M.product(next).label+'…');if(valid())refresh(true);
+   legend.hidden=next!=='ir'||legendFailed;legend.style.display=legend.hidden?'none':'';description.textContent=M.product(next).description;note('Consultando '+M.product(next).label+'…');if(valid())refresh(true);
   });
   checkbox.addEventListener('click',e=>e.stopPropagation());checkbox.addEventListener('change',()=>activate(checkbox.checked));
   play.addEventListener('click',()=>{playing=!playing;play.textContent=playing?'Ⅱ Pausar':'▶ Animar';if(playing)step();else clearTimeout(animation);});
   panel.querySelector('[data-action=brasil]').addEventListener('click',()=>map.fitBounds([[M.BOUNDS[0],M.BOUNDS[1]],[M.BOUNDS[2],M.BOUNDS[3]]],{padding:24,duration:600,maxZoom:4.5}));
-  panel.querySelector('.br-satellite-legend').addEventListener('error',e=>{e.target.hidden=true;});
+  legend.addEventListener('error',()=>{legendFailed=true;legend.hidden=true;legend.style.display='none';});
   panel.querySelector('[data-action=latest]').addEventListener('click',()=>{playing=false;play.textContent='▶ Animar';clearTimeout(animation);lastQuery=0;refresh(true);});
   slider.addEventListener('input',()=>{playing=false;play.textContent='▶ Animar';clearTimeout(animation);show(Number(slider.value));});
   panel.querySelector('[data-action=opacity]').addEventListener('input',e=>{opacity=Number(e.target.value)/100;if(map.getLayer(LAYER))map.setPaintProperty(LAYER,'raster-opacity',opacity);});

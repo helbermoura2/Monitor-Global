@@ -1,12 +1,21 @@
 // Manual diagnostic. Reports real metadata and PNG header, never marks stale data as current.
 import {discover,ATTRIBUTION} from '../android-mobile/app/src/main/assets/inpe-radar-catalog.mjs';
-const bounds=[-48,-25,-45,-22];
+const regions=[['São Paulo',[-48,-25,-45,-22]],['Sul',[-57,-32,-48,-23]],['Sudeste',[-49,-25,-40,-17]],['Centro-Oeste',[-58,-22,-48,-12]],['Nordeste',[-43,-13,-34,-3]],['Norte',[-65,-9,-55,1]]];
 const archive=process.argv.includes('--archive');
 const now=archive?Date.parse('2026-11-19T16:00:00Z'):Date.now();
 try{
- const result=await discover(bounds,{now});
- const frames=result.radars.flatMap(r=>r.frames);
- console.log(JSON.stringify({source:ATTRIBUTION,mode:archive?'historical reference only':'recent',at:new Date(now).toISOString(),radars:result.radars.map(r=>({radar:r.radar,owner:r.owner,frames:r.frames.map(f=>({id:f.id,time:new Date(f.time).toISOString(),bounds:f.bounds,products:Object.keys(f.products).filter(k=>f.products[k])}))})),rejected:result.rejected,stale:result.stale,partial:result.partial},null,2));
+ let result,frames=[],region;
+ for(const [name,bounds] of archive?regions.slice(0,1):regions){
+  try{
+   const data=await discover(bounds,{now});
+   const candidates=data.radars.flatMap(r=>r.frames);
+   console.log(JSON.stringify({region:name,mode:archive?'historical':'recent',frames:candidates.length,thumbnails:candidates.filter(f=>f.products.thumbnail).length,partial:data.partial}));
+   if(candidates.some(f=>f.products.thumbnail)){result=data;frames=candidates;region=name;break;}
+  }catch(e){console.log(JSON.stringify({region:name,error:e.message}));}
+ }
+ if(!result)throw Error('No recent validated PNG metadata in sampled regions; keep RainViewer.');
+
+ console.log(JSON.stringify({source:ATTRIBUTION,region,mode:archive?'historical reference only':'recent',at:new Date(now).toISOString(),radars:result.radars.map(r=>({radar:r.radar,owner:r.owner,frames:r.frames.map(f=>({id:f.id,time:new Date(f.time).toISOString(),bounds:f.bounds,products:Object.keys(f.products).filter(k=>f.products[k])}))})),rejected:result.rejected,stale:result.stale,partial:result.partial},null,2));
  if(!frames.length)throw Error('No validated metadata within requested period; keep RainViewer.');
  const f=frames.find(f=>f.products.thumbnail);
  if(!f)throw Error('No PNG thumbnail in available radar frames.');
