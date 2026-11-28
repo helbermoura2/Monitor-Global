@@ -4,11 +4,14 @@ import {writeFile,mkdir} from 'node:fs/promises';
 const root='/tmp/argos-storm-sequences';await mkdir(root,{recursive:true});
 const regions=[['Sudeste',[-48,-25,-45,-22]],['Sul',[-57,-32,-48,-23]],['Nordeste',[-43,-13,-34,-3]],['Norte',[-65,-9,-55,1]],['Centro-Oeste',[-58,-22,-48,-12]],['Sudeste leste',[-49,-25,-40,-17]]];
 const now=Date.now(),cases=[...regions.map(([region,bounds])=>({region,bounds,now,mode:'recent'})),{region:'São Paulo',bounds:regions[0][1],now:Date.parse('2026-11-19T16:00:00Z'),mode:'historical'}];
+cases.push({region:'Sul',bounds:regions[1][1],now:Date.parse('2026-10-12T18:00:00Z'),mode:'historical'});
 const sequences=[],seen=new Set();let downloads=0;
 for(const c of cases){
  if(sequences.length>=6||downloads+3>18)break;
  try{
-  const data=await discover(c.bounds,{now:c.now,product:'cappi3km'});const candidates=[];
+  // The optional server-side product filter returned HTTP 500 in every sampled region.
+  // Use the already validated plain STAC query and filter actual assets locally.
+  const data=await discover(c.bounds,{now:c.now});const candidates=[];
   for(const radar of data.radars){
    const frames=radar.frames.filter(f=>f.time<=c.now&&selectCappi(f,3000,c.now)?.product==='cappi3km');
    for(let i=frames.length-3;i>=0;i--){

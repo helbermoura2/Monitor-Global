@@ -99,3 +99,6 @@ Android 46153764484 e GOES 46153759677 aprovados; amostra de vapor recente (36 m
 
 ## Etapa 3B — diagnóstico retrospectivo real
 Android 46154250977 aprovado, inclusive associação sintética. Diagnóstico coleta até seis sequências de três quadros CAPPI 3 km, máximo 18 downloads, amostras regionais e históricas identificadas. SciPy compara componentes, pixels, centróides e pico dBZ; JS mede erro em terceiro quadro contra persistência. Associação automática não é identidade independente; amostra pequena não calibra probabilidade/cone. Sem trajetória verificável, resultado inconclusivo. Sem UI, alertas, publicação ou infraestrutura adicional nesta fase.
+
+## Correção da coleta Storm Tracker
+Android 46154768476 aprovado. Diagnóstico 46154762777 falhou antes da análise: as sete consultas STAC com extensão de filtro assets_available retornaram HTTP 500. Removido filtro no servidor; seleção do produto CAPPI3km permanece estrita no cliente a partir dos assets reais, usando a consulta simples já aprovada no diagnóstico INPE. Incluída segunda janela histórica conhecida no Sul, identificada exclusivamente como retrospectiva. Mantidos limites de 18 arquivos, idade relativa à janela, intervalo e mesmo radar/produto. Não declarar trajetória validada antes de obter e analisar sequências.
