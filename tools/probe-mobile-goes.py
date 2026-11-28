@@ -225,7 +225,7 @@ def validate_water_vapor(item):
                 valid=inside&np.isfinite(values)&(values>=-120)&(values<=80)&np.isin(fq,[0,1])
                 from pathlib import Path
                 Path('/tmp/argos-goes-'+band+'.nc').write_bytes(raw)
-                Path('/tmp/argos-goes-'+band+'.json').write_text(json.dumps({'size':size,'x':x.tolist(),'y':y.tolist(),'rows':iy.ravel().tolist(),'columns':ix.ravel().tolist(),'values':[float(z) if ok else None for z,ok in zip(values.ravel(),valid.ravel())],'quality':np.where(valid,fq,255).ravel().tolist()},allow_nan=False))
+                Path('/tmp/argos-goes-'+band+'.json').write_text(json.dumps({'time':iso(stamp),'asset':url,'size':size,'x':x.tolist(),'y':y.tolist(),'rows':iy.ravel().tolist(),'columns':ix.ravel().tolist(),'values':[float(z) if ok else None for z,ok in zip(values.ravel(),valid.ravel())],'quality':np.where(valid,fq,255).ravel().tolist()},allow_nan=False))
                 passed.append('Band'+band[1:])
         except Exception as e:emit(kind='water_vapor',band=band,status='unavailable',reason=str(e)[:800])
     return passed
