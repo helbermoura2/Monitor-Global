@@ -16,7 +16,7 @@ final class DailyWeatherBrief {
  private static final DateTimeFormatter DATE=DateTimeFormatter.ofPattern("dd/MM");
  private static final String URL_SOURCE="https://api.open-meteo.com/v1/forecast"
   +"?latitude=-23.555&longitude=-46.635&timezone=America%2FSao_Paulo&forecast_days=2"
-  +"&daily=temperature_2m_min,temperature_2m_max&hourly=precipitation_probability,weather_code";
+  +"&daily=temperature_2m_min,temperature_2m_max,precipitation_sum&hourly=precipitation_probability,weather_code";
 
  static final class Slot {
   final ZonedDateTime at;
@@ -43,6 +43,29 @@ final class DailyWeatherBrief {
  }
 
  static String read(Slot slot,long millis)throws IOException,JSONException{
+  return summarize(fetch(),slot,millis);
+ }
+
+ static double readDailyRain(LocalDate day)throws IOException,JSONException{
+  return dailyRain(fetch(),day);
+ }
+
+ static double dailyRain(JSONObject data,LocalDate day)throws JSONException{
+  if(!ZONE.getId().equals(data.getString("timezone"))||
+    !"mm".equals(data.getJSONObject("daily_units").getString("precipitation_sum")))
+   throw new JSONException("Unidade ou fuso inválido");
+  JSONObject daily=data.getJSONObject("daily");
+  JSONArray dates=daily.getJSONArray("time"),totals=daily.getJSONArray("precipitation_sum");
+  if(dates.length()!=totals.length())throw new JSONException("Totais diários incompletos");
+  for(int i=0;i<dates.length();i++){
+   if(!day.toString().equals(dates.getString(i))||totals.isNull(i))continue;
+   double value=totals.getDouble(i);
+   if(Double.isFinite(value)&&value>=0)return value;
+  }
+  throw new JSONException("Acumulado diário indisponível");
+ }
+
+ private static JSONObject fetch()throws IOException,JSONException{
   HttpURLConnection c=(HttpURLConnection)new URL(URL_SOURCE).openConnection();
   c.setConnectTimeout(6000);c.setReadTimeout(6000);c.setInstanceFollowRedirects(false);
   try{
@@ -55,7 +78,7 @@ final class DailyWeatherBrief {
      bytes.write(buffer,0,count);
     }
    }
-   return summarize(new JSONObject(new String(bytes.toByteArray(),StandardCharsets.UTF_8)),slot,millis);
+   return new JSONObject(new String(bytes.toByteArray(),StandardCharsets.UTF_8));
   }finally{c.disconnect();}
  }
 

@@ -29,12 +29,15 @@ public class PhoneActivity extends Activity {
  private DefesaCivilSp civilAlerts;
  private DefesaCivilBr nationalCapAlerts;
  private boolean civilLoading;
- private long civilNextCheck,nationalCapNextCheck;
+ private long civilNextCheck,nationalCapNextCheck,dailyRainNextCheck,dailyRainCheckedAt;
+ private boolean dailyRainLoading;
+ private double dailyRainMm=Double.NaN;
+ private java.time.LocalDate dailyRainDay,dailyRainForecastDay;
  private Typeface brand;private PhoneRepository repository;private PhoneRepository.Snapshot snapshot;
  private WeatherBriefingClient briefing;private PhoneMapView map,rainMap,brazilMap;private PhoneUpdater updater;private ExecutorService worker;private SharedPreferences cache;
  private String tab="home",returnTab="home",mapFilter="all",quakeRegion="all",settingsReturnTab="more",advancedReturnTab="more",mapReturnTab="sismos";private Alert selected,mappedEvent;
  private boolean active,destroyed,refreshing,forecastRequested,weeklyRequested,weeklyVisible,focusMappedEvent,detailLoading,dailyExpanded,mapFiltersExpanded;private long nextDetailAttempt,nextDailyAttempt;private int generation;
- private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);if(tab.equals("notices")&&selected==null)refreshCivilAlerts(false);main.postDelayed(this,60000);}};
+ private final Runnable pulse=new Runnable(){public void run(){if(!active||destroyed)return;refresh(false);if(selected==null&&(tab.equals("notices")||tab.equals("home")))refreshCivilAlerts(false);if(selected==null&&tab.equals("home"))refreshDailyRain();main.postDelayed(this,60000);}};
 
  protected PhoneRepository createRepository(){return new PhoneRepository();}
  protected boolean automaticRefresh(){return true;}
@@ -154,7 +157,8 @@ public class PhoneActivity extends Activity {
  private void footer(LinearLayout card,String value){TextView t=text(value,13,MUTED,10);t.setBackgroundColor(0x25000000);t.setPadding(dp(16),dp(10),dp(16),dp(12));card.addView(t,new LinearLayout.LayoutParams(-1,-2));}
  private void homePage(LinearLayout page){
   heading(page,"Monitoramento agora");
-  alertStatus(page);
+  refreshCivilAlerts(false);refreshDailyRain();
+  homeCivilStatus(page);homeRainStatus(page);alertStatus(page);
   heading(page,"Sismos recentes");eventList(page,1);
   space(page,button("Ver lista de sismos",()->go("sismos")),4);
   heading(page,"Clima na Liberdade");weatherCard(page,false);rainCard(page,false);
@@ -703,14 +707,72 @@ public class PhoneActivity extends Activity {
   return a.kind.equals("tsunami")&&(a.state.equals("warning")||a.state.equals("watch")||a.state.equals("advisory"));
  }
  private void alertStatus(LinearLayout page){
-  LinearLayout summary=card(page,"CONSULTA OFICIAL"),body=section(summary);
+  LinearLayout summary=card(page,"AVISOS OFICIAIS DE TSUNAMI"),body=section(summary);
   int urgent=0;for(Alert a:events())if(officialWarning(a))urgent++;
   boolean queried=snapshot!=null&&snapshot.refreshedAt>0&&!snapshot.saved&&snapshot.tsunamiOk;
   String message=queried
-    ?(urgent>0?urgent+" aviso(s) oficial(is) de tsunami na consulta":"Nenhum aviso oficial urgente identificado na consulta")
+    ?(urgent>0?urgent+" aviso(s) oficial(is) de tsunami na consulta":"Nenhum aviso oficial de tsunami identificado na consulta")
     :(urgent>0?"Aviso de tsunami nos registros disponíveis · consulta atual não confirmada":"Consulta oficial ainda não confirmada");
   body.addView(text(message,17,urgent>0?AMBER:TEXT,5));
   footer(summary,snapshot==null?"Aguardando consulta":snapshot.feedStatus+(queried?" · "+BrDates.dateTime(snapshot.refreshedAt):""));
+ }
+ private void homeCivilStatus(LinearLayout page){
+  LinearLayout box=card(page,"DEFESA CIVIL · SÃO PAULO CAPITAL"),body=section(box);
+  long now=System.currentTimeMillis();
+  if(civilAlerts==null||!civilAlerts.fresh(now)){
+   body.addView(text(civilLoading?"Consultando avisos oficiais…":"Consulta de avisos oficiais indisponível.",15,MUTED,3));
+  }else{
+   int count=0;DefesaCivilSp.Notice first=null;
+   for(DefesaCivilSp.Notice notice:civilAlerts.notices){
+    if(notice.expires<=now)continue;
+    if(first==null||(!"Extreme".equals(first.severity)&&"Extreme".equals(notice.severity)))first=notice;
+    count++;
+   }
+   if(first==null)body.addView(text("Nenhum aviso severo ou extremo vigente encontrado para a capital.",15,MUTED,3));
+   else{
+    body.addView(text(first.level()+" · "+first.message,16,TEXT,8));
+    space(body,text(first.issuer+" · válido até "+BrDates.dateTime(first.expires),12,MUTED,3),6);
+    if(count>1)space(body,text("Mais "+(count-1)+" aviso(s) vigente(s) na Central de Alertas.",13,AMBER,3),4);
+   }
+  }
+  space(body,button("Ver avisos oficiais",()->go("notices")),8);
+  footer(box,"Fonte oficial · IDAP / Defesa Civil");
+ }
+ private void refreshDailyRain(){
+  long now=System.currentTimeMillis();
+  java.time.LocalDate day=java.time.Instant.ofEpochMilli(now).atZone(DailyWeatherBrief.ZONE).toLocalDate();
+  if(!automaticRefresh()||!active||destroyed||dailyRainLoading||
+    dailyRainDay!=null&&dailyRainDay.equals(day)&&now<dailyRainNextCheck)return;
+  dailyRainDay=day;dailyRainNextCheck=now+5*60_000L;dailyRainLoading=true;
+  if(worker==null)worker=Executors.newSingleThreadExecutor();
+  worker.execute(()->{
+   double value;
+   try{value=DailyWeatherBrief.readDailyRain(day);}
+   catch(java.io.IOException|org.json.JSONException error){value=Double.NaN;}
+   final double total=value;
+   main.post(()->{
+    if(destroyed)return;
+    dailyRainLoading=false;
+    if(Double.isFinite(total)){
+     dailyRainMm=total;dailyRainForecastDay=day;dailyRainCheckedAt=System.currentTimeMillis();
+     dailyRainNextCheck=dailyRainCheckedAt+30*60_000L;
+    }
+    if(active&&tab.equals("home")&&selected==null)render();
+   });
+  });
+ }
+ private void homeRainStatus(LinearLayout page){
+  long now=System.currentTimeMillis();
+  java.time.LocalDate today=java.time.Instant.ofEpochMilli(now).atZone(DailyWeatherBrief.ZONE).toLocalDate();
+  if(!Double.isFinite(dailyRainMm)||now<dailyRainCheckedAt||now-dailyRainCheckedAt>60*60_000L||
+    !today.equals(dailyRainForecastDay)||
+    dailyRainMm<=50)return;
+  LinearLayout box=card(page,"CHUVA PREVISTA · LIBERDADE, SP"),body=section(box);
+  String total=java.text.NumberFormat.getNumberInstance(new Locale("pt","BR")).format(dailyRainMm);
+  body.addView(text(total+" mm previstos hoje · acima de 50 mm",18,AMBER,3));
+  space(body,text("Acumulado estimado para o dia em um ponto da Liberdade. Se a chuva se concentrar em poucas horas, pode haver alagamentos em áreas baixas ou com drenagem lenta.",14,TEXT,6),6);
+  space(body,button("Abrir previsão do tempo",()->go("weather")),8);
+  footer(box,"Previsão de modelo · Open-Meteo · "+BrDates.dateTime(dailyRainCheckedAt));
  }
  private void refreshCivilAlerts(boolean force){
   long now=System.currentTimeMillis();
@@ -732,7 +794,7 @@ public class PhoneActivity extends Activity {
     if(destroyed)return;
     civilAlerts=checked;
     if(readNational)nationalCapAlerts=nationalChecked;
-    if(active&&tab.equals("notices")&&selected==null)render();
+    if(active&&(tab.equals("notices")||tab.equals("home"))&&selected==null)render();
    });
   });
  }
