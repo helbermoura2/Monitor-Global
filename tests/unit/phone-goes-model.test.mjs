@@ -11,3 +11,15 @@ test('only validated GIBS products use actual matrix and safe URLs',()=>{
  }
  assert.throws(()=>M.domainUrl(now,'unknown'));assert.throws(()=>M.imageUrl(now,'__proto__'));
 });
+
+test('vapor catalog accepts only recent real INPE assets and expected bands',()=>{
+ const href='https://data.inpe.br/bdc/data/GOES19-L2-CMI/ch08/2026/11/S10161308_202611281040.nc';
+ const item={collection:'GOES19-L2-CMI-1',properties:{datetime:new Date(now-600000).toISOString()},assets:{B08:{type:'application/x-netcdf',href}}};
+ assert.deepEqual(M.vaporFrames({features:[item]},'b08',now),[[now-600000,href]]);
+ assert.deepEqual(M.vaporFrames({features:[{...item,properties:{datetime:new Date(now-91*60000).toISOString()}}]},'b08',now),[]);
+ assert.deepEqual(M.vaporFrames({features:[{...item,assets:{B08:{type:'application/x-netcdf',href:href.replace('ch08','ch09')}}}]},'b08',now),[]);
+ assert.throws(()=>M.imageUrl(now,'b08'));
+ const q=new URL(M.vaporUrl(now));assert.equal(q.searchParams.get('collections'),'GOES19-L2-CMI-1');
+ const temp=new Float32Array(90000).fill(-40),quality=new Uint8Array(90000);temp[1]=NaN;quality[2]=2;
+ const pixels=M.vaporRGBA(temp,quality);assert.equal(pixels.length,360000);assert.equal(pixels[3],255);assert.equal(pixels[7],0);assert.equal(pixels[11],0);
+});

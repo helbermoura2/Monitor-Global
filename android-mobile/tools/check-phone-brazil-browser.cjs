@@ -29,6 +29,7 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
   if(u.origin===origin&&u.pathname==='/favicon.ico')return route.fulfill({status:204});
   if(u.origin===origin&&u.pathname.startsWith(prefix)){const file=path.join(temporary,'assets',u.pathname.slice(prefix.length));if(fs.existsSync(file)&&fs.statSync(file).isFile())return route.fulfill({path:file});return route.fulfill({status:404,body:'missing packaged asset'});}
   if(u.hostname==='server.arcgisonline.com')return route.fulfill({headers:cors,contentType:'image/png',body:base});
+  if(u.hostname==='data.inpe.br'&&u.searchParams.get('collections')==='GOES19-L2-CMI-1')return route.fulfill({headers:cors,contentType:'application/json',body:JSON.stringify({features:[]})});
   if(u.hostname==='gibs.earthdata.nasa.gov'&&u.pathname.startsWith('/legends/'))return route.fulfill({headers:cors,contentType:'image/png',body:base});
   if(u.hostname==='gibs.earthdata.nasa.gov'&&u.searchParams.get('REQUEST')==='DescribeDomains'){
    const frame=new Date(stamp*1000).toISOString().replace('.000Z','Z');
@@ -112,6 +113,12 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
  const goesSelect=page.getByLabel('Produto GOES-19');
+ for(const band of ['b08','b09','b10']){
+  await goesSelect.selectOption(band);await page.waitForFunction(()=>document.querySelector('.br-satellite-status').textContent.includes('sem quadro recente'));
+  assert.equal(await page.locator('[data-action=play]').isDisabled(),true);assert.equal(await page.locator('[data-action=frame]').isDisabled(),true);
+  assert.equal(await page.locator('[data-vapor-scale]').isVisible(),true);
+  assert.equal(await page.evaluate(()=>!!window.__map.getLayer('br-satellite-layer')),false);
+ }
  for(const [key,label] of [['color','GeoColor'],['air','RGB Air Mass'],['ir','Infravermelho']]){
   await goesSelect.selectOption(key);
   await page.waitForFunction(label=>document.querySelector('.br-satellite-status')?.textContent.includes(label+' · ')&&document.querySelector('.br-satellite-status')?.textContent.includes('BRT')&&window.__map.getLayer('br-satellite-layer'),label);

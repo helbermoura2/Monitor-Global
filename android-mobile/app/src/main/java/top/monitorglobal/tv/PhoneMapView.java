@@ -81,7 +81,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);if(response!=null&&brazilPage&&(uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-catalog.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-grid.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-layer-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"vendor/cappi/inpe-cappi-worker.mjs")))response.setMimeType("text/javascript");return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||mobileGoesResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||inpeCappiResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||mobileGoesResource(uri)||inpeGoesResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||inpeCappiResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -145,6 +145,19 @@ final class PhoneMapView extends FrameLayout {
  static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith(ASSET_PREFIX);}
  static boolean streetResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Street_Map/MapServer/tile/");}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
+ static boolean inpeGoesResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||!"data.inpe.br".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getFragment()!=null||uri.getPath()==null)return false;
+  if(uri.getQuery()==null)return uri.getPath().matches("/bdc/data/GOES19-L2-CMI/ch(08|09|10)/[0-9]{4}/(0[1-9]|1[0-2])/[A-Za-z0-9_-]{1,100}[.]nc");
+  if(!"/bdc/stac/v1/search".equals(uri.getPath())||uri.getQuery().length()>400)return false;
+  try{
+   if(!uri.getQueryParameterNames().equals(new java.util.HashSet<>(java.util.Arrays.asList("collections","datetime","limit"))))return false;
+   for(String key:uri.getQueryParameterNames())if(uri.getQueryParameters(key).size()!=1)return false;
+   if(!"GOES19-L2-CMI-1".equals(uri.getQueryParameter("collections"))||!"10".equals(uri.getQueryParameter("limit")))return false;
+   String[] t=uri.getQueryParameter("datetime").split("/",-1);if(t.length!=2)return false;
+   java.time.Instant from=java.time.Instant.parse(t[0]),to=java.time.Instant.parse(t[1]);long now=System.currentTimeMillis();
+   return java.time.Duration.between(from,to).toMillis()==5400000L&&to.toEpochMilli()<=now+120000L&&to.toEpochMilli()>=now-300000L;
+  }catch(RuntimeException e){return false;}
+ }
  static boolean mobileGoesResource(Uri uri){
   if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getFragment()!=null||uri.getQuery()==null||uri.getQuery().length()>800)return false;
   String path=uri.getPath(),layer;
