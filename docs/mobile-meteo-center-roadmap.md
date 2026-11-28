@@ -18,3 +18,12 @@ O módulo de descoberta limita área, janela, tamanho e resultados; não envia l
 Executar: node --test tests/unit/inpe-radar-catalog.test.mjs
 Diagnóstico real: node tools/probe-inpe-radar.mjs
 Próximo: confirmar acesso ao endpoint de busca, domínios e formato dos assets, transparência/legenda e georreferenciamento do PNG. Não aceitar imagens antigas como atuais nem ausência de retorno como tempo seco. A atual versão do mapa continua intocada.
+
+## Pesquisa de projetos no GitHub (2026-11-28)
+- Etapa 1: https://github.com/evmpython/curso_radar_UNIFEI_INPE_2024 (referência científica, confirmar licença antes de copiar código); https://github.com/ARM-DOE/pyart (BSD-3-Clause, referência de processamento); https://github.com/brazil-data-cube/stac.py (MIT, referência de consulta).
+- Etapa 2: https://github.com/uba/DSAT-cli (MIT, originalmente GOES-16; verificar endpoints atuais GOES-19); https://github.com/VitorTenorio232/glm-brasil-dashboard (referência, conferir licença e custo de execução).
+- Etapa 3: https://github.com/openradar/TINT (BSD-2-Clause, alpha); https://github.com/tobac-project/tobac e https://github.com/pySTEPS/pysteps (BSD-3-Clause, referência e validação científica; não instalar pilha Python inteira no Worker).
+- Etapa 4: https://github.com/vbasilioo/crawler-dados-inmet (referência de coleta; conferir API/termos atuais); inmetpy descontinuado, não usar como integração.
+- Etapa 5: https://github.com/Unidata/MetPy (BSD-3-Clause, referência para CAPE e sondagens); https://github.com/open-meteo/weather-map-layer (GPL-2.0, experimental, exige isolamento cross-origin e teste em WebView; verificar licença/termos dos OMfiles antes de integrar).
+- Etapa 6: https://github.com/maplibre/maplibre-gl-compare (comparação sincronizada); https://github.com/SysAdminDoc/StormviewRadar (referência funcional, dados e produtos dos EUA não substituem os brasileiros).
+- Nenhum código de terceiro incorporado nesta pesquisa. Preferir dados oficiais pré-processados, consulta sob demanda, processamento leve no celular e testes com referências científicas. Sem ativar serviços pagos; integração depende de licença, cobertura, disponibilidade, limites e teste físico.
