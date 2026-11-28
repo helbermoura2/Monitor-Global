@@ -30,7 +30,9 @@ function classic(bytes,altitude){
  return {lon,lat,values:unpack(values,attrs)};
 }
 async function hdf(bytes,altitude){
- const {FS}=await h5wasm.ready,path='/argos-radar.nc';
+ const {FS}=await h5wasm.ready,path='/tmp/argos-radar.nc';
+ // Emscripten's root filesystem is not writable by default; /tmp is its writable scratch space.
+ // Keep the data ephemeral and do not relax filesystem permissions.
  FS.writeFile(path,bytes);
  let f;
  try{
