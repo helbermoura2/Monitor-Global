@@ -4,9 +4,9 @@ import {availableLevels,selectCappi,fetchCappi,MAX_AGE} from './inpe-radar-layer
 import {DBZ_PALETTE} from './inpe-radar-grid.mjs';
 const $=id=>document.getElementById(id);
 const panel=$('inpe-catalog'),status=$('inpe-catalog-status'),results=$('inpe-catalog-results'),search=$('inpe-catalog-search');
-let controller=null,serial=0,lastAttempt=0,cache=new Map(),day='',used=0,worker=null,savedFile=null,expiry=0,renderCount=0;
+let controller=null,serial=0,lastAttempt=0,cache=new Map(),day='',used=0,worker=null,abortDecode=null,savedFile=null,expiry=0,renderCount=0;
 const clock=ms=>new Date(ms).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+' BRT';
-function cancel(){serial++;controller?.abort();controller=null;worker?.terminate();worker=null;search.disabled=false;}
+function cancel(){serial++;controller?.abort();controller=null;abortDecode?.();abortDecode=null;worker?.terminate();worker=null;search.disabled=false;}
 function removeLayer(){clearTimeout(expiry);window.MonitorMap?.clearInpe?.();}
 function clear(){results.replaceChildren();}
 function row(tag,value){const e=document.createElement(tag);e.textContent=value;return e;}
@@ -14,8 +14,9 @@ function option(value,label){const o=document.createElement('option');o.value=St
 function decode(bytes,selection,ticket){
  return new Promise((resolve,reject)=>{
   const w=new Worker(new URL('./vendor/cappi/inpe-cappi-worker.mjs',import.meta.url),{type:'module'});worker=w;
-  const finish=(error,data)=>{clearTimeout(timer);w.terminate();if(worker===w)worker=null;if(error)reject(Error(error));else resolve(data);};
+  const finish=(error,data)=>{clearTimeout(timer);w.terminate();if(worker===w){worker=null;abortDecode=null;}if(error)reject(Error(error));else resolve(data);};
   const timer=setTimeout(()=>finish('Tempo de processamento excedido'),30000);
+  abortDecode=()=>finish('Consulta cancelada');
   w.onerror=e=>finish(e.message||'Leitor CAPPI indisponível');
   w.onmessage=({data})=>{if(data.id!==ticket)return;finish(data.error,data);};
   w.postMessage({id:ticket,bytes,product:selection.product,altitude:selection.altitude},[bytes]);

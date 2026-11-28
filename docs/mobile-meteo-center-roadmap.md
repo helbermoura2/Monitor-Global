@@ -48,3 +48,6 @@ Validação 46134923013: três planos reais coincidiram integralmente no navegad
 
 ## Primeira camada visual CAPPI
 Diagnóstico 46135195448 confirmou CORS direto para STAC e ambos os formatos NetCDF em data.inpe.br. A interface passa a selecionar quadro e altitude, baixar arquivo de origem limitada, processar em worker local e desenhar imagem georreferenciada MapLibre. Limites: 12 downloads por sessão, 32 MiB por arquivo, cache de um arquivo, cancelamento, expiração em 90 minutos. Sem sobreposição PNG para antenas sem NetCDF. RainViewer, satélite e modo severo permanecem independentes. Falta comprovar comportamento integrado da UI e no aparelho; não publicar APK.
+
+## Validação integrada da camada
+Build 46135331296 e diagnóstico 46135326791 aprovados. Acrescentado teste Chromium de interação com os bytes NetCDF reais do diagnóstico e catálogo controlado: seleção de 15 níveis, alternância 3/16 km, cache do arquivo, remoção da camada e retorno ao RainViewer. Base cartográfica e demais serviços isolados para não confundir falhas externas com a integração. Corrigido cancelamento do worker e descarte de cache ao pausar. Aguardando resultado; não substitui teste físico nem comprova cobertura integral.

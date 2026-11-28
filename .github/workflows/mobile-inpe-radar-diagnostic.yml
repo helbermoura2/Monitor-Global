@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico INPE
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs','tools/check-inpe-js-decoder.mjs','tools/inpe-cappi-reader.mjs','tools/inpe-cappi-browser-worker.mjs','tools/check-inpe-browser-decoder.mjs','tools/build-inpe-cappi-worker.mjs','tools/probe-inpe-cors.mjs','tests/unit/inpe-radar-layer-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-layer-model.mjs','tests/unit/inpe-radar-panel-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-panel-model.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs']
+    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs','tools/check-inpe-js-decoder.mjs','tools/inpe-cappi-reader.mjs','tools/inpe-cappi-browser-worker.mjs','tools/check-inpe-browser-decoder.mjs','tools/build-inpe-cappi-worker.mjs','tools/probe-inpe-cors.mjs','tools/check-inpe-map-ui.mjs','android-mobile/app/src/main/assets/phone-brazil.js','android-mobile/app/src/main/assets/phone-brazil.html','tests/unit/inpe-radar-layer-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-layer-model.mjs','tests/unit/inpe-radar-panel-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-panel-model.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -57,6 +57,8 @@ jobs:
         run: |
           node tools/build-inpe-cappi-worker.mjs /tmp/argos-cappi-build/vendor
           node tools/check-inpe-browser-decoder.mjs /tmp/argos-cappi-build/vendor/inpe-cappi-worker.mjs
+      - name: Testar seleção de radar, altitude e camada no mapa
+        run: node tools/check-inpe-map-ui.mjs /tmp/argos-cappi-build/vendor/inpe-cappi-worker.mjs
       - name: Conferir acesso direto do WebView aos produtos INPE
         run: node tools/probe-inpe-cors.mjs
       - name: Exigir confirmação das duas consultas
