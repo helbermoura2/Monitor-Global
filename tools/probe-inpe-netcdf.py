@@ -1,6 +1,6 @@
 """Diagnostic only: inspect real radar coordinates and values before mapping.
 No guessing CRS or orientation from thumbnail colours."""
-import json, sys, tempfile, urllib.request, urllib.parse
+import json, sys, tempfile, urllib.request, urllib.parse, shutil
 from pathlib import Path
 import numpy as np
 from netCDF4 import Dataset
@@ -84,6 +84,7 @@ with tempfile.TemporaryDirectory() as tmp:
         size=download(asset['href'],target,MAX)
         print(product,'bytes',size)
         inspect(target,levels,product)
+        shutil.copyfile(target, '/tmp/argos-raw-'+product+'.nc')
     assert found,'No available NetCDF product'
     if sample['products'].get('thumbnail'):
         target=Path(tmp)/'preview.png'

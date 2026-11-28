@@ -36,3 +36,6 @@ Amostras retornaram radares nas cinco regiões. CAPPI 3 km e 15 níveis reais co
 
 ## Interface de consulta INPE (prévia)
 Menu Camadas → Radares oficiais INPE. Consulta manual de área regional centrada no mapa, limite de 30 consultas/dia no aparelho, cache de cinco minutos, cancelamento ao sair. Mostra antenas, horário, produtos disponíveis no quadro mais recente. Sem sobreposição nem leitor NetCDF no aparelho até validação. Acesso WebView restrito à busca oficial STAC com parâmetros limitados; verificar CORS e teste físico. Não publicar APK.
+
+## Leitura no dispositivo — teste de viabilidade
+Avaliar netcdfjs 4.0.0 (MIT; NetCDF clássico) e h5wasm 0.10.3 (licença no pacote; HDF5/NetCDF4), fixados exclusivamente no diagnóstico. Comparar todas as 250 mil células por plano, coordenadas e valores ausentes com Python netCDF4, renderizar grades reais. Não incorporados ao APK nem carregados via CDN. Após aprovação, validar empacotamento local, licença, memória, CORS e funcionamento WebView antes da integração. Não publicar atualização nesta fase.
