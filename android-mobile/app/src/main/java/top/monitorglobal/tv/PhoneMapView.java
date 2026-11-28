@@ -80,8 +80,8 @@ final class PhoneMapView extends FrameLayout {
    current.setWebViewClient(new WebViewClient(){
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
-     if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);if(response!=null&&brazilPage&&(uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-catalog.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"vendor/cappi/inpe-cappi-worker.mjs")))response.setMimeType("text/javascript");return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
+     if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);if(response!=null&&brazilPage&&(uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-catalog.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-grid.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-layer-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"vendor/cappi/inpe-cappi-worker.mjs")))response.setMimeType("text/javascript");return response==null?blocked():response;}
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||inpeCappiResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -97,6 +97,9 @@ final class PhoneMapView extends FrameLayout {
   }catch(RuntimeException failure){unavailable();}
  }
  private boolean allowedPage(Uri uri){return localAsset(uri)&&(brazilPage?(ASSET_PREFIX+"phone-brazil.html").equals(uri.getPath()):rainPage?(ASSET_PREFIX+"phone-rain.html").equals(uri.getPath()):mainPage(uri))&&uri.getQuery()==null;}
+ static boolean inpeCappiResource(Uri uri){
+  return "https".equalsIgnoreCase(uri.getScheme())&&"data.inpe.br".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getQuery()==null&&uri.getFragment()==null&&uri.getPath()!=null&&uri.getPath().matches("/bdc/data/br-weather-radar-cappi/[A-Za-z0-9_-]{1,64}/[A-Za-z0-9_-]{1,64}/cappi/(cappi3km_nc|cappi15l)/[0-9]{4}/(0[1-9]|1[0-2])/[A-Za-z0-9_-]{1,100}[.]nc");
+ }
  static boolean inpeCatalogResource(Uri uri){
   if(!"https".equalsIgnoreCase(uri.getScheme())||!"data.inpe.br".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getFragment()!=null||!"/bdc/stac/v1/search".equals(uri.getPath())||uri.getQuery()==null||uri.getQuery().length()>600)return false;
   try{

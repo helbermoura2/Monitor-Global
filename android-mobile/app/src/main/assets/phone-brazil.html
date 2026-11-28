@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com https://gibs.earthdata.nasa.gov https://tilecache.rainviewer.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com https://data.inpe.br https://gibs.earthdata.nasa.gov https://api.rainviewer.com https://tilecache.rainviewer.com https://cdn.jsdelivr.net https://raw.githubusercontent.com; worker-src blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://server.arcgisonline.com https://gibs.earthdata.nasa.gov https://tilecache.rainviewer.com; connect-src 'self' https://server.arcgisonline.com https://api.open-meteo.com https://data.inpe.br https://gibs.earthdata.nasa.gov https://api.rainviewer.com https://tilecache.rainviewer.com https://cdn.jsdelivr.net https://raw.githubusercontent.com; worker-src 'self' blob:; child-src blob:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <title>Explorar Brasil · Argos Orbis</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="stylesheet" href="phone-rain.css"><link rel="stylesheet" href="brazil-satellite.css"><link rel="stylesheet" href="phone-brazil.css"><link rel="stylesheet" href="phone-boundaries.css">
 <script defer src="vendor/maplibre-gl.js"></script><script defer src="brazil-satellite-model.js"></script><script defer src="brazil-satellite.js"></script><script defer src="phone-boundaries.js"></script><script defer src="phone-brazil-model.js"></script><script defer src="phone-storm-signals.js"></script><script defer src="phone-brazil-radar.js"></script><script defer src="phone-severe-weather.js"></script><script defer src="phone-brazil.js"></script><script type="module" src="inpe-radar-panel.mjs"></script>
@@ -67,6 +67,7 @@
    <button id="refresh" type="button" aria-label="Atualizar a previsão">↻</button>
   </div>
  </section>
+ <section id="inpe-map-readout" class="overlay-panel" hidden><strong id="inpe-map-label"></strong><p>Refletividade observada · dBZ</p><div id="inpe-map-legend" aria-label="Escala de refletividade"></div><small>Transparente: dado ausente ou fora da faixa exibida; não equivale a ausência de chuva.</small><div><button type="button" id="inpe-map-return">Radar / altitude / horário</button><button type="button" id="inpe-map-clear">Remover camada</button></div></section>
  <div id="radar-mini-key" hidden aria-label="Escala aproximada em milímetros por hora"></div>
  <section id="overlay-panel" class="overlay-panel" aria-label="Configurações da camada de imagem" hidden></section>
  </div>
@@ -87,7 +88,7 @@
   <button type="button" id="inpe-catalog-search">Consultar radares desta região</button>
   <p id="inpe-catalog-status" role="status">Selecione uma região no mapa e consulte.</p>
   <div id="inpe-catalog-results"></div>
-  <small>Catálogo oficial INPE · CC BY 4.0. A disponibilidade de produtos não equivale à cobertura integral. Exibição da refletividade no mapa ainda em desenvolvimento.</small>
+  <small>Catálogo oficial INPE · CC BY 4.0. A disponibilidade de produtos não equivale à cobertura integral. Refletividade observada, não previsão nem alerta oficial.</small>
  </section>
  <section id="map-selection" aria-labelledby="map-selection-title" hidden>
   <div class="map-selection-head">

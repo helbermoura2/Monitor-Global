@@ -45,3 +45,6 @@ Diagnóstico 46134076492: os 750 mil valores coincidiram com a referência Pytho
 
 ## Empacotamento local
 Validação 46134923013: três planos reais coincidiram integralmente no navegador, bundle 5.609.889 bytes. O build Android agora prepara o worker local e verifica o conteúdo e avisos de licença dos APKs. O diagnóstico usa exatamente o mesmo gerador e inspeciona CORS e caminhos reais das fontes antes de autorizar downloads na WebView. O worker ainda não é chamado pelo mapa; essa ligação depende do resultado do acesso direto. As versões diretas dos três pacotes são fixadas, e a árvore transitiva deverá ser congelada antes da publicação. Não liberar APK ou alterar o site/TV.
+
+## Primeira camada visual CAPPI
+Diagnóstico 46135195448 confirmou CORS direto para STAC e ambos os formatos NetCDF em data.inpe.br. A interface passa a selecionar quadro e altitude, baixar arquivo de origem limitada, processar em worker local e desenhar imagem georreferenciada MapLibre. Limites: 12 downloads por sessão, 32 MiB por arquivo, cache de um arquivo, cancelamento, expiração em 90 minutos. Sem sobreposição PNG para antenas sem NetCDF. RainViewer, satélite e modo severo permanecem independentes. Falta comprovar comportamento integrado da UI e no aparelho; não publicar APK.
