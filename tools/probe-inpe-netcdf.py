@@ -26,7 +26,7 @@ def download(url,destination,limit):
             out.write(chunk)
     return size
 
-def inspect(path,expected):
+def inspect(path,expected,product):
     with Dataset(path) as ds:
         assert 'dbz' in ds.variables,'Missing official dbz variable'
         var=ds.variables['dbz']
@@ -50,7 +50,27 @@ def inspect(path,expected):
         info['finite_dbz']=int(finite.size)
         info['dbz_range']=[float(finite.min()),float(finite.max())] if finite.size else None
         print(json.dumps(info,ensure_ascii=False,indent=2))
+        # Export a small, ephemeral real plane to validate the browser grid engine.
+        # No source files or observations are published by this diagnostic.
+        assert tuple(var.dimensions[-2:])==('lat','lon'),var.dimensions
+        lon=np.asarray(ds.variables['lon'][:],dtype=float)
+        lat=np.asarray(ds.variables['lat'][:],dtype=float)
+        if expected==15:
+            levels=np.asarray(ds.variables['sfc'][:],dtype=float)
+            assert np.array_equal(levels,np.arange(2000,16001,1000)),levels
+            for idx in (1,14):
+                plane=values.reshape(15,500,500)[idx]
+                write_plane(product,int(levels[idx]),lon,lat,plane)
+        else:
+            write_plane(product,3000,lon,lat,values.reshape(500,500))
+
         return info
+
+def write_plane(product,altitude,lon,lat,plane):
+    flat=plane.flatten()
+    out={'product':product,'altitude':altitude,'lon':lon.tolist(),'lat':lat.tolist(),
+         'values':[float(x) if np.isfinite(x) and x!=-99 else None for x in flat]}
+    Path('/tmp/argos-grid-'+product+'-'+str(altitude)+'.json').write_text(json.dumps(out,allow_nan=False))
 
 sample=json.loads(Path(sys.argv[1]).read_text())
 print('Sample:',sample['id'],'bbox:',sample['bounds'])
@@ -63,7 +83,7 @@ with tempfile.TemporaryDirectory() as tmp:
         target=Path(tmp)/(product+'.nc')
         size=download(asset['href'],target,MAX)
         print(product,'bytes',size)
-        inspect(target,levels)
+        inspect(target,levels,product)
     assert found,'No available NetCDF product'
     if sample['products'].get('thumbnail'):
         target=Path(tmp)/'preview.png'
