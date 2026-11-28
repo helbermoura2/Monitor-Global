@@ -145,7 +145,21 @@ def validate_water_vapor(item):
                 if units not in ('k','kelvin','degc','celsius','degree_celsius','degrees_celsius','°c'):raise ValueError('Unsupported brightness temperature units '+units)
                 yname,xname=v.dimensions[-2:]
                 xvar=ds.variables[xname];yvar=ds.variables[yname]
-                x=np.asarray(xvar[:],dtype=float);y=np.asarray(yvar[:],dtype=float)
+                # Decode packed axes in float64 BEFORE scaling. netCDF4's automatic
+                # float32 arithmetic can round a coordinate across a pixel midpoint.
+                # CF packing formula is raw * scale_factor + add_offset.
+                def precise_axis(axis):
+                    axis.set_auto_maskandscale(False)
+                    try:
+                        raw=np.asarray(axis[:])
+                        if str(getattr(axis,'_Unsigned','')).lower()=='true' and raw.dtype.kind=='i':
+                            raw=raw.view(np.dtype('u'+str(raw.dtype.itemsize)).newbyteorder(raw.dtype.byteorder))
+                        for attr in ('_FillValue','missing_value'):
+                            if hasattr(axis,attr):
+                                if np.any(raw==getattr(axis,attr)):raise ValueError('Missing coordinate')
+                        return raw.astype(np.float64)*float(getattr(axis,'scale_factor',1))+float(getattr(axis,'add_offset',0))
+                    finally:axis.set_auto_maskandscale(True)
+                x=precise_axis(xvar);y=precise_axis(yvar)
                 if x.ndim!=1 or y.ndim!=1 or len(x)!=v.shape[-1] or len(y)!=v.shape[-2] or not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):raise ValueError('Invalid coordinate vectors')
                 if not all(np.all(np.diff(a)>0) or np.all(np.diff(a)<0) for a in (x,y)):raise ValueError('Nonmonotonic coordinate vectors')
                 mapping=getattr(v,'grid_mapping','')
@@ -191,7 +205,8 @@ def validate_water_vapor(item):
                     asc=axis[0]<axis[-1];ordered=axis if asc else axis[::-1]
                     indices=np.searchsorted(ordered,values).clip(1,len(axis)-1)
                     lower=indices-1
-                    idx=np.where(np.abs(values-ordered[lower])<=np.abs(values-ordered[indices]),lower,indices)
+                    dlow=np.abs(values-ordered[lower]);dhigh=np.abs(values-ordered[indices])
+                    idx=np.where((dlow<=dhigh) if asc else (dlow<dhigh),lower,indices)
                     return idx if asc else len(axis)-1-idx
                 ix=nearest_vector(x,gx);iy=nearest_vector(y,gy)
                 inside=np.isfinite(gx)&np.isfinite(gy)&(gx>=x.min())&(gx<=x.max())&(gy>=y.min())&(gy<=y.max())
@@ -206,7 +221,7 @@ def validate_water_vapor(item):
                 valid=inside&np.isfinite(values)&(values>=-120)&(values<=80)&np.isin(fq,[0,1])
                 from pathlib import Path
                 Path('/tmp/argos-goes-'+band+'.nc').write_bytes(raw)
-                Path('/tmp/argos-goes-'+band+'.json').write_text(json.dumps({'size':size,'rows':iy.ravel().tolist(),'columns':ix.ravel().tolist(),'values':[float(z) if ok else None for z,ok in zip(values.ravel(),valid.ravel())],'quality':np.where(valid,fq,255).ravel().tolist()},allow_nan=False))
+                Path('/tmp/argos-goes-'+band+'.json').write_text(json.dumps({'size':size,'x':x.tolist(),'y':y.tolist(),'rows':iy.ravel().tolist(),'columns':ix.ravel().tolist(),'values':[float(z) if ok else None for z,ok in zip(values.ravel(),valid.ravel())],'quality':np.where(valid,fq,255).ravel().tolist()},allow_nan=False))
                 passed.append('Band'+band[1:])
         except Exception as e:emit(kind='water_vapor',band=band,status='unavailable',reason=str(e)[:800])
     return passed
