@@ -15,6 +15,6 @@ jobs:
       - name: Preparar verificação científica de imagens
         run: |
           python3 -m venv /tmp/argos-goes
-          /tmp/argos-goes/bin/pip install --quiet pillow
+          /tmp/argos-goes/bin/pip install --quiet pillow netCDF4 numpy pyproj
       - name: Verificar catálogo, horários, imagens e CORS GOES
         run: /tmp/argos-goes/bin/python tools/probe-mobile-goes.py

@@ -85,7 +85,7 @@ def test_layer(layer,matrices,defaults,formats):
         rgb=rgba.convert('RGB')
         extrema=rgb.getextrema()
         if all(lo==hi for lo,hi in extrema):raise ValueError('Constant image')
-        emit(kind='product',layer=layer,matrix=matrix,time=iso(t),age_minutes=round((NOW-t).total_seconds()/60,1),image_format=image.format,image_bytes=len(raw),time_method=method,visible_fraction=round(visible/360000,4),domain_cors=h.get('Access-Control-Allow-Origin'),image_cors=h2.get('Access-Control-Allow-Origin'),status='sample_valid')
+        emit(kind='product',layer=layer,matrix=matrix,time=iso(t),age_minutes=round((NOW-t).total_seconds()/60,1),image_format=image.format,image_bytes=len(raw),time_method=method,visible_fraction=round(visible/360000,4),domain_cors=domain_cors,image_cors=h2.get('Access-Control-Allow-Origin'),status='sample_valid')
 class Links(HTMLParser):
     def __init__(self):super().__init__();self.links=[]
     def handle_starttag(self,tag,attrs):
@@ -102,6 +102,66 @@ def lightning_index():
             if u.hostname=='granizo1.cptec.inpe.br' and url.startswith(INPE) and not u.query and not u.fragment:links.append(href)
         emit(kind='lightningcast_index',status='reachable',cors=h.get('Access-Control-Allow-Origin'),links=links[-25:],count=len(links),note='Geometry, freshness and reuse permission still unverified')
     except Exception as e:emit(kind='lightningcast_index',status='unavailable',reason=str(e)[:250])
+def validate_water_vapor(item):
+    import numpy as np
+    from netCDF4 import Dataset
+    from pyproj import CRS, Transformer
+    passed=[]
+    points=[('Norte',-60.02,-3.10),('Nordeste',-38.50,-12.97),('Centro-Oeste',-47.88,-15.79),('Sudeste',-46.63,-23.55),('Sul',-51.23,-30.03)]
+    stamp=parse_time(item.get('properties',{}).get('datetime',''))
+    if not stamp or stamp.tzinfo is None or not NOW-dt.timedelta(minutes=90)<=stamp<=NOW:
+        emit(kind='water_vapor',status='unavailable',reason='No recent timestamp');return passed
+    for band in ('B08','B09','B10'):
+        try:
+            asset=item['assets'][band];url=asset['href'];u=up.urlparse(url)
+            if u.hostname!='data.inpe.br' or u.query or u.fragment or not re.fullmatch(r'/bdc/data/GOES19-L2-CMI/ch'+band[1:]+r'/\d{4}/\d{2}/[A-Za-z0-9_-]+\.nc',u.path):raise ValueError('Unexpected product path')
+            raw,h=get(url,64*1024*1024)
+            if h.get('Access-Control-Allow-Origin') not in ('*',ORIGIN):raise ValueError('Direct browser access not confirmed')
+            with Dataset('memory.nc',memory=raw) as ds:
+                emit(kind='water_vapor_schema',band=band,bytes=len(raw),format=ds.data_model,dimensions={k:len(v) for k,v in ds.dimensions.items()},variables={k:{'shape':v.shape,'dims':v.dimensions,'units':str(getattr(v,'units','')),'standard_name':str(getattr(v,'standard_name','')),'grid_mapping':str(getattr(v,'grid_mapping',''))} for k,v in ds.variables.items()})
+                candidates=[v for k,v in ds.variables.items() if k.lower() in ('cmi','brightness_temperature','tbb','band'+band[1:]) or getattr(v,'standard_name','')=='toa_brightness_temperature']
+                if len(candidates)!=1:raise ValueError('Unambiguous brightness temperature variable not found')
+                v=candidates[0]
+                if v.ndim<2 or any(i!=1 for i in v.shape[:-2]):raise ValueError('Unexpected temperature dimensions')
+                units=str(getattr(v,'units','')).lower().strip()
+                if units not in ('k','kelvin','degc','celsius','degree_celsius','degrees_celsius','°c'):raise ValueError('Unsupported brightness temperature units '+units)
+                yname,xname=v.dimensions[-2:]
+                xvar=ds.variables[xname];yvar=ds.variables[yname]
+                x=np.asarray(xvar[:],dtype=float);y=np.asarray(yvar[:],dtype=float)
+                if x.ndim!=1 or y.ndim!=1 or len(x)!=v.shape[-1] or len(y)!=v.shape[-2] or not np.all(np.isfinite(x)) or not np.all(np.isfinite(y)):raise ValueError('Invalid coordinate vectors')
+                if not all(np.all(np.diff(a)>0) or np.all(np.diff(a)<0) for a in (x,y)):raise ValueError('Nonmonotonic coordinate vectors')
+                mapping=getattr(v,'grid_mapping','')
+                if mapping in ds.variables:
+                    projection=ds.variables[mapping];attrs={k:projection.getncattr(k) for k in projection.ncattrs()}
+                    emit(kind='water_vapor_projection',band=band,attributes={k:str(a) for k,a in attrs.items()})
+                    crs=CRS.from_cf(attrs)
+                    transformer=Transformer.from_crs('EPSG:4326',crs,always_xy=True)
+                    height=float(attrs.get('perspective_point_height',1))
+                    def convert(lon,lat):
+                        xx,yy=transformer.transform(lon,lat)
+                        if str(getattr(xvar,'units','')).lower() in ('rad','radian','radians'):xx/=height
+                        elif str(getattr(xvar,'units','')).lower() not in ('m','meter','metre','meters','metres'):raise ValueError('Unsupported x unit')
+                        if str(getattr(yvar,'units','')).lower() in ('rad','radian','radians'):yy/=height
+                        elif str(getattr(yvar,'units','')).lower() not in ('m','meter','metre','meters','metres'):raise ValueError('Unsupported y unit')
+                        return xx,yy
+                elif str(getattr(xvar,'units','')).lower() in ('degrees_east','degree_east') and str(getattr(yvar,'units','')).lower() in ('degrees_north','degree_north'):
+                    def convert(lon,lat):return lon,lat
+                else:raise ValueError('Unverified projection')
+                samples=[]
+                for region,lon,lat in points:
+                    xx,yy=convert(lon,lat)
+                    if not (np.isfinite(xx) and np.isfinite(yy) and x.min()<=xx<=x.max() and y.min()<=yy<=y.max()):raise ValueError('Outside grid: '+region)
+                    ix=int(np.argmin(abs(x-xx)));iy=int(np.argmin(abs(y-yy)))
+                    value=v[(0,)*(v.ndim-2)+(iy,ix)]
+                    if np.ma.is_masked(value):raise ValueError('Missing observation: '+region)
+                    c=float(value)-(273.15 if units in ('k','kelvin') else 0)
+                    if not -120<=c<=80:raise ValueError('Invalid brightness temperature')
+                    samples.append({'region':region,'row':iy,'column':ix,'celsius':round(c,2)})
+                emit(kind='water_vapor',band=band,time=iso(stamp),bytes=len(raw),cors=h.get('Access-Control-Allow-Origin'),samples=samples,status='sample_valid')
+                passed.append('Band'+band[1:])
+        except Exception as e:emit(kind='water_vapor',band=band,status='unavailable',reason=str(e)[:800])
+    return passed
+
 def inpe_goes_catalog():
     base='https://data.inpe.br/bdc/stac/v1'
     try:
@@ -113,11 +173,13 @@ def inpe_goes_catalog():
         for item in features[:5]:
             assets={k:{'type':v.get('type'),'path':up.urlparse(v.get('href','')).path,'host':up.urlparse(v.get('href','')).hostname} for k,v in item.get('assets',{}).items()}
             emit(kind='inpe_goes_item',id=item.get('id'),time=item.get('properties',{}).get('datetime'),assets=assets)
-        emit(kind='inpe_goes_summary',count=len(features),note='Metadata only; water vapor geometry and decoding not validated')
-    except Exception as e:emit(kind='inpe_goes_catalog',status='unavailable',reason=str(e)[:850])
+        emit(kind='inpe_goes_summary',count=len(features))
+        eligible=[i for i in features if all(b in i.get('assets',{}) for b in ('B08','B09','B10')) and parse_time(i.get('properties',{}).get('datetime','')) is not None]
+        return validate_water_vapor(max(eligible,key=lambda i:parse_time(i['properties']['datetime']))) if eligible else []
+    except Exception as e:emit(kind='inpe_goes_catalog',status='unavailable',reason=str(e)[:850]);return []
 def main():
     lightning_index()
-    inpe_goes_catalog()
+    water_passed=inpe_goes_catalog()
     raw,_=get(query(WMTS,SERVICE='WMTS',REQUEST='GetCapabilities',VERSION='1.0.0'))
     root=ET.fromstring(raw);layers={};defaults={};formats={}
     for el in root.findall('.//w:Layer',NS):
@@ -128,7 +190,7 @@ def main():
             formats[ident]=[x.text for x in el.findall('w:Format',NS)]
     if not layers:raise RuntimeError('GOES-East ABI catalog absent')
     emit(kind='catalog',layers=layers,defaults=defaults,formats=formats)
-    passed=[]
+    passed=list(water_passed)
     for key in ('GeoColor','Band08','Band09','Band10','Band13','RGB'):
         options=choose(layers,key)
         if not options:emit(kind='category',category=key,status='not_listed');continue
@@ -136,5 +198,5 @@ def main():
             try:test_layer(layer,layers[layer],defaults,formats);passed.append(key)
             except Exception as e:emit(kind='product',layer=layer,status='unavailable',reason=str(e)[:300])
     emit(kind='summary',passed=sorted(set(passed)),required=['GeoColor','Band13','water_vapor'],lightningcast='pending')
-    if not ('GeoColor' in passed and 'Band13' in passed and any(x in passed for x in ('Band08','Band09','Band10'))):raise SystemExit('Required satellite product sample not confirmed')
+    if not ('GeoColor' in passed and 'Band13' in passed and all(x in passed for x in ('Band08','Band09','Band10'))):raise SystemExit('Required satellite product sample not confirmed')
 if __name__=='__main__':main()
