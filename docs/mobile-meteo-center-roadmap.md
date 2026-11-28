@@ -39,3 +39,6 @@ Menu Camadas → Radares oficiais INPE. Consulta manual de área regional centra
 
 ## Leitura no dispositivo — teste de viabilidade
 Avaliar netcdfjs 4.0.0 (MIT; NetCDF clássico) e h5wasm 0.10.3 (licença no pacote; HDF5/NetCDF4), fixados exclusivamente no diagnóstico. Comparar todas as 250 mil células por plano, coordenadas e valores ausentes com Python netCDF4, renderizar grades reais. Não incorporados ao APK nem carregados via CDN. Após aprovação, validar empacotamento local, licença, memória, CORS e funcionamento WebView antes da integração. Não publicar atualização nesta fase.
+
+## Gate de compatibilidade WebView
+Diagnóstico 46134076492: os 750 mil valores coincidiram com a referência Python nas três grades. Próxima validação empacota leitor navegador (esbuild 0.25.12), testa Web Worker local com CSP restritiva e compara novamente todas as células reais. Não é ainda teste no Android físico. Leitor e worker de desenvolvimento isolados em tools; ainda não distribuídos no APK. Limite de bundle 12 MiB, de arquivo 32 MiB, timeout 30 s por leitura no navegador. Sem CDN em execução.

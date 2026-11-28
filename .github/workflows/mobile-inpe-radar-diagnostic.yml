@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico INPE
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs','tools/check-inpe-js-decoder.mjs','tests/unit/inpe-radar-panel-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-panel-model.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs']
+    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs','tools/check-inpe-js-decoder.mjs','tools/inpe-cappi-reader.mjs','tools/inpe-cappi-browser-worker.mjs','tools/check-inpe-browser-decoder.mjs','tests/unit/inpe-radar-panel-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-panel-model.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -50,9 +50,11 @@ jobs:
         run: |
           node tools/check-inpe-grid.mjs /tmp/argos-grid-cappi3km-3000.json /tmp/argos-grid-cappi15l-3000.json /tmp/argos-grid-cappi15l-16000.json
       - name: Instalar leitores abertos somente para o diagnóstico
-        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund netcdfjs@4.0.0 h5wasm@0.10.3
+        run: npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund netcdfjs@4.0.0 h5wasm@0.10.3 esbuild@0.25.12
       - name: Comparar leitura JavaScript e WebAssembly com a referência científica
         run: node tools/check-inpe-js-decoder.mjs
+      - name: Validar leitor empacotado no navegador com worker e WebAssembly
+        run: node tools/check-inpe-browser-decoder.mjs
       - name: Exigir confirmação das duas consultas
         if: always()
         env:
