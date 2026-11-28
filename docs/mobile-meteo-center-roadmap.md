@@ -51,3 +51,12 @@ Diagnóstico 46135195448 confirmou CORS direto para STAC e ambos os formatos Net
 
 ## Validação integrada da camada
 Build 46135331296 e diagnóstico 46135326791 aprovados. Acrescentado teste Chromium de interação com os bytes NetCDF reais do diagnóstico e catálogo controlado: seleção de 15 níveis, alternância 3/16 km, cache do arquivo, remoção da camada e retorno ao RainViewer. Base cartográfica e demais serviços isolados para não confundir falhas externas com a integração. Corrigido cancelamento do worker e descarte de cache ao pausar. Aguardando resultado; não substitui teste físico nem comprova cobertura integral.
+
+## Etapa 1 — aprovação do núcleo CAPPI
+Diagnóstico 46136300592 e Android 46136304755 aprovados; teste visual com dados NetCDF reais confirma 15 níveis, troca de 3/16 km, cache, remoção e retorno ao RainViewer. A validação física, PNG sem NetCDF e REDEMET autorizado seguem pendentes. Não publicar versão intermediária.
+
+## Etapa 2A — fontes e produtos satelitais
+- NASA GIBS / NOAA GOES-East: https://nasa-gibs.github.io/gibs-api-docs/access-basics/ ; https://www.star.nesdis.noaa.gov/GOES/fulldisk_band.php?band=GEOCOLOR&length=12&sat=G19&src=nav
+- INPE SOS Chuva: https://satelite.cptec.inpe.br/soschuvaapp/ ; índice público candidato https://granizo1.cptec.inpe.br/nowcasting/LightningCast/
+- LightningCast representa probabilidade de raios nos próximos 60 minutos, não observação GLM nem alerta oficial. Acesso ao índice pode falhar; não supor licença de redistribuição, geometria ou dados nacionais sem verificar. Não copiar produtos CIMSS cuja redistribuição depende de consentimento.
+- Diagnóstico separado: ler catálogo WMTS, descobrir identificadores e matriz de GeoColor, bandas 8–10 (vapor), 13 (IR) e possíveis RGB; consultar horários reais e obter WMS em EPSG:3857 para toda a extensão brasileira, verificar PNG, transparência e CORS. Distinguir dados indisponíveis de aprovação. Nenhuma mudança no site/TV ou no APK nesta fase.
