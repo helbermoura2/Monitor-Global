@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico INPE
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs']
+    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','tools/probe-inpe-national.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs','android-mobile/app/src/main/assets/inpe-radar-grid.mjs','tests/unit/inpe-radar-grid.test.mjs','tools/check-inpe-grid.mjs','tests/unit/inpe-radar-panel-model.test.mjs','android-mobile/app/src/main/assets/inpe-radar-panel-model.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '22'
       - name: Validar adaptador STAC
-        run: node --test tests/unit/inpe-radar-catalog.test.mjs tests/unit/inpe-radar-grid.test.mjs
+        run: node --test tests/unit/inpe-radar-catalog.test.mjs tests/unit/inpe-radar-grid.test.mjs tests/unit/inpe-radar-panel-model.test.mjs
       - name: Consultar observações históricas conhecidas
         id: archive
         continue-on-error: true

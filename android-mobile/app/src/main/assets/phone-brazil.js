@@ -235,7 +235,7 @@ async function load(force=false){
  }catch(e){if(active&&!closed&&ticket===requestId)note(forecast?'Sem atualização. Mantendo a previsão válida anterior.':'Previsão indisponível. Confira a conexão e tente novamente.');}
  finally{clearTimeout(timeout);if(controller===c)controller=null;loading=false;}
 }
-function pause(){active=false;document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
+function pause(){window.dispatchEvent(new Event('argos-inpe-pause'));active=false;document.body.classList.add('is-paused');stop();requestId++;controller?.abort();satellite?.setActive(false);radar?.setActive(false);severe?.setActive(false);boundaries?.setActive(false);map?.stop();}
 function resume(){if(closed)return;active=true;document.body.classList.remove('is-paused');map?.resize();satellite?.setActive(true);radar?.setActive(true);severe?.setActive(true);boundaries?.setActive(true);syncOverlays();if(!forecast||Date.now()-lastSuccess>=CACHE_MS)load(false);}
 function close(){if(closed)return;pause();closed=true;mapSize?.disconnect();boundaries?.destroy();boundaries=null;satellite?.destroy();radar?.destroy();severe?.destroy();for(const m of markers)m.remove();markers=[];map?.remove();map=null;}
 function advance(){if(!active||!forecast)return;step=(step+1)%25;showValues();playTimer=setTimeout(advance,1300);}
@@ -359,7 +359,7 @@ function showForecast(){
  stop();step=0;showValues();syncOverlays();
  document.querySelector('.brazil-main').scrollTop=0;
 }
-window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast};window.addEventListener('pagehide',close);
+window.MonitorMap={pause,resume,close,showSatellite,showSevere,showForecast,inpeCenter:()=>ready&&active&&!closed&&map?{lon:map.getCenter().lng,lat:map.getCenter().lat}:null,openInpeCatalog:()=>{setLayerMenu(false);closeSelection();closeCityCard();$('inpe-catalog').hidden=false;$('inpe-catalog').scrollIntoView({block:'start'});}};window.addEventListener('pagehide',close);
 initMap();restore();load(false);loadCities();
 })();
 

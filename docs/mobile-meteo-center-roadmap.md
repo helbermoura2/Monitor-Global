@@ -33,3 +33,6 @@ São Paulo foi região piloto, não uma restrição do produto. O diagnóstico c
 
 ## Resultado 2026-11-28 — diagnóstico 46133137449
 Amostras retornaram radares nas cinco regiões. CAPPI 3 km e 15 níveis reais confirmados em Chapecó (níveis 2000 a 16000 m). O eixo lat é crescente no CAPPI 3 km e decrescente no CAPPI15L observado; o bbox STAC diverge ligeiramente da grade 3 km. Usar eixos reais NetCDF, não inferir alinhamento do PNG. Motor de grade Web Mercator criado com paleta dBZ e dados ausentes transparentes; testes verificam ambos os sentidos e as grades reais. Ainda não há decodificação NetCDF no Android nem ligação à interface. Radares que só disponibilizam PNG não terão níveis inventados; a integração visual desses PNG exige confirmação própria. Sem mudança de preço ou publicação.
+
+## Interface de consulta INPE (prévia)
+Menu Camadas → Radares oficiais INPE. Consulta manual de área regional centrada no mapa, limite de 30 consultas/dia no aparelho, cache de cinco minutos, cancelamento ao sair. Mostra antenas, horário, produtos disponíveis no quadro mais recente. Sem sobreposição nem leitor NetCDF no aparelho até validação. Acesso WebView restrito à busca oficial STAC com parâmetros limitados; verificar CORS e teste físico. Não publicar APK.

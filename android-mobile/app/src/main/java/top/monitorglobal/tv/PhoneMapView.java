@@ -80,8 +80,8 @@ final class PhoneMapView extends FrameLayout {
    current.setWebViewClient(new WebViewClient(){
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
-     if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
+     if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);if(response!=null&&brazilPage&&(uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-catalog.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel-model.mjs")))response.setMimeType("text/javascript");return response==null?blocked():response;}
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -97,6 +97,20 @@ final class PhoneMapView extends FrameLayout {
   }catch(RuntimeException failure){unavailable();}
  }
  private boolean allowedPage(Uri uri){return localAsset(uri)&&(brazilPage?(ASSET_PREFIX+"phone-brazil.html").equals(uri.getPath()):rainPage?(ASSET_PREFIX+"phone-rain.html").equals(uri.getPath()):mainPage(uri))&&uri.getQuery()==null;}
+ static boolean inpeCatalogResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||!"data.inpe.br".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getFragment()!=null||!"/bdc/stac/v1/search".equals(uri.getPath())||uri.getQuery()==null||uri.getQuery().length()>600)return false;
+  try{
+   if(!uri.getQueryParameterNames().equals(new java.util.HashSet<>(java.util.Arrays.asList("collections","bbox","datetime","limit"))))return false;
+   for(String name:uri.getQueryParameterNames())if(uri.getQueryParameters(name).size()!=1)return false;
+   if(!"br-weather-radar-cappi-1".equals(uri.getQueryParameter("collections"))||!"100".equals(uri.getQueryParameter("limit")))return false;
+   String[] b=uri.getQueryParameter("bbox").split(",",-1);if(b.length!=4)return false;
+   double w=Double.parseDouble(b[0]),s=Double.parseDouble(b[1]),e=Double.parseDouble(b[2]),n=Double.parseDouble(b[3]);
+   if(!Double.isFinite(w)||!Double.isFinite(s)||!Double.isFinite(e)||!Double.isFinite(n)||w< -80||e> -30||s< -36||n>7||e<=w||n<=s||e-w>10||n-s>10)return false;
+   String[] times=uri.getQueryParameter("datetime").split("/",-1);if(times.length!=2)return false;
+   java.time.Instant from=java.time.Instant.parse(times[0]),to=java.time.Instant.parse(times[1]);long duration=java.time.Duration.between(from,to).toMillis();
+   return duration==5400000L&&to.toEpochMilli()<=System.currentTimeMillis()+120000L&&to.toEpochMilli()>=System.currentTimeMillis()-300000L;
+  }catch(RuntimeException bad){return false;}
+ }
  static boolean radarResource(Uri uri){
   if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getQuery()!=null||uri.getFragment()!=null)return false;
   String host=uri.getHost(),path=uri.getPath();if("api.rainviewer.com".equalsIgnoreCase(host))return "/public/weather-maps.json".equals(path);
