@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico INPE
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs']
+    paths: ['.github/workflows/mobile-inpe-radar-diagnostic.yml','tools/probe-inpe-radar.mjs','tools/probe-inpe-netcdf.py','android-mobile/app/src/main/assets/inpe-radar-catalog.mjs','tests/unit/inpe-radar-catalog.test.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,6 +25,12 @@ jobs:
         id: recent
         continue-on-error: true
         run: node tools/probe-inpe-radar.mjs
+      - name: Preparar leitor científico NetCDF
+        run: |
+          python3 -m venv /tmp/argos-radar
+          /tmp/argos-radar/bin/pip install --quiet netCDF4 numpy pillow
+      - name: Conferir geometria real e níveis de altitude
+        run: /tmp/argos-radar/bin/python tools/probe-inpe-netcdf.py /tmp/argos-inpe-sample.json
       - name: Exigir confirmação das duas consultas
         if: always()
         env:
