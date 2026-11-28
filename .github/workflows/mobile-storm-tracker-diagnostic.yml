@@ -1,0 +1,36 @@
+name: Meteo Center — Storm Tracker diagnóstico real
+on:
+  push:
+    branches: [feat/mobile-meteo-center-inpe-radar]
+    paths: ['tools/probe-storm-sequences.mjs','tools/screen-storm-frame.py','tools/check-storm-reference.py','tools/check-storm-sequences.mjs','tools/check-storm-map-ui.mjs','android-mobile/app/src/main/assets/inpe-radar-panel.mjs','android-mobile/app/src/main/assets/phone-brazil.js','android-mobile/app/src/main/assets/phone-storm-tracker.mjs','.github/workflows/mobile-storm-tracker-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar algoritmo e casos ambíguos
+        run: node --test tests/unit/phone-storm-tracker.test.mjs
+      - name: Preparar referência científica
+        run: |
+          python3 -m venv /tmp/argos-storm
+          /tmp/argos-storm/bin/pip install --quiet netCDF4 numpy scipy
+      - name: Coletar e selecionar sequências CAPPI oficiais
+        env:
+          STORM_PYTHON: /tmp/argos-storm/bin/python
+        run: node tools/probe-storm-sequences.mjs
+      - name: Comparar componentes independentes e medir erro retrospectivo
+        run: |
+          /tmp/argos-storm/bin/python tools/check-storm-reference.py
+          node tools/check-storm-sequences.mjs
+      - name: Validar Storm Tracker no mapa com quadros reais e relógio isolado
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node tools/build-inpe-cappi-worker.mjs /tmp/argos-storm-build/vendor
+          node tools/check-storm-map-ui.mjs /tmp/argos-storm-build/vendor/inpe-cappi-worker.mjs
