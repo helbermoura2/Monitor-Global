@@ -39,8 +39,17 @@ def frames(raw):
             p=token.strip().split('/')
             first=parse_time(p[0]);last=parse_time(p[1]) if len(p)>1 else first
             if not first or not last or first.tzinfo is None or last.tzinfo is None or last<first:continue
-            if len(p)>2 and not re.fullmatch(r'PT(?:\d+M|\d+S)',p[2]):continue
-            if NOW-dt.timedelta(minutes=90)<=last<=NOW:out.add(last)
+            if len(p)>2:
+                interval=re.fullmatch(r'PT(\d+)(M|S)',p[2])
+                if not interval:continue
+                seconds=int(interval[1])*(60 if interval[2]=='M' else 1)
+                if not 60<=seconds<=3600:continue
+                step=dt.timedelta(seconds=seconds)
+                for i in range(12):
+                    t=last-i*step
+                    if t<first or t<NOW-dt.timedelta(minutes=90):break
+                    if t<=NOW:out.add(t)
+            elif NOW-dt.timedelta(minutes=90)<=last<=NOW:out.add(last)
     return sorted(out)
 def choose(layers,key):
     if key=='GeoColor':return [x for x in layers if 'geocolor' in x.lower()]
@@ -57,35 +66,28 @@ def test_layer(layer,matrices,defaults,formats):
             raw,h=get(url,300000);times=frames(raw)
             if times:domain_cors=h.get('Access-Control-Allow-Origin');method='DescribeDomains';break
         except Exception as e:emit(kind='domain_error',layer=layer,reason=str(e)[:850])
-    if not times:
-        # WMTS GetCapabilities advertises a concrete default time; never use unverified "now".
-        t=parse_time(defaults.get(layer,''))
-        if t and t.tzinfo and NOW-dt.timedelta(minutes=90)<=t<=NOW:
-            times=[t];method='catalog_default'
+    # A confirmed default may be used even if the newest domain frame is empty.
+    default=parse_time(defaults.get(layer,''))
+    if default and default.tzinfo and NOW-dt.timedelta(minutes=90)<=default<=NOW:
+        times=sorted(set(times+[default]))
+        if not method:method='catalog_default'
     if not times:raise ValueError('No recent confirmed frames')
-    t=times[-1]
     last=None
-    for mime in ('image/png','image/jpeg'):
+    for t in reversed(times[-6:]):
         try:
-            raw,h2=get(query(WMS,SERVICE='WMS',VERSION='1.1.1',REQUEST='GetMap',LAYERS=layer,STYLES='',SRS='EPSG:3857',BBOX='-8348961.81,-4163881.14,-3116945.74,669141.06',WIDTH=600,HEIGHT=600,FORMAT=mime,TRANSPARENT='TRUE' if mime=='image/png' else 'FALSE',TIME=iso(t)),4*1024*1024)
+            raw,h2=get(query(WMS,SERVICE='WMS',VERSION='1.1.1',REQUEST='GetMap',LAYERS=layer,STYLES='',SRS='EPSG:3857',BBOX='-8348961.81,-4163881.14,-3116945.74,669141.06',WIDTH=600,HEIGHT=600,FORMAT='image/png',TRANSPARENT='TRUE',TIME=iso(t)),4*1024*1024)
+            if h2.get('Access-Control-Allow-Origin') not in ('*',ORIGIN):raise ValueError('Direct browser access not confirmed')
             with Image.open(io.BytesIO(raw)) as image:
-                if image.size!=(600,600) or image.format not in ('PNG','JPEG'):raise ValueError('Invalid WMS image')
-                image.verify()
-            break
-        except Exception as e:last=e;emit(kind='image_error',layer=layer,mime=mime,reason=str(e)[:850])
-    else:raise ValueError(str(last))
-    with Image.open(io.BytesIO(raw)) as image:
-        assert image.size==(600,600)
-        rgba=image.convert('RGBA')
-        alpha=rgba.getchannel('A')
-        hist=alpha.histogram()
-        visible=sum(hist[1:])
-        # Report rather than infer full national coverage. Central sample helps reject empty images.
-        if not visible:raise ValueError('Empty image')
-        rgb=rgba.convert('RGB')
-        extrema=rgb.getextrema()
-        if all(lo==hi for lo,hi in extrema):raise ValueError('Constant image')
-        emit(kind='product',layer=layer,matrix=matrix,time=iso(t),age_minutes=round((NOW-t).total_seconds()/60,1),image_format=image.format,image_bytes=len(raw),time_method=method,visible_fraction=round(visible/360000,4),domain_cors=domain_cors,image_cors=h2.get('Access-Control-Allow-Origin'),status='sample_valid')
+                if image.format!='PNG' or image.size!=(600,600):raise ValueError('Invalid WMS image')
+                rgba=image.convert('RGBA')
+                visible=sum(rgba.getchannel('A').histogram()[1:])
+                if not visible:raise ValueError('Empty image')
+                if all(lo==hi for lo,hi in rgba.convert('RGB').getextrema()):raise ValueError('Constant image')
+                emit(kind='product',layer=layer,matrix=matrix,time=iso(t),age_minutes=round((NOW-t).total_seconds()/60,1),image_format=image.format,image_bytes=len(raw),time_method=method,visible_fraction=round(visible/360000,4),domain_cors=domain_cors,image_cors=h2.get('Access-Control-Allow-Origin'),status='sample_valid')
+                return
+        except Exception as e:
+            last=e;emit(kind='image_error',layer=layer,time=iso(t),reason=str(e)[:850])
+    raise ValueError(str(last))
 class Links(HTMLParser):
     def __init__(self):super().__init__();self.links=[]
     def handle_starttag(self,tag,attrs):
@@ -119,9 +121,12 @@ def validate_water_vapor(item):
             if h.get('Access-Control-Allow-Origin') not in ('*',ORIGIN):raise ValueError('Direct browser access not confirmed')
             with Dataset('memory.nc',memory=raw) as ds:
                 emit(kind='water_vapor_schema',band=band,bytes=len(raw),format=ds.data_model,dimensions={k:len(v) for k,v in ds.dimensions.items()},variables={k:{'shape':v.shape,'dims':v.dimensions,'units':str(getattr(v,'units','')),'standard_name':str(getattr(v,'standard_name','')),'grid_mapping':str(getattr(v,'grid_mapping',''))} for k,v in ds.variables.items()})
-                candidates=[v for k,v in ds.variables.items() if k.lower() in ('cmi','brightness_temperature','tbb','band'+band[1:]) or getattr(v,'standard_name','')=='toa_brightness_temperature']
-                if len(candidates)!=1:raise ValueError('Unambiguous brightness temperature variable not found')
-                v=candidates[0]
+                # Official ABI CMI is a 2-D field. Scalar min/max/mean share the same standard_name.
+                v=ds.variables.get('CMI')
+                if v is None or v.dimensions!=('y','x') or getattr(v,'standard_name','')!='toa_brightness_temperature':raise ValueError('Official CMI field absent or invalid')
+                if int(np.asarray(ds.variables['band_id'][:]).reshape(-1)[0])!=int(band[1:]):raise ValueError('Wrong ABI band')
+                quality=ds.variables.get('DQF')
+                if quality is None or quality.dimensions!=v.dimensions or quality.shape!=v.shape:raise ValueError('Missing quality flags')
                 if v.ndim<2 or any(i!=1 for i in v.shape[:-2]):raise ValueError('Unexpected temperature dimensions')
                 units=str(getattr(v,'units','')).lower().strip()
                 if units not in ('k','kelvin','degc','celsius','degree_celsius','degrees_celsius','°c'):raise ValueError('Unsupported brightness temperature units '+units)
@@ -156,7 +161,9 @@ def validate_water_vapor(item):
                     if np.ma.is_masked(value):raise ValueError('Missing observation: '+region)
                     c=float(value)-(273.15 if units in ('k','kelvin') else 0)
                     if not -120<=c<=80:raise ValueError('Invalid brightness temperature')
-                    samples.append({'region':region,'row':iy,'column':ix,'celsius':round(c,2)})
+                    flag=quality[iy,ix]
+                    if np.ma.is_masked(flag) or int(flag) not in (0,1):raise ValueError('Unusable quality flag: '+region)
+                    samples.append({'region':region,'row':iy,'column':ix,'celsius':round(c,2),'dqf':int(flag)})
                 emit(kind='water_vapor',band=band,time=iso(stamp),bytes=len(raw),cors=h.get('Access-Control-Allow-Origin'),samples=samples,status='sample_valid')
                 passed.append('Band'+band[1:])
         except Exception as e:emit(kind='water_vapor',band=band,status='unavailable',reason=str(e)[:800])
