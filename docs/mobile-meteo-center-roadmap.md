@@ -42,3 +42,6 @@ Avaliar netcdfjs 4.0.0 (MIT; NetCDF clássico) e h5wasm 0.10.3 (licença no paco
 
 ## Gate de compatibilidade WebView
 Diagnóstico 46134076492: os 750 mil valores coincidiram com a referência Python nas três grades. Próxima validação empacota leitor navegador (esbuild 0.25.12), testa Web Worker local com CSP restritiva e compara novamente todas as células reais. Não é ainda teste no Android físico. Leitor e worker de desenvolvimento isolados em tools; ainda não distribuídos no APK. Limite de bundle 12 MiB, de arquivo 32 MiB, timeout 30 s por leitura no navegador. Sem CDN em execução.
+
+## Empacotamento local
+Validação 46134923013: três planos reais coincidiram integralmente no navegador, bundle 5.609.889 bytes. O build Android agora prepara o worker local e verifica o conteúdo e avisos de licença dos APKs. O diagnóstico usa exatamente o mesmo gerador e inspeciona CORS e caminhos reais das fontes antes de autorizar downloads na WebView. O worker ainda não é chamado pelo mapa; essa ligação depende do resultado do acesso direto. As versões diretas dos três pacotes são fixadas, e a árvore transitiva deverá ser congelada antes da publicação. Não liberar APK ou alterar o site/TV.

@@ -42,7 +42,16 @@ androidComponents {
   if (variant.name == 'stable') variant.outputs.each { output -> output.versionCode.set(67) }
  }
 }
+tasks.register('prepareCappiReader', Exec) {
+ workingDir rootProject.projectDir.parentFile
+ def output = layout.buildDirectory.dir('generated/cappiVendor')
+ inputs.files('../../tools/build-inpe-cappi-worker.mjs','../../tools/inpe-cappi-reader.mjs','../../tools/inpe-cappi-browser-worker.mjs','src/main/assets/inpe-radar-grid.mjs')
+ outputs.dir output
+ commandLine 'node', 'tools/build-inpe-cappi-worker.mjs', output.get().asFile.absolutePath
+}
 tasks.register('preparePhoneAssets', Sync) {
+ dependsOn 'prepareCappiReader'
+ from(layout.buildDirectory.dir('generated/cappiVendor')) { into 'vendor/cappi' }
  from('../../android-tv/app/src/main/assets') { include 'fonts/**'; include 'flags/**' }
  from('../../js') { include 'brazil-satellite-model.js'; include 'brazil-satellite.js' }
  from('../../css') { include 'brazil-satellite.css' }

@@ -71,9 +71,31 @@ jobs:
           node --check android-mobile/app/src/main/assets/phone-boundaries.js
           node --check android-mobile/app/src/main/assets/phone-brazil-model.js
           node --test tests/unit/phone-map-boundaries.test.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Build and inspect phone APKs
         working-directory: android-mobile
         run: ./gradlew --no-daemon :app:assembleDebug :app:lintDebug :app:assembleStable :app:lintStable :app:assembleRelease :app:lintRelease :app:testDebugUnitTest
+      - name: Verify packaged CAPPI reader and license notices
+        run: |
+          python - <<'PY'
+          import zipfile,json
+          for kind in ('debug','stable','release'):
+              from pathlib import Path
+              files=list(Path('android-mobile/app/build/outputs/apk/'+kind).glob('*.apk'))
+              assert files,kind
+              for apk in files:
+                  with zipfile.ZipFile(apk) as z:
+                      root='assets/vendor/cappi/'
+                      bundle=z.read(root+'inpe-cappi-worker.mjs')
+                      info=json.loads(z.read(root+'BUILD-INFO.json'))
+                      assert 1000000<len(bundle)<12*1024*1024
+                      assert info['bytes']==len(bundle)
+                      notices=z.read(root+'THIRD-PARTY-NOTICES.txt')
+                      assert b'netcdfjs' in notices and b'h5wasm' in notices
+                      print(apk, len(bundle), info['packages'])
+          PY
       - name: Verify native phone navigation and lifecycle
         working-directory: android-mobile
         run: ./gradlew --no-daemon -PphoneUiChecks :app:testDebugUnitTest

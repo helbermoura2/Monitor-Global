@@ -2,7 +2,7 @@
 import {build} from 'esbuild';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
-import {readFile,stat,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,stat,mkdtemp,rm,copyFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
@@ -10,7 +10,8 @@ const dir=await mkdtemp(join(tmpdir(),'argos-cappi-browser-'));
 let browser,server;
 try{
  const bundle=join(dir,'worker.mjs');
- await build({entryPoints:['tools/inpe-cappi-browser-worker.mjs'],outfile:bundle,bundle:true,platform:'browser',format:'esm',target:'chrome100',minify:true,legalComments:'inline',logLevel:'warning'});
+ if(process.argv[2])await copyFile(process.argv[2],bundle);
+ else await build({entryPoints:['tools/inpe-cappi-browser-worker.mjs'],outfile:bundle,bundle:true,platform:'browser',format:'esm',target:'chrome100',minify:true,legalComments:'inline',logLevel:'warning'});
  const size=(await stat(bundle)).size;
  assert.ok(size>0&&size<12*1024*1024,'Browser bundle exceeds budget');
  const csp="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'";
