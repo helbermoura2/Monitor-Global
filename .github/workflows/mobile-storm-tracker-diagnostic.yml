@@ -2,7 +2,7 @@ name: Meteo Center — Storm Tracker diagnóstico real
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['tools/probe-storm-sequences.mjs','tools/check-storm-reference.py','tools/check-storm-sequences.mjs','android-mobile/app/src/main/assets/phone-storm-tracker.mjs','.github/workflows/mobile-storm-tracker-diagnostic.yml']
+    paths: ['tools/probe-storm-sequences.mjs','tools/screen-storm-frame.py','tools/check-storm-reference.py','tools/check-storm-sequences.mjs','android-mobile/app/src/main/assets/phone-storm-tracker.mjs','.github/workflows/mobile-storm-tracker-diagnostic.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,11 +17,15 @@ jobs:
           node-version: '22'
       - name: Testar algoritmo e casos ambíguos
         run: node --test tests/unit/phone-storm-tracker.test.mjs
-      - name: Coletar sequências CAPPI oficiais
-        run: node tools/probe-storm-sequences.mjs
-      - name: Comparar componentes independentes e medir erro retrospectivo
+      - name: Preparar referência científica
         run: |
           python3 -m venv /tmp/argos-storm
           /tmp/argos-storm/bin/pip install --quiet netCDF4 numpy scipy
+      - name: Coletar e selecionar sequências CAPPI oficiais
+        env:
+          STORM_PYTHON: /tmp/argos-storm/bin/python
+        run: node tools/probe-storm-sequences.mjs
+      - name: Comparar componentes independentes e medir erro retrospectivo
+        run: |
           /tmp/argos-storm/bin/python tools/check-storm-reference.py
           node tools/check-storm-sequences.mjs

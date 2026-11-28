@@ -1,11 +1,23 @@
 import {discover} from '../android-mobile/app/src/main/assets/inpe-radar-catalog.mjs';
 import {selectCappi,fetchCappi} from '../android-mobile/app/src/main/assets/inpe-radar-layer-model.mjs';
 import {writeFile,mkdir} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
 const root='/tmp/argos-storm-sequences';await mkdir(root,{recursive:true});
 const regions=[['Sudeste',[-48,-25,-45,-22]],['Sul',[-57,-32,-48,-23]],['Nordeste',[-43,-13,-34,-3]],['Norte',[-65,-9,-55,1]],['Centro-Oeste',[-58,-22,-48,-12]],['Sudeste leste',[-49,-25,-40,-17]]];
-const now=Date.now(),cases=[...regions.map(([region,bounds])=>({region,bounds,now,mode:'recent'})),{region:'São Paulo',bounds:regions[0][1],now:Date.parse('2026-11-19T16:00:00Z'),mode:'historical'}];
-cases.push({region:'Sul',bounds:regions[1][1],now:Date.parse('2026-10-12T18:00:00Z'),mode:'historical'});
-const sequences=[],seen=new Set();let downloads=0;
+const now=Date.now();
+const historic=(region,bounds,time)=>({region,bounds,now:Date.parse(time),mode:'historical'});
+// Explicit archive sampling windows, not claims of a storm at these exact times.
+const cases=[
+ ...['2026-11-22T18:00:00Z','2026-11-22T21:00:00Z','2026-11-22T23:00:00Z','2026-11-19T16:00:00Z'].map(t=>historic('Sudeste SP',regions[0][1],t)),
+ historic('Sul',regions[1][1],'2026-10-12T18:00:00Z'),
+ historic('Sudeste leste',regions[5][1],'2026-11-22T21:00:00Z'),
+ ...regions.map(([region,bounds])=>({region,bounds,now,mode:'recent'}))
+];
+const python=process.env.STORM_PYTHON||'python3';
+function screen(file){
+ return JSON.parse(execFileSync(python,['tools/screen-storm-frame.py',file],{encoding:'utf8',timeout:20000,maxBuffer:65536}));
+}
+const sequences=[],seen=new Set();let downloads=0,attempts=0;
 for(const c of cases){
  if(sequences.length>=6||downloads+3>18)break;
  try{
@@ -24,12 +36,18 @@ for(const c of cases){
   for(const seq of candidates.slice(0,2)){
    if(sequences.length>=6||downloads+3>18)break;
    try{
-    const files=[];
-    for(let i=0;i<3;i++){
+    const files=new Array(3),attempt=++attempts;
+    // Screen the actual middle frame before spending bandwidth on its neighbours.
+    // Keep the first complete sequence as a control even if there are no hot objects.
+    for(const i of [1,0,2]){
      const f=seq[i],selected=selectCappi(f,3000,c.now);downloads++;
      const bytes=await fetchCappi(selected.href,AbortSignal.timeout(45000));
-     const file=root+'/'+sequences.length+'-'+i+'.nc';await writeFile(file,new Uint8Array(bytes));files.push({file,id:f.id,time:f.time});
+     const file=root+'/'+attempt+'-'+i+'.nc';await writeFile(file,new Uint8Array(bytes));files[i]={file,id:f.id,time:f.time};
+     const report=screen(file);
+     console.log(JSON.stringify({region:c.region,radar:f.radar,mode:c.mode,frame:i,time:new Date(f.time).toISOString(),screen:report}));
+     if(sequences.length>0&&report.objects===0&&i!==2)break;
     }
+    if(files.filter(Boolean).length!==3)continue;
     sequences.push({radar:seq[0].radar,owner:seq[0].owner,product:'cappi3km',altitude:3000,mode:c.mode,region:c.region,now:c.now,frames:files});
    }catch(e){console.log(JSON.stringify({region:c.region,status:'sequence_unavailable',reason:e.message}));}
   }
@@ -37,4 +55,4 @@ for(const c of cases){
 }
 await writeFile(root+'/manifest.json',JSON.stringify(sequences));
 if(!sequences.length)throw Error('No real three-frame sequence; validation pending');
-console.log(JSON.stringify({sequences:sequences.length,downloads}));
+console.log(JSON.stringify({sequences:sequences.length,downloads,attempts,selection:'middle-frame screening; not representative of climatology'}));
