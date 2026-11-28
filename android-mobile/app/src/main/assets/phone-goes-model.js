@@ -35,10 +35,7 @@
   for(const item of data.features){
    const time=Date.parse(item?.properties?.datetime),asset=item?.assets?.[band];
    if(item.collection!==COLLECTION||!Number.isFinite(time)||time>now||now-time>MAX_AGE||!asset||asset.type!=='application/x-netcdf'||typeof asset.href!=='string')continue;
-   try{const url=new URL(asset.href);if(url.protocol!=='https:'||url.hostname!=='data.inpe.br'||url.username||url.password||url.port||url.search||url.hash||!new RegExp('^/bdc/data/GOES19-L2-CMI/ch'+band.slice(1)+'/[0-9]{4}/(0[1-9]|1[0-2])/[A-Za-z0-9_-]{1,100}[.]nc,product,LAYER,BASE,BOUNDS,SIZE,STEP,MAX_AGE,coordinates:[[BOUNDS[0],BOUNDS[3]],[BOUNDS[2],BOUNDS[3]],[BOUNDS[2],BOUNDS[1]],[BOUNDS[0],BOUNDS[1]]],iso,point,domainUrl,frames,imageUrl,intersects,clip};
- root.BrazilSatelliteModel=api;if(typeof module==='object'&&module.exports)module.exports=api;
-})(typeof globalThis!=='undefined'?globalThis:this);
-).test(url.pathname))continue;out.set(time,url.href);}catch{}
+   try{const url=new URL(asset.href);if(url.protocol!=='https:'||url.hostname!=='data.inpe.br'||url.username||url.password||url.port||url.search||url.hash||!new RegExp('^/bdc/data/GOES19-L2-CMI/ch'+band.slice(1)+'/[0-9]{4}/(0[1-9]|1[0-2])/[A-Za-z0-9_-]{1,100}[.]nc$').test(url.pathname))continue;out.set(time,url.href);}catch{}
   }
   return [...out].sort((a,b)=>b[0]-a[0]).slice(0,1);
  }
