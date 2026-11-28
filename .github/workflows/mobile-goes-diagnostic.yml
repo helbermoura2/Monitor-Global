@@ -2,7 +2,7 @@ name: Meteo Center — diagnóstico satélite GOES
 on:
   push:
     branches: [feat/mobile-meteo-center-inpe-radar]
-    paths: ['tools/probe-mobile-goes.py','tools/goes-water-vapor-reader.mjs','tools/check-goes-water-vapor.mjs','tools/goes-water-vapor-browser-worker.mjs','tools/check-goes-water-vapor-browser.mjs','android-mobile/app/src/main/assets/phone-goes-grid.mjs','.github/workflows/mobile-goes-diagnostic.yml']
+    paths: ['tools/probe-mobile-goes.py','tools/goes-water-vapor-reader.mjs','tools/check-goes-water-vapor.mjs','tools/goes-water-vapor-browser-worker.mjs','tools/inpe-cappi-browser-worker.mjs','tools/build-inpe-cappi-worker.mjs','tools/check-goes-water-vapor-browser.mjs','android-mobile/app/src/main/assets/phone-goes-grid.mjs','.github/workflows/mobile-goes-diagnostic.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,7 +28,9 @@ jobs:
           node tools/check-goes-water-vapor.mjs
       - name: Validar leitor de vapor GOES no navegador com WebAssembly
         if: ${{ !cancelled() }}
-        run: node tools/check-goes-water-vapor-browser.mjs
+        run: |
+          node tools/build-inpe-cappi-worker.mjs /tmp/argos-goes-bundle/vendor
+          node tools/check-goes-water-vapor-browser.mjs /tmp/argos-goes-bundle/vendor/inpe-cappi-worker.mjs
       - name: Exigir dados recentes para uso operacional
         if: ${{ !cancelled() }}
         run: |

@@ -1,5 +1,5 @@
 // Test the same decoder under browser CSP, not only in Node.
-import {build} from 'esbuild';
+import {copyFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {createServer} from 'node:http';
 import {readFile,stat,mkdtemp,rm} from 'node:fs/promises';
@@ -10,7 +10,8 @@ const dir=await mkdtemp(join(tmpdir(),'argos-goes-browser-'));
 let browser,server;
 try{
  const bundle=join(dir,'worker.mjs');
- await build({entryPoints:['tools/goes-water-vapor-browser-worker.mjs'],outfile:bundle,bundle:true,platform:'browser',format:'esm',target:'chrome100',minify:true,legalComments:'inline',logLevel:'warning'});
+ if(!process.argv[2])throw Error('Supply the packaged shared reader');
+ await copyFile(process.argv[2],bundle);
  const bundleBytes=(await stat(bundle)).size;
  assert(bundleBytes>1000000&&bundleBytes<12*1024*1024);
  const files=new Map([['/worker.mjs',[bundle,'text/javascript']],...['B08','B09','B10'].map(b=>['/'+b+'.nc',['/tmp/argos-goes-'+b+'.nc','application/octet-stream']])]);
@@ -42,7 +43,7 @@ try{
      if(!(data.celsius instanceof Float32Array&&data.quality instanceof Uint8Array&&data.rows instanceof Int32Array&&data.columns instanceof Int32Array)){finish('Invalid worker output');return;}
      finish(null,{celsius:Array.from(data.celsius,v=>Number.isNaN(v)?null:v),quality:Array.from(data.quality),rows:Array.from(data.rows),columns:Array.from(data.columns),cropPixels:data.cropPixels,elapsedMs:Math.round(performance.now()-start)});
     };
-    worker.postMessage({id:1,band,size,bytes},[bytes]);
+    worker.postMessage({id:1,kind:'goes-vapor',band,size,bytes},[bytes]);
    });
   },{band,size:reference.size});
   assert.equal(result.celsius.length,reference.size**2);

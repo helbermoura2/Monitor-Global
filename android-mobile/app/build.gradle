@@ -45,7 +45,7 @@ androidComponents {
 tasks.register('prepareCappiReader', Exec) {
  workingDir rootProject.projectDir.parentFile
  def output = layout.buildDirectory.dir('generated/cappiVendor')
- inputs.files('../../tools/build-inpe-cappi-worker.mjs','../../tools/inpe-cappi-reader.mjs','../../tools/inpe-cappi-browser-worker.mjs','src/main/assets/inpe-radar-grid.mjs')
+ inputs.files('../../tools/build-inpe-cappi-worker.mjs','../../tools/inpe-cappi-reader.mjs','../../tools/inpe-cappi-browser-worker.mjs','src/main/assets/inpe-radar-grid.mjs','../../tools/goes-water-vapor-reader.mjs','src/main/assets/phone-goes-grid.mjs')
  outputs.dir output
  commandLine 'node', 'tools/build-inpe-cappi-worker.mjs', output.get().asFile.absolutePath
 }
