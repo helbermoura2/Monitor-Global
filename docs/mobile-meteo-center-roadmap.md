@@ -78,3 +78,6 @@ Android 46151006648 passou; GOES 46151001449 aprovou as seis fontes, porém a co
 
 ## Separação de atualidade e validação científica
 Execução 46151743418 não chegou à comparação de 270 mil pontos: último quadro INPE 12:20Z, consulta 13:52Z, acima do limite de 90 min. Agora a comparação científica pode usar uma observação real dentro da janela de busca de 3h, explicitamente marcada scientific_reference_only quando defasada. O workflow exige separadamente as três bandas e idade <=90 min para aprovação operacional; uma fonte atrasada continua deixando a verificação vermelha mesmo com leitor aprovado. Não alterar a regra de atualidade do aplicativo. Nenhum APK publicado.
+
+## Etapa 2C — comparação científica aprovada
+Execução 46151883732: 270.000/270.000 posições válidas, igualdade de coordenadas e qualidade; diferença máxima de temperatura 0,0000228 °C. Recorte de 4.544.586 pixels de 29.419.776 (redução de 84,55%). Falha exclusivamente operacional: idade 94,03 minutos no início da consulta. Não alterar o limite de 90 min. Próximo gate testa o mesmo leitor empacotado num Worker de navegador sob CSP restrita, comparando novamente todas as posições, temperaturas e máscaras; sem integração à UI nem publicação. O gate de atualidade permanece obrigatório e independente.
