@@ -103,6 +103,19 @@ def lightning_index():
             url=up.urljoin(INPE,href);u=up.urlparse(url)
             if u.hostname=='granizo1.cptec.inpe.br' and url.startswith(INPE) and not u.query and not u.fragment:links.append(href)
         emit(kind='lightningcast_index',status='reachable',cors=h.get('Access-Control-Allow-Origin'),links=links[-25:],count=len(links),note='Geometry, freshness and reuse permission still unverified')
+        for folder in ('png/','png_sp/'):
+            if folder not in links:continue
+            try:
+                raw,headers=get(INPE+folder,2*1024*1024);sub=Links();sub.feed(raw.decode('utf8',errors='replace'))
+                files=sorted(set(x for x in sub.links if re.fullmatch(r'[A-Za-z0-9_.-]{1,180}[.]png',x,re.I)))
+                emit(kind='lightningcast_files',folder=folder,count=len(files),latest_names=files[-8:],cors=headers.get('Access-Control-Allow-Origin'))
+                if files:
+                    raw,headers=get(INPE+folder+files[-1],4*1024*1024)
+                    with Image.open(io.BytesIO(raw)) as image:
+                        assert image.format=='PNG';image.verify()
+                    with Image.open(io.BytesIO(raw)) as image:
+                        emit(kind='lightningcast_sample',folder=folder,name=files[-1],size=image.size,mode=image.mode,bytes=len(raw),metadata={k:str(v)[:250] for k,v in image.info.items() if k in ('Description','Title','Software','timestamp','creation_time')},cors=headers.get('Access-Control-Allow-Origin'),note='Diagnostic only; not verified georeferenced or current')
+            except Exception as e:emit(kind='lightningcast_folder',folder=folder,status='unavailable',reason=str(e)[:500])
     except Exception as e:emit(kind='lightningcast_index',status='unavailable',reason=str(e)[:250])
 def validate_water_vapor(item):
     import numpy as np

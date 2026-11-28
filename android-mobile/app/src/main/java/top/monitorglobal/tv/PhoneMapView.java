@@ -81,7 +81,7 @@ final class PhoneMapView extends FrameLayout {
     @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
      Uri uri=request.getUrl();
      if(localAsset(uri)){WebResourceResponse response=loader.shouldInterceptRequest(uri);if(response!=null&&brazilPage&&(uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-catalog.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-panel-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-grid.mjs")||uri.getPath().equals(ASSET_PREFIX+"inpe-radar-layer-model.mjs")||uri.getPath().equals(ASSET_PREFIX+"vendor/cappi/inpe-cappi-worker.mjs")))response.setMimeType("text/javascript");return response==null?blocked():response;}
-     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||inpeCappiResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
+     return tileResource(uri)||(!rainPage&&!brazilPage&&(satelliteResource(uri)||municipalMeshResource(uri)))||(rainPage&&(rainResource(uri)||streetResource(uri)||municipalMeshResource(uri)))||(brazilPage&&(forecastResource(uri)||satelliteResource(uri)||mobileGoesResource(uri)||radarResource(uri)||inpeCatalogResource(uri)||inpeCappiResource(uri)||weatherObservationResource(uri)||municipalMeshResource(uri)))?null:blocked();
     }
     @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest request){
      if(allowedPage(request.getUrl()))return false;
@@ -145,6 +145,18 @@ final class PhoneMapView extends FrameLayout {
  static boolean localAsset(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"appassets.androidplatform.net".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith(ASSET_PREFIX);}
  static boolean streetResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Street_Map/MapServer/tile/");}
  static boolean tileResource(Uri uri){return "https".equalsIgnoreCase(uri.getScheme())&&"server.arcgisonline.com".equalsIgnoreCase(uri.getHost())&&uri.getUserInfo()==null&&uri.getPort()==-1&&uri.getPath()!=null&&uri.getPath().startsWith("/ArcGIS/rest/services/World_Imagery/MapServer/tile/");}
+ static boolean mobileGoesResource(Uri uri){
+  if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||uri.getFragment()!=null||uri.getQuery()==null||uri.getQuery().length()>800)return false;
+  String path=uri.getPath(),layer;
+  if("/wms/epsg3857/best/wms.cgi".equals(path)){
+   if(!"GetMap".equals(uri.getQueryParameter("REQUEST"))||!"EPSG:3857".equals(uri.getQueryParameter("SRS"))||!"1200".equals(uri.getQueryParameter("WIDTH"))||!"1200".equals(uri.getQueryParameter("HEIGHT"))||!"image/png".equals(uri.getQueryParameter("FORMAT")))return false;
+   layer=uri.getQueryParameter("LAYERS");
+  }else if("/wmts/epsg3857/best/wmts.cgi".equals(path)){
+   if(!"DescribeDomains".equals(uri.getQueryParameter("REQUEST")))return false;
+   layer=uri.getQueryParameter("LAYER");
+  }else return false;
+  return "GOES-East_ABI_GeoColor".equals(layer)||"GOES-East_ABI_Air_Mass".equals(layer);
+ }
  static boolean satelliteResource(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||!"gibs.earthdata.nasa.gov".equalsIgnoreCase(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1)return false;String p=uri.getPath();if("/legends/Clean_Longwave_Infrared_Window_Band_H.png".equals(p))return true;String layer=uri.getQueryParameter("LAYERS");if(layer==null)layer=uri.getQueryParameter("LAYER");return "GOES-East_ABI_Band13_Clean_Infrared".equals(layer)&&("/wms/epsg3857/best/wms.cgi".equals(p)||"/wmts/epsg3857/best/wmts.cgi".equals(p));}
  static boolean attributionLink(Uri uri){if(!"https".equalsIgnoreCase(uri.getScheme())||uri.getPort()!=-1)return false;String host=uri.getHost();return "www.earthdata.nasa.gov".equalsIgnoreCase(host)||"www.esri.com".equalsIgnoreCase(host)||"www.arcgis.com".equalsIgnoreCase(host)||"maplibre.org".equalsIgnoreCase(host)||"open-meteo.com".equalsIgnoreCase(host)||"www.rainviewer.com".equalsIgnoreCase(host);}
  private static WebResourceResponse blocked(){return new WebResourceResponse("text/plain","UTF-8",403,"Blocked",Collections.singletonMap("Cache-Control","no-store"),new ByteArrayInputStream("Recurso indisponível".getBytes(StandardCharsets.UTF_8)));}

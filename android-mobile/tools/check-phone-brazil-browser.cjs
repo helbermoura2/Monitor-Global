@@ -111,6 +111,13 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
  assert.match(await page.locator('#time-label').innerText(),/BRT/,'forecast retains its own time');
  assert.equal(await page.locator('.radar-control').isVisible(),false);
  await page.screenshot({path:path.join(output,'satellite-packaged-fixture.png'),fullPage:true});
+ const goesSelect=page.getByLabel('Produto GOES-19');
+ for(const [key,label] of [['color','GeoColor'],['air','RGB Air Mass'],['ir','Infravermelho']]){
+  await goesSelect.selectOption(key);
+  await page.waitForFunction(label=>document.querySelector('.br-satellite-status')?.textContent.includes(label+' · ')&&document.querySelector('.br-satellite-status')?.textContent.includes('BRT')&&window.__map.getLayer('br-satellite-layer'),label);
+  assert.equal(await page.locator('.br-satellite-legend').isVisible(),key==='ir');
+ }
+
  await page.locator('#severe-toggle').click();
  await page.waitForFunction(()=>document.querySelector('#severe-lightning-status').textContent.includes('88 detecções')&&
   document.querySelector('#severe-notice-status').textContent.includes('1 alerta municipal')&&
