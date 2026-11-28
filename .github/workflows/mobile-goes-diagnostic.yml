@@ -22,6 +22,20 @@ jobs:
       - name: Verificar catálogo, horários, imagens e CORS GOES
         run: /tmp/argos-goes/bin/python tools/probe-mobile-goes.py
       - name: Comparar recorte GOES com referência científica
+        if: ${{ !cancelled() }}
         run: |
           npm install --no-save --package-lock=false --ignore-scripts --no-audit --no-fund h5wasm@0.10.3
           node tools/check-goes-water-vapor.mjs
+      - name: Exigir dados recentes para uso operacional
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          import json, pathlib, sys
+          path=pathlib.Path('/tmp/argos-goes-freshness.json')
+          if not path.exists():
+              sys.exit('Disponibilidade recente não confirmada: sem metadados válidos')
+          result=json.loads(path.read_text())
+          print(json.dumps(result,ensure_ascii=False))
+          if result.get('fresh') is not True or set(result.get('bands',[]))!={'Band08','Band09','Band10'}:
+              sys.exit('Fonte INPE defasada ou incompleta: validação operacional pendente, mesmo se o leitor científico passar')
+          PY

@@ -124,8 +124,12 @@ def validate_water_vapor(item):
     passed=[]
     points=[('Norte',-60.02,-3.10),('Nordeste',-38.50,-12.97),('Centro-Oeste',-47.88,-15.79),('Sudeste',-46.63,-23.55),('Sul',-51.23,-30.03)]
     stamp=parse_time(item.get('properties',{}).get('datetime',''))
-    if not stamp or stamp.tzinfo is None or not NOW-dt.timedelta(minutes=90)<=stamp<=NOW:
-        emit(kind='water_vapor',status='unavailable',reason='No recent timestamp');return passed
+    if not stamp or stamp.tzinfo is None or not NOW-dt.timedelta(hours=3)<=stamp<=NOW:
+        emit(kind='water_vapor',status='unavailable',reason='No bounded reference timestamp');return passed
+    age_minutes=(NOW-stamp).total_seconds()/60
+    fresh=age_minutes<=90
+    emit(kind='water_vapor_reference',time=iso(stamp),age_minutes=round(age_minutes,2),fresh=fresh,mode='recent' if fresh else 'scientific_reference_only')
+    # An older real file may prove the decoder, never live availability.
     for band in ('B08','B09','B10'):
         try:
             asset=item['assets'][band];url=asset['href'];u=up.urlparse(url)
@@ -191,7 +195,7 @@ def validate_water_vapor(item):
                     flag=quality[iy,ix]
                     if np.ma.is_masked(flag) or int(flag) not in (0,1):raise ValueError('Unusable quality flag: '+region)
                     samples.append({'region':region,'row':iy,'column':ix,'celsius':round(c,2),'dqf':int(flag)})
-                emit(kind='water_vapor',band=band,time=iso(stamp),bytes=len(raw),cors=h.get('Access-Control-Allow-Origin'),samples=samples,status='sample_valid')
+                emit(kind='water_vapor',band=band,time=iso(stamp),bytes=len(raw),cors=h.get('Access-Control-Allow-Origin'),samples=samples,status='sample_valid',fresh=fresh,reference_only=not fresh)
                 # Independent reference: vectorized PROJ conversion and bounded rectangular read.
                 # All 90,000 raster positions are compared against the mobile JS decoder.
                 size=300
@@ -238,10 +242,21 @@ def inpe_goes_catalog():
             assets={k:{'type':v.get('type'),'path':up.urlparse(v.get('href','')).path,'host':up.urlparse(v.get('href','')).hostname} for k,v in item.get('assets',{}).items()}
             emit(kind='inpe_goes_item',id=item.get('id'),time=item.get('properties',{}).get('datetime'),assets=assets)
         emit(kind='inpe_goes_summary',count=len(features))
-        eligible=[i for i in features if all(b in i.get('assets',{}) for b in ('B08','B09','B10')) and parse_time(i.get('properties',{}).get('datetime','')) is not None]
-        return validate_water_vapor(max(eligible,key=lambda i:parse_time(i['properties']['datetime']))) if eligible else []
+        eligible=[]
+        for item in features:
+            stamp=parse_time(item.get('properties',{}).get('datetime',''))
+            if stamp and stamp.tzinfo is not None and NOW-dt.timedelta(hours=3)<=stamp<=NOW and all(b in item.get('assets',{}) for b in ('B08','B09','B10')):
+                eligible.append((stamp,item))
+        if not eligible:return []
+        stamp,item=max(eligible,key=lambda p:p[0])
+        passed=validate_water_vapor(item)
+        from pathlib import Path
+        Path('/tmp/argos-goes-freshness.json').write_text(json.dumps({'fresh':NOW-stamp<=dt.timedelta(minutes=90),'time':iso(stamp),'checked_at':iso(NOW),'age_minutes':(NOW-stamp).total_seconds()/60,'bands':passed}))
+        return passed
     except Exception as e:emit(kind='inpe_goes_catalog',status='unavailable',reason=str(e)[:850]);return []
 def main():
+    from pathlib import Path
+    Path('/tmp/argos-goes-freshness.json').unlink(missing_ok=True)
     lightning_index()
     water_passed=inpe_goes_catalog()
     raw,_=get(query(WMTS,SERVICE='WMTS',REQUEST='GetCapabilities',VERSION='1.0.0'))
