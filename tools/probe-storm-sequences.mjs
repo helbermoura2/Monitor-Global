@@ -42,7 +42,7 @@ for(const c of cases){
     for(const i of [1,0,2]){
      const f=seq[i],selected=selectCappi(f,3000,c.now);downloads++;
      const bytes=await fetchCappi(selected.href,AbortSignal.timeout(45000));
-     const file=root+'/'+attempt+'-'+i+'.nc';await writeFile(file,new Uint8Array(bytes));files[i]={file,id:f.id,time:f.time};
+     const file=root+'/'+attempt+'-'+i+'.nc';await writeFile(file,new Uint8Array(bytes));files[i]={file,id:f.id,time:f.time,href:selected.href,bounds:f.bounds};
      const report=screen(file);
      console.log(JSON.stringify({region:c.region,radar:f.radar,mode:c.mode,frame:i,time:new Date(f.time).toISOString(),screen:report}));
      if(sequences.length>0&&report.objects===0&&i!==2)break;

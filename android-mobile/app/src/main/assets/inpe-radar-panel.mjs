@@ -136,7 +136,7 @@ async function query(){
 $('inpe-catalog-toggle').addEventListener('click',()=>{window.MonitorMap?.openInpeCatalog?.();});
 $('inpe-catalog-close').addEventListener('click',()=>{cancel();removeLayer();panel.hidden=true;});
 search.addEventListener('click',query);
-window.addEventListener('argos-inpe-pause',()=>{cancel();panel.hidden=true;});
+window.addEventListener('argos-inpe-pause',()=>{cancel();removeLayer();panel.hidden=true;});
 
 $('inpe-map-return').addEventListener('click',()=>window.MonitorMap?.openInpeCatalog?.());
 $('inpe-map-clear').addEventListener('click',()=>{cancel();removeLayer();});

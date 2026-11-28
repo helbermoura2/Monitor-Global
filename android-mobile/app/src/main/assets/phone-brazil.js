@@ -359,7 +359,9 @@ function showForecast(){
  stop();step=0;showValues();syncOverlays();
  document.querySelector('.brazil-main').scrollTop=0;
 }
+const inpeMotionMarkers=[];
 function clearInpe(){
+ for(const marker of inpeMotionMarkers.splice(0))marker.remove();
  for(const id of ['br-inpe-motion-label','br-inpe-motion-point','br-inpe-motion-line'])if(map?.getLayer(id))map.removeLayer(id);
  if(map?.getSource('br-inpe-motion'))map.removeSource('br-inpe-motion');
  if(map?.getLayer('br-inpe-cappi-layer'))map.removeLayer('br-inpe-cappi-layer');
@@ -380,7 +382,13 @@ function showInpe(url,coordinates,label,motion=null){
    map.addSource('br-inpe-motion',{type:'geojson',data:motion,attribution:'Deslocamento estimado entre observações CAPPI INPE'});
    map.addLayer({id:'br-inpe-motion-line',type:'line',source:'br-inpe-motion',filter:['==',['geometry-type'],'LineString'],paint:{'line-color':'#ffffff','line-width':3,'line-opacity':.95}});
    map.addLayer({id:'br-inpe-motion-point',type:'circle',source:'br-inpe-motion',filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':6,'circle-color':'#ff9b32','circle-stroke-color':'#ffffff','circle-stroke-width':2}});
-   map.addLayer({id:'br-inpe-motion-label',type:'symbol',source:'br-inpe-motion',filter:['==',['geometry-type'],'Point'],layout:{'text-field':['get','label'],'text-size':12,'text-offset':[0,1.2],'text-anchor':'top','text-allow-overlap':false},paint:{'text-color':'#ffffff','text-halo-color':'#101010','text-halo-width':2}});
+   // Local DOM text avoids unavailable vector glyph endpoints and works offline.
+   for(const feature of motion.features){
+    if(feature.geometry.type!=='Point')continue;
+    const el=document.createElement('span');el.className='inpe-motion-marker';el.textContent=feature.properties.label;
+    Object.assign(el.style,{fontSize:'11px',fontWeight:'700',color:'#fff',background:'rgba(0,0,0,.88)',border:'1px solid #ff9b32',borderRadius:'5px',padding:'3px 5px',whiteSpace:'nowrap',pointerEvents:'none'});
+    inpeMotionMarkers.push(new maplibregl.Marker({element:el,anchor:'top',offset:[0,9]}).setLngLat(feature.geometry.coordinates).addTo(map));
+   }
   }
   inpeOn=true;$('inpe-map-label').textContent=label;$('inpe-map-readout').hidden=false;
   if(document.body.classList.contains('map-expanded'))setExpanded(false);
